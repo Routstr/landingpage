@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Routstr – A decentralized intelligence protocol.">
+        <meta name="keywords" content="Routstr, decentralized, protocol, Nostr, large language model inference, startup">
+        <meta name="author" content="Routstr Team">
+        <title>Routstr – Decentralized Intelligence Protocol</title>
+        <style>
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+
+    header {
+      position: absolute;
+      top: 20px;
+      left: 30px;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      z-index: 2;
+    }
+
+    .cta {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      text-align: center;
+    }
+
+    .cta a {
+      background: white;
+      color: black;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    .cta a:hover {
+      background: #ccc;
+    }
+
+    footer {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 14px;
+      z-index: 2;
+    }
+
+    footer a {
+      color: #aaa;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+        </style>
+    </head>
+    <body>
+        <canvas id="bgCanvas"></canvas>
+        <header>Routstr</header>
+        <div class="cta">
+            <a href="https://discord.gg/PB8gDeT89B" target="_blank">Join our Discord</a>
+        </div>
+        <footer>
+            <a href="https://github.com/nostr-protocol/nostr" target="_blank">protocol</a>
+            <a href="https://nostr.how" target="_blank">nostr101</a>
+            <a href="https://github.com/fiatjaf/awesome-nostr" target="_blank">platform</a>
+        </footer>
+        <script>
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let nodes = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function createNodes() {
+      nodes = [];
+      for (let i = 0; i < 40; i++) {
+        nodes.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+        });
+      }
+    }
+
+    function drawArrow(from, to) {
+      const headlen = 6;
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const angle = Math.atan2(dy, dx);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(to.x, to.y);
+      ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 6), to.y - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(to.x - headlen * Math.cos(angle + Math.PI / 6), to.y - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.lineTo(to.x, to.y);
+      ctx.fill();
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        node.x += node.vx;
+        node.y += node.vy;
+        if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
+        if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 2, 0, 2 * Math.PI);
+        ctx.fill();
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dist = Math.hypot(node.x - nodes[j].x, node.y - nodes[j].y);
+          if (dist < 100) {
+            drawArrow(node, nodes[j]);
+          }
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    createNodes();
+    animate();
+        </script>
+    </body>
+</html>
