@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { validateNsec, formatPublicKey } from '@/lib/nostr';
+import { validateNsec } from '@/lib/nostr';
 import { useNostr } from '@/context/NostrContext';
 import { generateSecretKey, getPublicKey, nip19 } from 'nostr-tools';
 
@@ -394,7 +394,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                       className="h-3 w-3 bg-black border border-white/30 rounded"
                     />
                     <label htmlFor="saved-key" className="ml-2 text-xs text-gray-300">
-                      I've saved my private key securely
+                      I&apos;ve saved my private key securely
                     </label>
                   </div>
                   

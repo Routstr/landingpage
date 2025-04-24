@@ -1,7 +1,6 @@
 "use client";
 
 import Link from 'next/link';
-import Logo from './Logo';
 import NostrLogin from './NostrLogin';
 
 export default function Header() {

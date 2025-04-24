@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
-import { models, getProviderFromModelName, formatPrice } from '@/app/data/models';
+import { models, getProviderFromModelName } from '@/app/data/models';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +26,7 @@ export default function ModelDetailPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Model Not Found</h1>
-            <p className="text-xl text-gray-400 mb-6">The model you're looking for doesn't exist or is not available.</p>
+            <p className="text-xl text-gray-400 mb-6">The model you&apos;re looking for doesn&apos;t exist or is not available.</p>
             <Link href="/models" className="text-white underline">View all available models</Link>
           </div>
         </div>
@@ -343,7 +343,7 @@ print(response.json()["choices"][0]["message"]["content"])`}
                       >
                         <h3 className="font-bold text-white mb-1">{similarModelName}</h3>
                         <p className="text-sm text-gray-400 mb-2">
-                          {formatPrice(similarModel)}
+                          {similarModel.cost_per_1m_prompt_tokens && similarModel.cost_per_1m_completion_tokens ? `$${(similarModel.cost_per_1m_prompt_tokens / 1000).toFixed(5)}/${(similarModel.cost_per_1m_completion_tokens / 1000).toFixed(5)}` : 'No pricing information'}
                         </p>
                         <div className="flex gap-2">
                           {getModelCapabilities(similarModel.name).slice(0, 2).map((capability, index) => (

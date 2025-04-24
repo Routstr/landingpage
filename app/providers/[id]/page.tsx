@@ -7,6 +7,7 @@ const providersData = {
   openai: {
     name: "OpenAI",
     description: "OpenAI is an AI research and deployment company dedicated to ensuring that artificial general intelligence benefits all of humanity.",
+
     models: [
       { name: "GPT-4 Turbo", price: "$0.06 / 1K tokens", latency: "~150ms", context: "128K tokens" },
       { name: "GPT-4", price: "$0.03 / 1K tokens", latency: "~200ms", context: "8K tokens" },
@@ -69,27 +70,27 @@ const providersData = {
   }
 };
 
-export default function ProviderPage({ params }: { params: { id: string } }) {
-  const provider = providersData[params.id as keyof typeof providersData] || {
+export default async function ProviderPage({ params }: { params: Promise<{ id: string }> }) {
+  const providerId = await params;
+  const provider = providersData[providerId.id as keyof typeof providersData] || {
     name: "Provider not found",
     description: "This provider does not exist in our system.",
     models: [],
-    features: [],
-    website: "/"
+    features: [], website: "/"
   };
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-white">
       <Header />
-      
+
       <main className="flex-grow">
         {/* Provider Header */}
         <div className="py-12 border-b border-white/5">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center mb-6">
-                <Link 
-                  href="/providers" 
+                <Link
+                  href="/providers"
                   className="text-gray-400 hover:text-white mr-4 flex items-center"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
@@ -98,10 +99,10 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
                   Back to providers
                 </Link>
               </div>
-              
+
               <h1 className="text-4xl font-bold mb-4">{provider.name}</h1>
               <p className="text-xl text-gray-300 mb-8">{provider.description}</p>
-              
+
               <div className="flex flex-wrap gap-4 mb-6">
                 {provider.features.map((feature, index) => (
                   <span key={index} className="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-sm">
@@ -109,10 +110,10 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
                   </span>
                 ))}
               </div>
-              
-              <a 
-                href={provider.website} 
-                target="_blank" 
+
+              <a
+                href={provider.website}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center text-white hover:text-gray-300"
               >
@@ -124,13 +125,13 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
-        
+
         {/* Available Models */}
         <div className="py-12">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-2xl font-bold mb-6">Available Models</h2>
-              
+
               <div className="border border-white/10 rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead>
@@ -156,26 +157,26 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
-        
+
         {/* Integration */}
         <div className="py-12 bg-white/5">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <h2 className="text-2xl font-bold mb-6">Start Using {provider.name} via Routstr</h2>
-              
+
               <div className="bg-black border border-white/10 rounded-lg p-6">
                 <h3 className="text-lg font-medium mb-4">Installation</h3>
                 <div className="bg-zinc-900 p-3 rounded mb-6 font-mono text-sm overflow-x-auto">
                   <code>npm install @routstr/sdk</code>
                 </div>
-                
+
                 <h3 className="text-lg font-medium mb-4">Usage Example</h3>
                 <div className="bg-zinc-900 p-3 rounded font-mono text-sm overflow-x-auto">
                   <pre>{`import { Routstr } from '@routstr/sdk';
 
 // Initialize Routstr client
 const routstr = new Routstr({
-  provider: '${params.id}',  // Specify ${provider.name} as provider
+  provider: '${providerId.id}',  // Specify ${provider.name} as provider
   models: ['${provider.models[0]?.name || "Model"}'],
   paymentToken: 'YOUR_CASHU_TOKEN'
 });
@@ -189,7 +190,7 @@ const response = await routstr.chat.completions.create({
 console.log(response.choices[0].message.content);`}</pre>
                 </div>
               </div>
-              
+
               <div className="mt-8 text-center">
                 <Link
                   href="/dashboard"
@@ -202,7 +203,7 @@ console.log(response.choices[0].message.content);`}</pre>
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

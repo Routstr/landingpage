@@ -3,12 +3,12 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CtaSection from "@/components/CtaSection";
-import TestimonialsSection from "@/components/TestimonialsSection";
+// import TestimonialsSection from "@/components/TestimonialsSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import AnalyticsSection from "@/components/AnalyticsSection";
 import HeroSection from "../components/HeroSection";
 import ApiExample from "../components/ApiExample";
-import { getPopularModels, getProviderFromModelName, formatPrice, Model } from "../app/data/models";
+import { getPopularModels, getProviderFromModelName, formatPrice } from "../app/data/models";
 import RoadmapTimeline from "@/components/RoadmapTimeline";
 import { useState } from "react";
 
@@ -59,19 +59,6 @@ export default function Home() {
       ),
       iconBgColor: "bg-white/5",
       iconColor: "text-white"
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: "AI Developer",
-      handle: "aibuilder",
-      quote: "Routstr gives me the flexibility to use any LLM provider without worrying about API key management or centralized censorship."
-    },
-    {
-      name: "Privacy Advocate",
-      handle: "privacyfirst",
-      quote: "The Tor support and Cashu payments make this the first truly privacy-preserving solution for LLM access I've found."
     }
   ];
 
@@ -194,7 +181,6 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-
                 {/* Step 3 */}
                 <div className="flex">
                   <div className="w-14 h-14 rounded-full bg-white/5 mr-6 flex-shrink-0 flex items-center justify-center">
@@ -207,9 +193,9 @@ export default function Home() {
                     <div className="bg-black/30 rounded-lg border border-white/10 p-4">
                       <code className="text-sm font-mono text-white">
                         curl https://api.routstr.org/v1/chat/completions \<br />
-                        &nbsp;&nbsp;-H "Authorization: Bearer cashuA1DkpMbgQ9VkL6U..." \<br />
-                        &nbsp;&nbsp;-H "Content-Type: application/json" \<br />
-                        &nbsp;&nbsp;-d {"'{\"model\": \"gpt-4\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}'"}
+                        &nbsp;&nbsp;-H &quot;Authorization: Bearer cashuA1DkpMbgQ9VkL6U...&quot; \<br />
+                        &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \<br />
+                        &nbsp;&nbsp;-d {"{\"model\": \"gpt-4\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}"}
                       </code>
                     </div>
                   </div>
@@ -395,12 +381,6 @@ export default function Home() {
         title="Simple Architecture, Powerful Results"
         description="One smart client SDK that automatically routes to the best providers"
       />
-
-      {/* Testimonials Section */}
-      {/* <TestimonialsSection
-        title="Built by and for the community"
-        testimonials={testimonials}
-      /> */}
 
       {/* Roadmap Section */}
       <div className="py-20 bg-black border-t border-white/5">

@@ -102,7 +102,7 @@ export const validateNsec = (nsec: string): boolean => {
   try {
     const privateKey = decodePrivateKey(nsec);
     return privateKey !== null;
-  } catch (error) {
+  } catch {
     return false;
   }
 };

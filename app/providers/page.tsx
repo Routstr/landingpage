@@ -86,7 +86,7 @@ export default function ProvidersPage() {
               
               <h1 className="text-4xl font-bold mb-4">AI Providers</h1>
               <p className="text-xl text-gray-300 mb-8">
-                Browse the complete list of AI providers available through Routstr's decentralized marketplace.
+                Browse the complete list of AI providers available through Routstr&apos;s decentralized marketplace.
               </p>
             </div>
           </div>
