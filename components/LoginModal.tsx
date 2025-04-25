@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { validateNsec } from '@/lib/nostr';
 import { useNostr } from '@/context/NostrContext';
 import { generateSecretKey, getPublicKey, nip19 } from 'nostr-tools';
+import { useRouter } from 'next/navigation';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [showNsec, setShowNsec] = useState(false);
   
   const { loginWithNsec, login, isNostrAvailable } = useNostr();
+  const router = useRouter();
 
   const handleExtensionLogin = async () => {
     setError(null);
@@ -35,6 +37,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     try {
       await login();
       onClose();
+      router.push('/settings');
     } catch (error) {
       setError('Failed to connect with extension. Please make sure it\'s installed and try again.');
       console.error('Error logging in with Nostr:', error);
@@ -73,6 +76,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setNsecKey('');
       setError(null);
       onClose();
+      router.push('/settings');
     } else {
       setError('Failed to login with the provided nsec key');
     }
@@ -138,6 +142,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const success = loginWithNsec(generatedNsec);
       if (success) {
         onClose();
+        router.push('/settings');
       } else {
         setError('Failed to login with the generated key');
       }
