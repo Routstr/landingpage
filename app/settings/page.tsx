@@ -3,9 +3,30 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNostr } from '@/context/NostrContext';
 import { useRouter } from 'next/navigation';
-import { CashuMint, CashuWallet, MintQuoteState, getEncodedToken } from '@cashu/cashu-ts';
+import { CashuMint, CashuWallet, MintQuoteState } from '@cashu/cashu-ts';
 import Header from '@/components/Header';
 import QRCode from 'react-qr-code';
+
+// Define types for the data structures
+interface CashuProof {
+  amount: number;
+  secret: string;
+  C: string;
+  id: string;
+  [key: string]: unknown;
+}
+
+interface MintQuoteResponse {
+  quote: string;
+  request?: string;
+  state: MintQuoteState;
+  expiry?: number;
+}
+
+interface SendResult {
+  send: CashuProof[];
+  keep: CashuProof[];
+}
 
 export default function SettingsPage() {
   const { isAuthenticated, publicKey } = useNostr();
@@ -15,11 +36,10 @@ export default function SettingsPage() {
   const [mintUrl, setMintUrl] = useState('https://mint.minibits.cash/Bitcoin');
   const [mintAmount, setMintAmount] = useState('64');
   const [mintInvoice, setMintInvoice] = useState('');
-  const [mintQuote, setMintQuote] = useState<any>(null);
+  const [mintQuote, setMintQuote] = useState<MintQuoteResponse | null>(null);
   const [cashuWallet, setCashuWallet] = useState<CashuWallet | null>(null);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const [isAutoChecking, setIsAutoChecking] = useState(false);
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [tokenToImport, setTokenToImport] = useState('');
@@ -32,6 +52,57 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('wallet');
   const [countdown, setCountdown] = useState(5);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Define checkMintQuote before using it in useEffect
+  const checkMintQuote = async () => {
+    if (!cashuWallet || !mintQuote) return;
+
+    // Don't set loading state during auto-checking
+    if (!isAutoChecking) {
+      setLoading(true);
+    }
+    setError(''); // Only clear error when manually checking
+
+    try {
+      const checkedQuote = await cashuWallet.checkMintQuote(mintQuote.quote);
+
+      if (checkedQuote.state === MintQuoteState.PAID) {
+        // Clear interval if payment is successful
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current);
+          checkIntervalRef.current = null;
+          setIsAutoChecking(false);
+        }
+
+        // Mint the proofs
+        const amount = parseInt(mintAmount, 10);
+        const proofs = await cashuWallet.mintProofs(amount, mintQuote.quote);
+
+        // Store proofs in localStorage
+        const storedProofs = localStorage.getItem('cashu_proofs');
+        const existingProofs = storedProofs ? JSON.parse(storedProofs) as CashuProof[] : [];
+        localStorage.setItem('cashu_proofs', JSON.stringify([...existingProofs, ...proofs]));
+
+        // Update balance
+        setBalance(prevBalance => prevBalance + amount);
+        setSuccessMessage('Payment received! Tokens minted successfully.');
+        // Reset mint form
+        setMintQuote(null);
+        setMintInvoice('');
+      }
+    } catch (err: unknown) {
+      console.error('Failed to check mint quote:', err);
+      // Only show error message when not auto-checking
+      if (!isAutoChecking) {
+        setError(err instanceof Error ? err.message : 'Failed to check payment status');
+      }
+    } finally {
+      // Only set loading state when not auto-checking
+      if (!isAutoChecking) {
+        setLoading(false);
+      }
+    }
+  };
 
   // Check authentication and init wallet
   useEffect(() => {
@@ -50,9 +121,9 @@ export default function SettingsPage() {
         // Get any stored proofs from localStorage
         const storedProofs = localStorage.getItem('cashu_proofs');
         if (storedProofs) {
-          const proofs = JSON.parse(storedProofs);
+          const proofs = JSON.parse(storedProofs) as CashuProof[];
           // Calculate balance from proofs
-          const totalAmount = proofs.reduce((total: number, proof: any) => total + proof.amount, 0);
+          const totalAmount = proofs.reduce((total: number, proof: CashuProof) => total + proof.amount, 0);
           setBalance(totalAmount);
         }
       } catch (err) {
@@ -79,7 +150,7 @@ export default function SettingsPage() {
       checkIntervalRef.current = null;
       setIsAutoChecking(false);
     }
-    
+
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
@@ -89,7 +160,7 @@ export default function SettingsPage() {
     if (mintInvoice && mintQuote) {
       setIsAutoChecking(true);
       setCountdown(5); // Reset countdown to 5 seconds
-      
+
       // Set up the countdown timer
       countdownIntervalRef.current = setInterval(() => {
         setCountdown(prev => {
@@ -99,7 +170,7 @@ export default function SettingsPage() {
           return prev - 1;
         });
       }, 1000);
-      
+
       // Set up the payment check interval
       checkIntervalRef.current = setInterval(() => {
         checkMintQuote();
@@ -135,61 +206,11 @@ export default function SettingsPage() {
       setMintQuote(quote);
       setMintInvoice(quote.request || '');
       setSuccessMessage('Invoice generated! Pay it to mint tokens.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create mint quote:', err);
-      setError(err.message || 'Failed to create mint quote');
+      setError(err instanceof Error ? err.message : 'Failed to create mint quote');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const checkMintQuote = async () => {
-    if (!cashuWallet || !mintQuote) return;
-
-    // Don't set loading state during auto-checking
-    if (!isAutoChecking) {
-      setLoading(true);
-    }
-    setError(''); // Only clear error when manually checking
-
-    try {
-      const checkedQuote = await cashuWallet.checkMintQuote(mintQuote.quote);
-
-      if (checkedQuote.state === MintQuoteState.PAID) {
-        // Clear interval if payment is successful
-        if (checkIntervalRef.current) {
-          clearInterval(checkIntervalRef.current);
-          checkIntervalRef.current = null;
-          setIsAutoChecking(false);
-        }
-
-        // Mint the proofs
-        const amount = parseInt(mintAmount, 10);
-        const proofs = await cashuWallet.mintProofs(amount, mintQuote.quote);
-
-        // Store proofs in localStorage
-        const storedProofs = localStorage.getItem('cashu_proofs');
-        const existingProofs = storedProofs ? JSON.parse(storedProofs) : [];
-        localStorage.setItem('cashu_proofs', JSON.stringify([...existingProofs, ...proofs]));
-
-        // Update balance
-        setBalance(prevBalance => prevBalance + amount);
-        setSuccessMessage('Payment received! Tokens minted successfully.');
-        // Reset mint form
-        setMintQuote(null);
-        setMintInvoice('');
-      }
-    } catch (err: any) {
-      console.error('Failed to check mint quote:', err);
-      // Only show error message when not auto-checking
-      if (!isAutoChecking) {
-        setError(err.message || 'Failed to check payment status');
-      }
-    } finally {
-      // Only set loading state when not auto-checking
-      if (!isAutoChecking) {
-        setLoading(false);
-      }
     }
   };
 
@@ -202,7 +223,7 @@ export default function SettingsPage() {
 
     try {
       // Parse and validate the token
-      const result = await cashuWallet.receive(tokenToImport);
+      const result = await cashuWallet.receive(tokenToImport) as CashuProof[];
 
       // The result is an array of proofs
       const proofs = Array.isArray(result) ? result : [];
@@ -213,11 +234,11 @@ export default function SettingsPage() {
 
       // Store proofs in localStorage
       const storedProofs = localStorage.getItem('cashu_proofs');
-      const existingProofs = storedProofs ? JSON.parse(storedProofs) : [];
+      const existingProofs = storedProofs ? JSON.parse(storedProofs) as CashuProof[] : [];
       localStorage.setItem('cashu_proofs', JSON.stringify([...existingProofs, ...proofs]));
 
       // Calculate the imported amount
-      const importedAmount = proofs.reduce((total: number, proof: any) => total + proof.amount, 0);
+      const importedAmount = proofs.reduce((total: number, proof: CashuProof) => total + proof.amount, 0);
 
       // Update balance
       setBalance(prevBalance => prevBalance + importedAmount);
@@ -225,9 +246,9 @@ export default function SettingsPage() {
       setSuccessMessage(`Successfully imported ${importedAmount} sats!`);
       setTokenToImport('');
       setShowImportForm(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to import token:', err);
-      setError(err.message || 'Failed to import token');
+      setError(err instanceof Error ? err.message : 'Failed to import token');
     } finally {
       setLoading(false);
     }
@@ -235,56 +256,57 @@ export default function SettingsPage() {
 
   const generateSendToken = async () => {
     if (!cashuWallet) return;
-    
+
     setLoading(true);
     setError('');
     setSuccessMessage('');
-    
+
     try {
       const amount = parseInt(sendAmount, 10);
-      
+
       if (isNaN(amount) || amount <= 0) {
         throw new Error('Please enter a valid amount');
       }
-      
+
       if (amount > balance) {
         throw new Error('Amount exceeds available balance');
       }
-      
+
       // Get stored proofs
       const storedProofs = localStorage.getItem('cashu_proofs');
-      const existingProofs = storedProofs ? JSON.parse(storedProofs) : [];
-      
+      const existingProofs = storedProofs ? JSON.parse(storedProofs) as CashuProof[] : [];
+
       if (!existingProofs || existingProofs.length === 0) {
         throw new Error('No tokens available to send');
       }
-      
+
       // In recent versions of cashu-ts, send returns { send, keep }
-      const { send, keep } = await cashuWallet.send(amount, existingProofs);
-      
+      const sendResult = await cashuWallet.send(amount, existingProofs);
+      const { send, keep } = sendResult as unknown as SendResult;
+
       if (!send || send.length === 0) {
         throw new Error('Failed to generate token');
       }
-      
+
       // Store the remaining proofs back in localStorage
       localStorage.setItem('cashu_proofs', JSON.stringify(keep));
-      
+
       // Update balance
       setBalance(prevBalance => prevBalance - amount);
-      
+
       // Create a token string - simple format for now that other wallets can understand
       const tokenObj = {
         token: [{ mint: mintUrl, proofs: send }]
       };
       const token = `cashuA${btoa(JSON.stringify(tokenObj))}`;
-      
+
       // Set the generated token for display
       setGeneratedToken(token);
       setSuccessMessage(`Generated token for ${amount} sats. Share it with the recipient.`);
-      
-    } catch (err: any) {
+
+    } catch (err: unknown) {
       console.error('Failed to generate send token:', err);
-      setError(err.message || 'Failed to generate token');
+      setError(err instanceof Error ? err.message : 'Failed to generate token');
     } finally {
       setLoading(false);
     }
@@ -327,7 +349,7 @@ export default function SettingsPage() {
   return (
     <main className="flex min-h-screen flex-col bg-black text-white">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-6 flex flex-1">
         {/* Sidebar with balance and tabs */}
         <div className="w-64 mr-6">
@@ -337,16 +359,9 @@ export default function SettingsPage() {
             <div className="flex items-center">
               <span className="text-2xl font-bold mr-2">{balance}</span>
               <span className="text-sm text-gray-300">sats</span>
-              <div className="ml-auto h-8 w-8 bg-white/5 rounded-full flex items-center justify-center">
-                <svg className="h-4 w-4 text-yellow-400/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
-                  <path d="M12 18V6" />
-                </svg>
-              </div>
             </div>
           </div>
-          
+
           {/* Vertical Tab Navigation */}
           <nav className="bg-black/40 border border-white/10 rounded-lg overflow-hidden">
             <button
@@ -369,7 +384,6 @@ export default function SettingsPage() {
             </button>
           </nav>
         </div>
-        
         {/* Main Content Area */}
         <div className="flex-1">
           {/* Notification Area */}
@@ -378,19 +392,19 @@ export default function SettingsPage() {
               <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
-          
+
           {successMessage && (
             <div className="mb-5 p-3 bg-green-500/5 border border-green-500/10 rounded-lg">
               <p className="text-sm text-green-400">{successMessage}</p>
             </div>
           )}
-          
+
           {/* Tab Content */}
           <div className="bg-black/40 border border-white/10 rounded-lg p-6">
             {activeTab === 'wallet' && (
               <div>
                 <h2 className="text-lg font-medium mb-5">Mint Tokens</h2>
-                
+
                 {!mintInvoice ? (
                   <div className="space-y-4">
                     <div>
@@ -404,7 +418,7 @@ export default function SettingsPage() {
                         className="w-full bg-black/30 border border-white/10 rounded-md px-4 py-2 text-sm focus:border-white/30 focus:outline-none transition-colors"
                       />
                     </div>
-                    
+
                     <button
                       onClick={createMintQuote}
                       disabled={loading}
@@ -416,11 +430,11 @@ export default function SettingsPage() {
                 ) : (
                   <div>
                     <label className="block text-xs text-gray-300 mb-2">Lightning Invoice</label>
-                    
+
                     {/* QR Code */}
                     <div className="flex flex-col items-center mb-5">
                       <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                        <QRCode 
+                        <QRCode
                           value={mintInvoice}
                           size={180}
                           level="M"
@@ -430,7 +444,7 @@ export default function SettingsPage() {
                       </div>
                       <p className="mt-2 text-xs text-gray-400">Scan with your Lightning wallet</p>
                     </div>
-                    
+
                     <div className="mb-4 p-4 bg-yellow-500/5 border border-yellow-500/15 rounded-lg">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-yellow-200/80">
@@ -457,11 +471,11 @@ export default function SettingsPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="w-full bg-black/30 border border-white/10 rounded-md px-4 py-3 text-xs text-gray-300 break-all mb-4 font-mono">
                       {mintInvoice}
                     </div>
-                    
+
                     <div className="flex space-x-3">
                       <button
                         onClick={copyInvoiceToClipboard}
@@ -469,7 +483,7 @@ export default function SettingsPage() {
                       >
                         {isInvoiceCopied ? 'Copied!' : 'Copy Invoice'}
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           // Reset invoice generation
@@ -497,11 +511,11 @@ export default function SettingsPage() {
                 )}
               </div>
             )}
-            
+
             {activeTab === 'tokens' && (
               <div>
                 <h2 className="text-lg font-medium mb-5">Create & Redeem Tokens</h2>
-                
+
                 {/* Create/Redeem Options */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <button
@@ -517,7 +531,7 @@ export default function SettingsPage() {
                     </svg>
                     <p className="text-sm font-medium">Create Token</p>
                   </button>
-                  
+
                   <button
                     onClick={() => {
                       setShowImportForm(true);
@@ -532,7 +546,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">Redeem Token</p>
                   </button>
                 </div>
-                
+
                 {/* Forms */}
                 <div className="bg-black/30 border border-white/10 rounded-lg p-6">
                   {showSendForm ? (
@@ -637,11 +651,11 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-            
+
             {activeTab === 'account' && (
               <div>
                 <h2 className="text-lg font-medium mb-5">Account Information</h2>
-                
+
                 <div className="space-y-6">
                   {/* Nostr Identity */}
                   <div>
@@ -650,7 +664,7 @@ export default function SettingsPage() {
                       {publicKey}
                     </div>
                   </div>
-                  
+
                   {/* Wallet Settings */}
                   <div>
                     <p className="text-xs text-gray-300 mb-2">Connected Mint</p>
