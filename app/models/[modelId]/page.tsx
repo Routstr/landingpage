@@ -1,27 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
-import { models, getProviderFromModelName, fetchModels, nodeInfo } from '@/app/data/models';
+import { models, getProviderFromModelName, fetchModels } from '@/app/data/models';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
 // Define types for code examples
 type CodeLanguage = 'curl' | 'javascript' | 'python';
 
+// Define model type
+interface Model {
+  name: string;
+  cost_per_1m_prompt_tokens: number;
+  cost_per_1m_completion_tokens: number;
+  currency: string;
+}
+
 export default function ModelDetailPage() {
-  const router = useRouter();
   const params = useParams();
   const modelId = params.modelId as string;
   const modelName = modelId.replace(/-/g, '/');
   const [activeTab, setActiveTab] = useState<CodeLanguage>('curl');
   const [isLoading, setIsLoading] = useState(true);
-  const [model, setModel] = useState<any>(null);
+  const [model, setModel] = useState<Model | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -56,7 +62,7 @@ export default function ModelDetailPage() {
   }, [modelId, modelName]);
 
   // Function to find a model using multiple strategies
-  function findModel(id: string, name: string) {
+  function findModel(id: string, name: string): Model | undefined {
     // Strategy 1: Direct match by name
     let foundModel = models.find(m => m.name === name);
 
@@ -270,8 +276,8 @@ print(completion.choices[0].message.content)`
                   <button
                     key={lang}
                     className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg whitespace-nowrap ${activeTab === lang
-                        ? 'text-white bg-white/10 border-b-2 border-white'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      ? 'text-white bg-white/10 border-b-2 border-white'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
                       }`}
                     onClick={() => setActiveTab(lang)}
                   >
@@ -345,17 +351,17 @@ print(completion.choices[0].message.content)`
 
             {/* <div className="border-t border-white/10 pt-12 mb-12">
               <h2 className="text-2xl font-bold mb-6">Similar Models</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {models
                   .filter(m => m !== model && getProviderFromModelName(m.name) === provider)
                   .slice(0, 4)
                   .map(similarModel => {
-                    const similarModelName = similarModel.name.includes('/') 
-                      ? similarModel.name.split('/')[1] 
+                    const similarModelName = similarModel.name.includes('/')
+                      ? similarModel.name.split('/')[1]
                       : similarModel.name;
                     const similarModelId = similarModel.name.replace(/\//g, '-');
-                    
+
                     return (
                       <Link
                         key={similarModel.name}
