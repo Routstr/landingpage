@@ -5,11 +5,51 @@ export interface Model {
   currency: string;
 }
 
-// Import models from models.json
+export interface RoutstrNodeInfo {
+  name: string;
+  description: string;
+  version: string;
+  npub: string;
+  mint: string;
+  http_url: string;
+  onion_url: string;
+  models: Model[];
+}
+
+// Import models from API
+// For initial load, we still use the static models
 import modelsData from '../../models.json';
 
-// Parse and export the models
-export const models: Model[] = modelsData.models;
+// Initial state with static data
+export let models: Model[] = modelsData.models;
+export let nodeInfo: Partial<RoutstrNodeInfo> = {
+  name: "Routstr Node",
+  description: "A Routstr Node",
+  version: "0.0.1"
+};
+
+// Fetch models from the API
+export async function fetchModels(): Promise<void> {
+  try {
+    const response = await fetch('https://api.routstr.com/');
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status}`);
+    }
+    
+    const data: RoutstrNodeInfo = await response.json();
+    
+    // Update the models and node info
+    models = data.models;
+    nodeInfo = data;
+    
+    return;
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    // On error, fallback to the static models
+    return;
+  }
+}
 
 // Extract the provider name from model path (e.g., "meta-llama" from "meta-llama/Llama-3-8b-chat-hf")
 export function getProviderFromModelName(modelName: string): string {
