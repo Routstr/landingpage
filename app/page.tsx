@@ -29,7 +29,7 @@ const customTheme = {
     ...atomDark['code[class*="language-"]'],
     background: 'transparent',
     textShadow: 'none',
-    fontSize: '0.75rem', // Base font size without media query
+    fontSize: '0.7rem', // Reduced from 0.75rem for mobile
   },
   // Remove underscores from identifiers
   '.token.class-name': {
@@ -106,7 +106,6 @@ export default function Home() {
       id: model.name.replace(/\//g, '-'),
       name: modelName,
       provider: provider,
-      latency: provider === 'groq' ? "~30ms" : "~150ms",
       priceRange: formatPrice(model),
       context: "128K tokens"
     };
@@ -152,7 +151,7 @@ export default function Home() {
       {/* How It Works Section */}
       <section className="py-12 sm:py-16 md:py-20 bg-black">
         <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center text-white mb-6 sm:mb-12">How It Works</h2>
+          <h2 className="text-xl sm:text-3xl font-bold text-center text-white mb-6 sm:mb-12">How It Works</h2>
 
           {/* Toggle Switch */}
           <div className="max-w-xs mx-auto mb-6 sm:mb-12 bg-white/5 rounded-full p-0.5 flex gap-1">
@@ -181,8 +180,8 @@ export default function Home() {
                     <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Buy Cashu tokens</h4>
-                    <p className="text-gray-400 mb-3 text-center sm:text-left">Purchase AI credits directly with Lightning or on-chain Bitcoin. No account or sign-up required.</p>
+                    <h4 className="text-base sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Buy Cashu tokens</h4>
+                    <p className="text-sm sm:text-base text-gray-400 mb-3 text-center sm:text-left">Purchase AI credits directly with Lightning or on-chain Bitcoin. No account or sign-up required.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <div className="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
@@ -205,8 +204,8 @@ export default function Home() {
                     <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Receive token instantly</h4>
-                    <p className="text-gray-400 mb-3 text-center sm:text-left">Get your Cashu token immediately after payment. Use this as your API authorization key.</p>
+                    <h4 className="text-base sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Receive token instantly</h4>
+                    <p className="text-sm sm:text-base text-gray-400 mb-3 text-center sm:text-left">Get your Cashu token immediately after payment. Use this as your API authorization key.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <div className="flex flex-col">
@@ -229,8 +228,8 @@ export default function Home() {
                     <span className="text-xl sm:text-2xl font-bold text-white">3</span>
                   </div>
                   <div>
-                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Make API calls directly</h4>
-                    <p className="text-gray-400 mb-3 text-center sm:text-left">Use the token in your API calls with our OpenAI-compatible endpoints. No account needed.</p>
+                    <h4 className="text-base sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Make API calls directly</h4>
+                    <p className="text-sm sm:text-base text-gray-400 mb-3 text-center sm:text-left">Use the token in your API calls with our OpenAI-compatible endpoints. No account needed.</p>
 
                     <div className="bg-black/70 rounded-lg p-2 sm:p-4 border border-white/10 overflow-x-auto">
                       <div className="text-xs sm:text-sm">
@@ -276,8 +275,8 @@ export default function Home() {
                     <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Set up your proxy</h4>
-                    <p className="text-gray-400 mb-3 text-center sm:text-left">Deploy our self-hosted proxy in front of any OpenAI-compatible endpoint with a simple Docker command.</p>
+                    <h4 className="text-base sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Set up your proxy</h4>
+                    <p className="text-sm sm:text-base text-gray-400 mb-3 text-center sm:text-left">Deploy our self-hosted proxy in front of any OpenAI-compatible endpoint with a simple Docker command.</p>
 
                     <div className="bg-black/70 rounded-lg p-2 sm:p-4 border border-white/10 overflow-x-auto">
                       <div className="text-xs sm:text-sm">
@@ -307,8 +306,8 @@ export default function Home() {
                     <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Connect payments</h4>
-                    <p className="text-gray-400 mb-3 text-center sm:text-left">Configure your Cashu mint or Lightning node to accept pre-paid tokens. No need for Stripe or KYC.</p>
+                    <h4 className="text-base sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Connect payments</h4>
+                    <p className="text-sm sm:text-base text-gray-400 mb-3 text-center sm:text-left">Configure your Cashu mint or Lightning node to accept pre-paid tokens. No need for Stripe or KYC.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <div className="flex items-center justify-between mb-2">
@@ -336,8 +335,8 @@ export default function Home() {
                     <span className="text-xl sm:text-2xl font-bold text-white">3</span>
                   </div>
                   <div>
-                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Monitor and scale</h4>
-                    <p className="text-gray-400 mb-3 text-center sm:text-left">Track usage, set custom pricing, and join the relay network to get discovered by users automatically.</p>
+                    <h4 className="text-base sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Monitor and scale</h4>
+                    <p className="text-sm sm:text-base text-gray-400 mb-3 text-center sm:text-left">Track usage, set custom pricing, and join the relay network to get discovered by users automatically.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <div className="grid grid-cols-2 gap-2">
@@ -363,8 +362,8 @@ export default function Home() {
       <section className="py-12 sm:py-16 bg-black/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" id="features">Key Features</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">A complete platform for permissionless, privacy-first AI access</p>
+            <h2 className="text-xl sm:text-3xl font-bold text-white mb-4" id="features">Key Features</h2>
+            <p className="text-sm sm:text-base text-gray-400 max-w-2xl mx-auto">A complete platform for permissionless, privacy-first AI access</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -373,8 +372,8 @@ export default function Home() {
                 <div className={`h-10 w-10 flex items-center justify-center rounded-md mb-4 ${feature.iconBgColor}`}>
                   <div className={feature.iconColor}>{feature.icon}</div>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400 text-sm">{feature.description}</p>
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                <p className="text-xs sm:text-sm text-gray-400">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -385,10 +384,10 @@ export default function Home() {
       <section className="py-20 bg-black border-t border-white/5">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="mx-auto max-w-3xl text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
               Simple Integration
             </h2>
-            <p className="text-gray-400">
+            <p className="text-sm sm:text-base text-gray-400">
               Integrate with Routstr using our OpenAI-compatible API endpoints with just a few lines of code
             </p>
           </div>
@@ -403,10 +402,10 @@ export default function Home() {
       <section className="py-20 bg-black border-t border-white/5">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="mx-auto max-w-3xl text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
               Browse Available Models
             </h2>
-            <p className="text-gray-400">
+            <p className="text-sm sm:text-base text-gray-400">
               Access a wide range of AI models through independent providers with transparent pricing and performance metrics
             </p>
           </div>
@@ -421,14 +420,11 @@ export default function Home() {
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="text-xl font-bold text-white">{model.name}</h3>
-                      <p className="text-sm text-gray-500">{model.provider}</p>
+                      <h3 className="text-lg sm:text-xl font-bold text-white">{model.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">{model.provider}</p>
                       <div className="flex gap-4 mt-2">
                         <div>
-                          <span className="text-gray-400 font-medium">Price:</span> {model.priceRange}
-                        </div>
-                        <div>
-                          <span className="text-gray-400 font-medium">Latency:</span> {model.latency}
+                          <span className="text-xs sm:text-sm text-gray-400 font-medium">Price:</span> {model.priceRange}
                         </div>
                       </div>
                     </div>
@@ -470,8 +466,8 @@ export default function Home() {
       <div className="py-20 bg-black border-t border-white/5">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="mx-auto max-w-3xl text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">Roadmap</h2>
-            <p className="text-gray-400">Our progressive journey to building a decentralized AI ecosystem</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Roadmap</h2>
+            <p className="text-sm sm:text-base text-gray-400">Our progressive journey to building a decentralized AI ecosystem</p>
           </div>
 
           <div className="max-w-3xl mx-auto">
