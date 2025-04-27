@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CtaSection from "@/components/CtaSection";
 // import TestimonialsSection from "@/components/TestimonialsSection";
-import FeaturesSection from "@/components/FeaturesSection";
+// import FeaturesSection from "@/components/FeaturesSection";
 import AnalyticsSection from "@/components/AnalyticsSection";
 import HeroSection from "../components/HeroSection";
 import ApiExample from "../components/ApiExample";

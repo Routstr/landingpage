@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { useNostr } from '@/context/NostrContext';
 
 interface HeroSectionProps {
   title: string;
@@ -14,8 +13,6 @@ export default function HeroSection({
   footerText = 'Open Source • GNU General Public License v3.0 • Permissionless',
   className = ''
 }: HeroSectionProps) {
-  const { isAuthenticated } = useNostr();
-
   return (
     <section className={`bg-black py-12 sm:py-16 md:py-20 relative overflow-hidden w-full ${className}`}>
       <div className="px-4 md:px-6 relative z-10">

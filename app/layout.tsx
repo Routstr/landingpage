@@ -13,16 +13,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// export const metadata: Metadata = {
-//   title: "Routstr",
-//   description: "The future of AI access is permissionless, private, and decentralized",
-//   viewport: {
-//     width: "device-width",
-//     initialScale: 1,
-//     maximumScale: 1,
-//     userScalable: false,
-//   },
-// };
+export const metadata: Metadata = {
+  title: "Routstr",
+  description: "The future of AI access is permissionless, private, and decentralized",
+};
 
 export default function RootLayout({
   children,
