@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { models, getProviderFromModelName, fetchModels, nodeInfo } from '@/app/data/models';
+import { models, getProviderFromModelName, fetchModels } from '@/app/data/models';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
