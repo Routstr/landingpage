@@ -149,10 +149,10 @@ export default function ProvidersPage() {
               </div>
               
               <Link
-                href="/dashboard"
+                href="/models"
                 className="inline-flex items-center justify-center rounded-md bg-white text-black px-6 py-3 text-sm font-medium transition-colors hover:bg-gray-200"
               >
-                Start using now
+                Explore Models
               </Link>
             </div>
           </div>

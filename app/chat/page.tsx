@@ -129,7 +129,7 @@ export default function ChatPage() {
   useEffect(() => {
     // Set a flag that authentication has been checked
     setAuthChecked(true);
-    
+
     // Only redirect if we're sure the user is not authenticated
     if (authChecked && !isAuthenticated) {
       router.push('/');

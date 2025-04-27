@@ -40,8 +40,13 @@ const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
               key={item.id || `roadmap-${index}`}
               className="flex flex-col md:flex-row mb-12 relative"
             >
-              {/* Left side content for even items */}
-              <div className={`md:w-1/2 ${isEvenItem ? 'md:pr-12 md:text-right mb-6 md:mb-0' : 'md:pr-12 md:text-right md:block hidden'}`}>
+              {/* Center dot - mobile and desktop */}
+              <div className="absolute left-4 md:left-1/2 top-0 w-8 h-8 rounded-full bg-white/10 border-2 border-white/70 transform -translate-x-1/2 flex items-center justify-center z-10">
+                <div className="w-2 h-2 rounded-full bg-white"></div>
+              </div>
+
+              {/* Left side content - only visible on desktop for even items */}
+              <div className={`hidden md:block md:w-1/2 ${isEvenItem ? 'md:pr-12 md:text-right' : 'md:pr-12 md:text-right'}`}>
                 {isEvenItem && (
                   <>
                     <div className="font-bold text-white text-xl mb-2">{item.timeframe}</div>
@@ -49,9 +54,9 @@ const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
                     <div className="text-gray-300">{item.description}</div>
 
                     {item.detailed && item.milestones && (
-                      <ul className="space-y-2 text-gray-300 mt-3 text-sm list-disc pl-4 md:pl-0 md:list-none">
+                      <ul className="space-y-2 text-gray-300 mt-3 text-sm list-disc md:list-none">
                         {item.milestones.map((milestone, i) => (
-                          <li key={i} className={`${isEvenItem ? 'md:text-right' : ''}`}>{milestone}</li>
+                          <li key={i} className="md:text-right">{milestone}</li>
                         ))}
                       </ul>
                     )}
@@ -59,13 +64,29 @@ const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
                 )}
               </div>
 
-              {/* Center dot - perfectly centered on line */}
-              <div className="absolute left-4 md:left-1/2 top-0 w-8 h-8 rounded-full bg-white/10 border-2 border-white/70 transform -translate-x-1/2 flex items-center justify-center z-10">
-                <div className="w-2 h-2 rounded-full bg-white"></div>
-              </div>
+              {/* Right side content - for all items on mobile, only odd items on desktop */}
+              <div className={`pl-12 md:pl-0 ${!isEvenItem ? 'md:w-1/2 md:pl-12 md:text-left' : 'md:w-1/2 md:pl-12 md:text-left'}`}>
+                {/* Mobile content for even items */}
+                {isEvenItem && (
+                  <div className="md:hidden">
+                    <div className="font-bold text-white text-xl mb-2">{item.timeframe}</div>
+                    {showTheme && item.theme && <div className="text-gray-400 mb-2">{item.theme}</div>}
+                    <div className="text-gray-300">{item.description}</div>
 
-              {/* Right side content for odd items */}
-              <div className={`md:w-1/2 ${!isEvenItem ? 'md:pl-12 md:text-left pl-12' : 'md:pl-12 md:text-left pl-12 md:pl-0'}`}>
+                    {item.detailed && item.milestones && (
+                      <ul className="space-y-2 text-gray-300 mt-3 text-sm">
+                        {item.milestones.map((milestone, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="text-gray-500">•</span>
+                            <span>{milestone}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Desktop content for odd items & mobile content for odd items */}
                 {!isEvenItem && (
                   <>
                     <div className="font-bold text-white text-xl mb-2">{item.timeframe}</div>

@@ -79,6 +79,10 @@ const customTheme = {
     ...atomDark['code[class*="language-"]'],
     background: 'transparent',
     textShadow: 'none',
+    fontSize: '0.75rem',
+    '@media (minWidth: 640px)': {
+      fontSize: '0.875rem',
+    },
   },
   // Remove underscores from identifiers
   '.token.class-name': {
@@ -100,18 +104,18 @@ export default function ApiExample() {
   const [activeTab, setActiveTab] = useState<CodeLanguage>('curl');
 
   return (
-    <div className="rounded-lg border border-white/10 bg-black/50 p-6 mb-10">
-      <h3 className="text-xl font-bold text-white mb-4">Direct API Access</h3>
-      <p className="text-gray-400 mb-6">
+    <div className="rounded-lg border border-white/10 bg-black/50 p-4 sm:p-6 mb-6 sm:mb-10">
+      <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Direct API Access</h3>
+      <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">
         Access any of <span className="font-semibold text-white">50+ models</span> with a simple API call using your Cashu token for authentication.
       </p>
 
       {/* Language tabs */}
-      <div className="flex space-x-1 mb-4 border-b border-white/10">
+      <div className="flex space-x-1 mb-4 border-b border-white/10 overflow-x-auto">
         {(Object.keys(codeExamples) as CodeLanguage[]).map((lang) => (
           <button
             key={lang}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg ${activeTab === lang
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg whitespace-nowrap ${activeTab === lang
                 ? 'text-white bg-white/10 border-b-2 border-white'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
@@ -123,23 +127,24 @@ export default function ApiExample() {
       </div>
 
       {/* Code example with syntax highlighting */}
-      <div className="bg-black/70 rounded-lg p-4 border border-white/10 overflow-hidden">
+      <div className="bg-black/70 rounded-lg p-3 sm:p-4 border border-white/10 overflow-x-auto">
         <SyntaxHighlighter
           language={syntaxMap[activeTab]}
           style={customTheme}
           customStyle={{
             background: 'transparent',
-            fontSize: '0.875rem',
             lineHeight: '1.5',
             margin: 0
           }}
           showLineNumbers={false}
+          wrapLines={true}
+          wrapLongLines={true}
         >
           {codeExamples[activeTab]}
         </SyntaxHighlighter>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
         <div className="rounded bg-black/30 p-3 border border-white/5">
           <span className="block font-medium text-white mb-1">OpenAI Compatible</span>
           <span className="text-gray-400">Drop-in replacement for OpenAI clients</span>

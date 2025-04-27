@@ -13,10 +13,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Routstr",
-  description: "The future of AI access is permissionless, private, and decentralized",
-};
+// export const metadata: Metadata = {
+//   title: "Routstr",
+//   description: "The future of AI access is permissionless, private, and decentralized",
+//   viewport: {
+//     width: "device-width",
+//     initialScale: 1,
+//     maximumScale: 1,
+//     userScalable: false,
+//   },
+// };
 
 export default function RootLayout({
   children,
@@ -26,10 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black min-h-screen`}
       >
         <ClientProviders>
-          <div className="max-w-6xl mx-auto w-full">
+          <div className="w-full px-3 sm:px-6 md:max-w-6xl md:mx-auto">
             {children}
           </div>
         </ClientProviders>

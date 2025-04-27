@@ -4,8 +4,8 @@ export default function Footer() {
   return (
     <footer className="border-t border-white/10 py-12 bg-black w-full">
       <div className="px-4 md:px-6">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
-          <div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+          <div className="col-span-1 sm:col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center mb-4">
               <span className="text-xl font-bold text-white">Routstr</span>
             </Link>
@@ -40,8 +40,8 @@ export default function Footer() {
           </div>
         </div>
         
-        <div className="mt-12 border-t border-white/10 pt-8 text-center">
-          <p className="text-sm text-gray-400">© {new Date().getFullYear()} Routstr. Licensed under GNU General Public License v3.0</p>
+        <div className="mt-8 sm:mt-12 border-t border-white/10 pt-6 sm:pt-8 text-center">
+          <p className="text-xs sm:text-sm text-gray-400">© {new Date().getFullYear()} Routstr. Licensed under GNU General Public License v3.0</p>
         </div>
       </div>
     </footer>

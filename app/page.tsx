@@ -11,6 +11,41 @@ import ApiExample from "../components/ApiExample";
 import { getPopularModels, getProviderFromModelName, formatPrice } from "../app/data/models";
 import RoadmapTimeline from "@/components/RoadmapTimeline";
 import { useState } from "react";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Globe } from "@/components/ui/globe";
+
+// Custom theme based on atomDark but more minimal
+const customTheme = {
+  ...atomDark,
+  'pre[class*="language-"]': {
+    ...atomDark['pre[class*="language-"]'],
+    background: 'transparent',
+    margin: 0,
+    padding: 0,
+    overflow: 'visible',
+  },
+  'code[class*="language-"]': {
+    ...atomDark['code[class*="language-"]'],
+    background: 'transparent',
+    textShadow: 'none',
+    fontSize: '0.75rem', // Base font size without media query
+  },
+  // Remove underscores from identifiers
+  '.token.class-name': {
+    textDecoration: 'none'
+  },
+  '.token.namespace': {
+    textDecoration: 'none',
+    opacity: 1
+  },
+  '.token.entity': {
+    textDecoration: 'none'
+  },
+  '.token.console': {
+    textDecoration: 'none'
+  }
+};
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("users");
@@ -107,13 +142,20 @@ export default function Home() {
         description="Routstr brings the convenience of the OpenRouter experience to the permissionless, censorship‑resistant world of Nostr and Bitcoin"
       />
 
+      {/* Globe Visualization */}
+      <section className="pb-8 sm:pb-12 bg-black relative">
+        <div className="container mx-auto relative h-[300px] sm:h-[400px] md:h-[500px]">
+          <Globe />
+        </div>
+      </section>
+
       {/* How It Works Section */}
-      <section className="py-20 bg-black">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <h2 className="text-3xl font-bold text-center text-white mb-12">How It Works</h2>
+      <section className="py-12 sm:py-16 md:py-20 bg-black">
+        <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-white mb-6 sm:mb-12">How It Works</h2>
 
           {/* Toggle Switch */}
-          <div className="max-w-xs mx-auto mb-12 bg-white/5 rounded-full p-0.5 flex gap-1">
+          <div className="max-w-xs mx-auto mb-6 sm:mb-12 bg-white/5 rounded-full p-0.5 flex gap-1">
             <button
               className={`flex-1 py-1.5 px-3 rounded-full text-center text-xs font-medium transition-all ${activeTab === "users" ? "bg-white text-black" : "text-white hover:bg-white/10"}`}
               onClick={() => setActiveTab("users")}
@@ -131,16 +173,16 @@ export default function Home() {
           <div className="max-w-2xl mx-auto">
             {/* For Users Content */}
             {activeTab === "users" && (
-              <div className="space-y-10">
+              <div className="space-y-8 sm:space-y-10">
                 {/* Step 1 */}
-                <div className="flex">
-                  <div className="w-14 h-14 rounded-full bg-white/5 mr-6 flex-shrink-0 flex items-center justify-center relative">
-                    <span className="text-2xl font-bold text-white">1</span>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden md:block"></div>
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 mb-4 sm:mb-0 sm:mr-6 flex-shrink-0 flex items-center justify-center relative mx-auto sm:mx-0">
+                    <span className="text-xl sm:text-2xl font-bold text-white">1</span>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2 text-white">Buy Cashu tokens</h4>
-                    <p className="text-gray-400 mb-3">Purchase AI credits directly with Lightning or on-chain Bitcoin. No account or sign-up required.</p>
+                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Buy Cashu tokens</h4>
+                    <p className="text-gray-400 mb-3 text-center sm:text-left">Purchase AI credits directly with Lightning or on-chain Bitcoin. No account or sign-up required.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <div className="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
@@ -157,14 +199,14 @@ export default function Home() {
                 </div>
 
                 {/* Step 2 */}
-                <div className="flex">
-                  <div className="w-14 h-14 rounded-full bg-white/5 mr-6 flex-shrink-0 flex items-center justify-center relative">
-                    <span className="text-2xl font-bold text-white">2</span>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden md:block"></div>
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 mb-4 sm:mb-0 sm:mr-6 flex-shrink-0 flex items-center justify-center relative mx-auto sm:mx-0">
+                    <span className="text-xl sm:text-2xl font-bold text-white">2</span>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2 text-white">Receive token instantly</h4>
-                    <p className="text-gray-400 mb-3">Get your Cashu token immediately after payment. Use this as your API authorization key.</p>
+                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Receive token instantly</h4>
+                    <p className="text-gray-400 mb-3 text-center sm:text-left">Get your Cashu token immediately after payment. Use this as your API authorization key.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <div className="flex flex-col">
@@ -182,21 +224,42 @@ export default function Home() {
                   </div>
                 </div>
                 {/* Step 3 */}
-                <div className="flex">
-                  <div className="w-14 h-14 rounded-full bg-white/5 mr-6 flex-shrink-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">3</span>
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 mb-4 sm:mb-0 sm:mr-6 flex-shrink-0 flex items-center justify-center mx-auto sm:mx-0">
+                    <span className="text-xl sm:text-2xl font-bold text-white">3</span>
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2 text-white">Make API calls directly</h4>
-                    <p className="text-gray-400 mb-3">Use the token in your API calls with our OpenAI-compatible endpoints. No account needed.</p>
+                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Make API calls directly</h4>
+                    <p className="text-gray-400 mb-3 text-center sm:text-left">Use the token in your API calls with our OpenAI-compatible endpoints. No account needed.</p>
 
-                    <div className="bg-black/30 rounded-lg border border-white/10 p-4">
-                      <code className="text-sm font-mono text-white">
-                        curl https://api.routstr.org/v1/chat/completions \<br />
-                        &nbsp;&nbsp;-H &quot;Authorization: Bearer cashuA1DkpMbgQ9VkL6U...&quot; \<br />
-                        &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \<br />
-                        &nbsp;&nbsp;-d {"{\"model\": \"gpt-4\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}"}
-                      </code>
+                    <div className="bg-black/70 rounded-lg p-2 sm:p-4 border border-white/10 overflow-x-auto">
+                      <div className="text-xs sm:text-sm">
+                        <SyntaxHighlighter
+                          language="bash"
+                          style={customTheme}
+                          customStyle={{
+                            background: 'transparent',
+                            lineHeight: '1.5',
+                            margin: 0
+                          }}
+                          showLineNumbers={false}
+                          wrapLines={true}
+                          wrapLongLines={true}
+                        >
+                          {`curl -X POST https://api.routstr.org/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer cashuA1DkpMbgQ9VkL6U..." \\
+  -d '{
+    "model": "gpt-4",
+    "messages": [
+      {
+        "role": "user", 
+        "content": "Hello"
+      }
+    ]
+  }'`}
+                        </SyntaxHighlighter>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -205,32 +268,47 @@ export default function Home() {
 
             {/* For Providers Content */}
             {activeTab === "providers" && (
-              <div className="space-y-10">
+              <div className="space-y-8 sm:space-y-10">
                 {/* Step 1 */}
-                <div className="flex">
-                  <div className="w-14 h-14 rounded-full bg-white/5 mr-6 flex-shrink-0 flex items-center justify-center relative">
-                    <span className="text-2xl font-bold text-white">1</span>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden md:block"></div>
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 mb-4 sm:mb-0 sm:mr-6 flex-shrink-0 flex items-center justify-center relative mx-auto sm:mx-0">
+                    <span className="text-xl sm:text-2xl font-bold text-white">1</span>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2 text-white">Set up your proxy</h4>
-                    <p className="text-gray-400 mb-3">Deploy our self-hosted proxy in front of any OpenAI-compatible endpoint with a simple Docker command.</p>
+                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Set up your proxy</h4>
+                    <p className="text-gray-400 mb-3 text-center sm:text-left">Deploy our self-hosted proxy in front of any OpenAI-compatible endpoint with a simple Docker command.</p>
 
-                    <div className="bg-black/30 rounded-lg border border-white/10 p-4">
-                      <code className="text-sm font-mono text-white">docker run -p 8080:8080 ghcr.io/routstr/proxy</code>
+                    <div className="bg-black/70 rounded-lg p-2 sm:p-4 border border-white/10 overflow-x-auto">
+                      <div className="text-xs sm:text-sm">
+                        <SyntaxHighlighter
+                          language="bash"
+                          style={customTheme}
+                          customStyle={{
+                            background: 'transparent',
+                            lineHeight: '1.5',
+                            margin: 0
+                          }}
+                          showLineNumbers={false}
+                          wrapLines={true}
+                          wrapLongLines={true}
+                        >
+                          {`docker run -p 8080:8080 ghcr.io/routstr/proxy`}
+                        </SyntaxHighlighter>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Step 2 */}
-                <div className="flex">
-                  <div className="w-14 h-14 rounded-full bg-white/5 mr-6 flex-shrink-0 flex items-center justify-center relative">
-                    <span className="text-2xl font-bold text-white">2</span>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden md:block"></div>
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 mb-4 sm:mb-0 sm:mr-6 flex-shrink-0 flex items-center justify-center relative mx-auto sm:mx-0">
+                    <span className="text-xl sm:text-2xl font-bold text-white">2</span>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 h-8 w-0.5 bg-white/10 hidden sm:block"></div>
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2 text-white">Connect payments</h4>
-                    <p className="text-gray-400 mb-3">Configure your Cashu mint or Lightning node to accept pre-paid tokens. No need for Stripe or KYC.</p>
+                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Connect payments</h4>
+                    <p className="text-gray-400 mb-3 text-center sm:text-left">Configure your Cashu mint or Lightning node to accept pre-paid tokens. No need for Stripe or KYC.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
                       <div className="flex items-center justify-between mb-2">
@@ -253,25 +331,24 @@ export default function Home() {
                 </div>
 
                 {/* Step 3 */}
-                <div className="flex">
-                  <div className="w-14 h-14 rounded-full bg-white/5 mr-6 flex-shrink-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">3</span>
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 mb-4 sm:mb-0 sm:mr-6 flex-shrink-0 flex items-center justify-center mx-auto sm:mx-0">
+                    <span className="text-xl sm:text-2xl font-bold text-white">3</span>
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2 text-white">Publish your listing</h4>
-                    <p className="text-gray-400 mb-3">Advertise your available models and pricing on the Nostr network. Join the decentralized AI marketplace.</p>
+                    <h4 className="text-lg sm:text-xl font-bold mb-2 text-white text-center sm:text-left">Monitor and scale</h4>
+                    <p className="text-gray-400 mb-3 text-center sm:text-left">Track usage, set custom pricing, and join the relay network to get discovered by users automatically.</p>
 
                     <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-                      <div className="flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2 text-white">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-                            </svg>
-                            <span className="text-white">Model Analytics</span>
-                          </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded bg-black/20 p-2">
+                          <div className="text-xs text-gray-400 mb-1">Requests</div>
+                          <div className="text-white font-semibold">1,240</div>
                         </div>
-                        <div className="text-sm text-white">Monitor usage, revenue, and performance in real-time</div>
+                        <div className="rounded bg-black/20 p-2">
+                          <div className="text-xs text-gray-400 mb-1">Revenue</div>
+                          <div className="text-white font-semibold">42,300 sats</div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -279,23 +356,30 @@ export default function Home() {
               </div>
             )}
           </div>
-
-          <div className="mt-16 text-center">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center justify-center rounded-md bg-white text-black px-8 py-3 text-sm font-medium transition-colors hover:bg-gray-200"
-            >
-              Get started now
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <FeaturesSection
-        title="Powerful features for decentralized AI access"
-        features={features}
-      />
+      <section className="py-12 sm:py-16 bg-black/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" id="features">Key Features</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">A complete platform for permissionless, privacy-first AI access</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            {features.map((feature, index) => (
+              <div key={index} className="border border-white/10 rounded-lg p-5 bg-white/5 transition-colors">
+                <div className={`h-10 w-10 flex items-center justify-center rounded-md mb-4 ${feature.iconBgColor}`}>
+                  <div className={feature.iconColor}>{feature.icon}</div>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                <p className="text-gray-400 text-sm">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* API Example Section */}
       <section className="py-20 bg-black border-t border-white/5">
@@ -357,11 +441,11 @@ export default function Home() {
                 </Link>
               ))}
             </div>
-            
+
             {/* Fade effect */}
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black to-transparent pointer-events-none"></div>
           </div>
-          
+
           <div className="mt-8 text-center">
             <Link
               href="/models"
@@ -391,7 +475,7 @@ export default function Home() {
           </div>
 
           <div className="max-w-3xl mx-auto">
-            <RoadmapTimeline items={roadmapItems} />
+            <RoadmapTimeline items={roadmapItems} alternating={false} />
           </div>
 
           <div className="mt-16 text-center">
@@ -412,8 +496,8 @@ export default function Home() {
       <CtaSection
         title="Get started with Routstr"
         description="Open source, permissionless access to AI is available now"
-        buttonText="Start using now"
-        buttonLink="/dashboard"
+        buttonText="Explore models"
+        buttonLink="/models"
       />
 
       <Footer />

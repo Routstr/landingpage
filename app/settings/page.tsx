@@ -350,9 +350,41 @@ export default function SettingsPage() {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-6 flex flex-1">
-        {/* Sidebar with balance and tabs */}
-        <div className="w-64 mr-6">
+      <div className="container mx-auto px-4 py-6 flex flex-1 flex-col md:flex-row">
+        {/* Mobile Balance Display */}
+        <div className="md:hidden flex items-center justify-between mb-4">
+          <div className="flex items-center bg-black/40 border border-white/10 rounded-lg px-4 py-2">
+            <span className="text-lg font-medium mr-2">{balance}</span>
+            <span className="text-sm text-gray-300">sats</span>
+          </div>
+        </div>
+
+        {/* Mobile Tab Navigation - Always visible */}
+        <div className="md:hidden mb-4">
+          <div className="bg-black/40 border border-white/10 rounded-lg overflow-hidden grid grid-cols-3">
+            <button
+              onClick={() => setActiveTab('wallet')}
+              className={`py-3 text-xs text-center ${activeTab === 'wallet' ? 'bg-white/10 text-white' : 'text-gray-400'}`}
+            >
+              Mint
+            </button>
+            <button
+              onClick={() => setActiveTab('tokens')}
+              className={`py-3 text-xs text-center ${activeTab === 'tokens' ? 'bg-white/10 text-white' : 'text-gray-400'}`}
+            >
+              Tokens
+            </button>
+            <button
+              onClick={() => setActiveTab('account')}
+              className={`py-3 text-xs text-center ${activeTab === 'account' ? 'bg-white/10 text-white' : 'text-gray-400'}`}
+            >
+              Account
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Sidebar - hidden on mobile */}
+        <div className="hidden md:block w-64 mr-6">
           {/* Balance Card */}
           <div className="bg-black/40 border border-white/10 rounded-lg p-5 mb-6">
             <p className="text-xs text-gray-400 mb-1">Available Balance</p>
@@ -362,7 +394,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Vertical Tab Navigation */}
+          {/* Vertical Tab Navigation - desktop only */}
           <nav className="bg-black/40 border border-white/10 rounded-lg overflow-hidden">
             <button
               onClick={() => setActiveTab('wallet')}
@@ -384,6 +416,7 @@ export default function SettingsPage() {
             </button>
           </nav>
         </div>
+
         {/* Main Content Area */}
         <div className="flex-1">
           {/* Notification Area */}
@@ -400,7 +433,7 @@ export default function SettingsPage() {
           )}
 
           {/* Tab Content */}
-          <div className="bg-black/40 border border-white/10 rounded-lg p-6">
+          <div className="bg-black/40 border border-white/10 rounded-lg p-4 md:p-6">
             {activeTab === 'wallet' && (
               <div>
                 <h2 className="text-lg font-medium mb-5">Mint Tokens</h2>
@@ -446,12 +479,12 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="mb-4 p-4 bg-yellow-500/5 border border-yellow-500/15 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-yellow-200/80">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                        <p className="text-xs text-yellow-200/80 mb-2 sm:mb-0">
                           After payment, your Cashu tokens will be automatically minted and added to your wallet balance.
                         </p>
                         {isAutoChecking && (
-                          <div className="flex items-center ml-2 bg-black/30 px-2 py-1 rounded text-xs text-yellow-200/80">
+                          <div className="flex items-center mt-2 sm:mt-0 sm:ml-2 bg-black/30 px-2 py-1 rounded text-xs text-yellow-200/80 whitespace-nowrap">
                             <span>Checking in {countdown}s</span>
                             <svg
                               className="ml-2 w-3 h-3 text-yellow-200/80 animate-spin"
@@ -476,7 +509,7 @@ export default function SettingsPage() {
                       {mintInvoice}
                     </div>
 
-                    <div className="flex space-x-3">
+                    <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                       <button
                         onClick={copyInvoiceToClipboard}
                         className="flex-1 bg-black/30 border border-white/10 py-2.5 rounded-md text-xs font-medium hover:bg-black/50 transition-colors"
@@ -523,7 +556,7 @@ export default function SettingsPage() {
                       setShowSendForm(true);
                       setShowImportForm(false);
                     }}
-                    className={`bg-black/30 border ${showSendForm ? 'border-white/30' : 'border-white/10'} rounded-lg p-5 text-center hover:bg-black/50 transition-colors`}
+                    className={`bg-black/30 border ${showSendForm ? 'border-white/30' : 'border-white/10'} rounded-lg p-3 md:p-5 text-center hover:bg-black/50 transition-colors`}
                   >
                     <svg className="h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 19V5" />
@@ -537,7 +570,7 @@ export default function SettingsPage() {
                       setShowImportForm(true);
                       setShowSendForm(false);
                     }}
-                    className={`bg-black/30 border ${showImportForm ? 'border-white/30' : 'border-white/10'} rounded-lg p-5 text-center hover:bg-black/50 transition-colors`}
+                    className={`bg-black/30 border ${showImportForm ? 'border-white/30' : 'border-white/10'} rounded-lg p-3 md:p-5 text-center hover:bg-black/50 transition-colors`}
                   >
                     <svg className="h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 5v14" />
@@ -548,7 +581,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Forms */}
-                <div className="bg-black/30 border border-white/10 rounded-lg p-6">
+                <div className="bg-black/30 border border-white/10 rounded-lg p-4 md:p-6">
                   {showSendForm ? (
                     <div>
                       {!generatedToken ? (
@@ -565,7 +598,7 @@ export default function SettingsPage() {
                               placeholder="Amount in sats"
                             />
                           </div>
-                          <div className="flex space-x-3">
+                          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                             <button
                               onClick={() => {
                                 setShowSendForm(false);
@@ -595,7 +628,7 @@ export default function SettingsPage() {
                           <div className="w-full bg-black/30 border border-white/10 rounded-md px-4 py-3 text-xs text-gray-300 break-all mb-4 font-mono">
                             {generatedToken}
                           </div>
-                          <div className="flex space-x-3">
+                          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                             <button
                               onClick={copyTokenToClipboard}
                               className="flex-1 bg-black/30 border border-white/10 py-2.5 rounded-md text-xs font-medium hover:bg-black/50 transition-colors"
@@ -622,7 +655,7 @@ export default function SettingsPage() {
                           className="w-full bg-black/30 border border-white/10 rounded-md px-4 py-3 text-sm h-24 focus:border-white/30 focus:outline-none transition-colors"
                           placeholder="cashuA..."
                         />
-                        <div className="flex space-x-3">
+                        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                           <button
                             onClick={() => {
                               setShowImportForm(false);

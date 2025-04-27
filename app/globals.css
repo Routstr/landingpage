@@ -132,20 +132,3 @@ body {
   margin-left: auto;
   margin-right: auto;
 }
-
-/* Override Tailwind's max-width utility classes */
-.max-w-5xl {
-  max-width: 56rem !important; /* Reduced from 64rem */
-}
-
-.max-w-4xl {
-  max-width: 48rem !important; /* Reduced from 56rem */
-}
-
-.max-w-3xl {
-  max-width: 40rem !important; /* Reduced from 48rem */
-}
-
-.max-w-2xl {
-  max-width: 32rem !important; /* Reduced from 42rem */
-}
