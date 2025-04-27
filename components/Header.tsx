@@ -24,6 +24,9 @@ export default function Header() {
             <ul className="flex space-x-6">
               <li><Link href="#features" className="text-sm text-gray-400 hover:text-white transition-colors">Features</Link></li>
               <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">Models</Link></li>
+              {isAuthenticated && (
+                <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link></li>
+              )}
               <li>
                 <a 
                   href="https://github.com/routstr" 
@@ -37,11 +40,6 @@ export default function Header() {
                   Star on GitHub
                 </a>
               </li>
-              {isAuthenticated && (
-                <>
-                  <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link></li>
-                </>
-              )}
             </ul>
           </nav>
         </div>
@@ -76,6 +74,9 @@ export default function Header() {
             <li><Link href="#features" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Features</Link></li>
             <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Models</Link></li>
             <li><Link href="https://github.com/routstr" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">GitHub</Link></li>
+            {isAuthenticated && (
+              <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Chat</Link></li>
+            )}
             <li>
               <a 
                 href="https://github.com/routstr" 
@@ -89,9 +90,6 @@ export default function Header() {
                 Star on GitHub
               </a>
             </li>
-            {isAuthenticated && (
-              <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Chat</Link></li>
-            )}
           </ul>
           <div className="py-2">
             <NostrLogin />
