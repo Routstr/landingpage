@@ -24,6 +24,62 @@ import {
   Send
 } from 'lucide-react';
 
+// Custom hook to get window dimensions
+function useWindowSize() {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+  });
+
+  useEffect(() => {
+    // Only execute this on the client
+    if (typeof window === 'undefined') return;
+
+    // Handler to call on window resize
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+    
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Call handler right away so state gets updated with initial window size
+    handleResize();
+    
+    // Add event listeners for iOS Safari to handle toolbar show/hide
+    window.addEventListener('focusin', handleResize);
+    window.addEventListener('focusout', handleResize);
+    window.addEventListener('visibilitychange', handleResize);
+    
+    // Special handling for iOS Safari
+    let ticking = false;
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleResize();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }
+    window.addEventListener('scroll', onScroll);
+    
+    // Remove event listener on cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('focusin', handleResize);
+      window.removeEventListener('focusout', handleResize);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('visibilitychange', handleResize);
+    };
+  }, []); // Empty array ensures effect runs only on mount/unmount
+
+  return windowSize;
+}
+
 // Model type definition
 interface Model {
   id: string;
@@ -68,6 +124,9 @@ export default function ChatPage() {
 
   // Check if we're on mobile
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Use our custom hook to get the actual window height
+  const { height: windowHeight } = useWindowSize();
 
   // Define saveCurrentConversation before it's used in useEffect
   const saveCurrentConversation = useCallback(() => {
@@ -185,6 +244,18 @@ export default function ChatPage() {
       fetchModels();
     }
   }, [isAuthenticated, router, authChecked]);
+
+  // iOS Safari viewport height stabilization
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isMobile) {
+      // Force a resize event after a short delay
+      const timerId = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+      
+      return () => clearTimeout(timerId);
+    }
+  }, [isMobile]);
 
   // Scroll to bottom of chat when messages change
   useEffect(() => {
@@ -521,10 +592,15 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-black text-white">
+    <main className="flex flex-col bg-black text-white" style={{ minHeight: '100vh' }}>
       <Header />
 
-      <div className="container mx-auto px-4 py-6 flex flex-col h-[calc(100vh-64px)]">
+      <div 
+        className="container mx-auto px-4 py-6 flex flex-col" 
+        style={{ 
+          height: isMobile ? `${windowHeight - 64 - 10}px` : 'calc(100vh - 64px)' 
+        }}
+      >
         {/* Mobile UI Controls */}
         {isMobile && (
           <div className="flex justify-between items-center mb-3">
@@ -660,8 +736,9 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* Desktop Sidebar */}
+        {/* Main content area with flex layout */}
         <div className="flex flex-1 h-full">
+          {/* Desktop Sidebar */}
           {!isMobile && (
             <div className="w-64 mr-6 h-full flex flex-col">
               {/* Balance Card */}
@@ -860,8 +937,8 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* Chat Input */}
-            <div className="p-4 border-t border-white/10 bg-black/40">
+            {/* Chat Input - Now always sticky to viewport bottom on mobile */}
+            <div className="p-4 border-t border-white/10 bg-black/40 sticky bottom-0">
               <div className="flex flex-col">
                 <div className="flex">
                   <input
