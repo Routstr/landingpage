@@ -2,17 +2,17 @@
 import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { getExampleModel } from '../app/data/models';
+import { getExampleModelId } from '../app/data/models';
 
-// Get a real model from our data
-const exampleModel = getExampleModel();
+// Get a model ID from our data
+const exampleModelId = getExampleModelId();
 
 const codeExamples = {
   curl: `curl -X POST https://api.routstr.com/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer cashuBpGFteCJodHRwczovL21p..." \\
   -d '{
-    "model": "${exampleModel}",
+    "model": "${exampleModelId}",
     "messages": [
       {
         "role": "user", 
@@ -30,7 +30,7 @@ const openai = new OpenAI({
 
 async function main() {
   const completion = await openai.chat.completions.create({
-    model: '${exampleModel}',
+    model: '${exampleModelId}',
     messages: [
       { role: 'user', content: 'Hello Nostr' }
     ]
@@ -48,7 +48,7 @@ client = OpenAI(
 )
 
 completion = client.chat.completions.create(
-    model="${exampleModel}",
+    model="${exampleModelId}",
     messages=[
         {"role": "user", "content": "Hello Nostr"}
     ]

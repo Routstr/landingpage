@@ -23,6 +23,13 @@ import {
   Loader2,
   Send
 } from 'lucide-react';
+import { Model, getModelNameWithoutProvider } from '@/app/data/models';
+
+// Custom function to format pricing in a simplified way
+const formatSimplifiedPrice = (model: Model): string => {
+  // Just show the completion price (typically what users care about most)
+  return `${model.sats_pricing.completion.toFixed(6)} sats/token`;
+};
 
 // Custom hook to get window dimensions
 function useWindowSize() {
@@ -78,24 +85,6 @@ function useWindowSize() {
   }, []); // Empty array ensures effect runs only on mount/unmount
 
   return windowSize;
-}
-
-// Model type definition
-interface Model {
-  id: string;
-  name: string;
-  description: string;
-  cost_per_1m_prompt_tokens: number;
-  cost_per_1m_completion_tokens: number;
-  currency: string;
-}
-
-// API response model interface
-interface ApiModel {
-  name: string;
-  cost_per_1m_prompt_tokens: number;
-  cost_per_1m_completion_tokens: number;
-  currency: string;
 }
 
 export default function ChatPage() {
@@ -172,29 +161,19 @@ export default function ChatPage() {
       const data = await response.json();
 
       if (data && data.models && Array.isArray(data.models)) {
-        // Transform the API response to match our Model interface
-        const formattedModels = data.models.map((model: ApiModel) => ({
-          id: model.name,
-          name: model.name.split('/').pop() || model.name,
-          description: `${model.cost_per_1m_prompt_tokens} ${model.currency}/1M prompt tokens, ${model.cost_per_1m_completion_tokens} ${model.currency}/1M completion tokens`,
-          cost_per_1m_prompt_tokens: model.cost_per_1m_prompt_tokens,
-          cost_per_1m_completion_tokens: model.cost_per_1m_completion_tokens,
-          currency: model.currency
-        }));
-
-        setModels(formattedModels);
+        setModels(data.models);
 
         // Set default model - either last used or first in the list
         const lastUsedModelId = localStorage.getItem('lastUsedModel');
         if (lastUsedModelId) {
-          const lastModel = formattedModels.find((m: Model) => m.id === lastUsedModelId);
+          const lastModel = data.models.find((m: Model) => m.id === lastUsedModelId);
           if (lastModel) {
             setSelectedModel(lastModel);
-          } else if (formattedModels.length > 0) {
-            setSelectedModel(formattedModels[0]);
+          } else if (data.models.length > 0) {
+            setSelectedModel(data.models[0]);
           }
-        } else if (formattedModels.length > 0) {
-          setSelectedModel(formattedModels[0]);
+        } else if (data.models.length > 0) {
+          setSelectedModel(data.models[0]);
         }
       }
     } catch (err) {
@@ -560,7 +539,7 @@ export default function ChatPage() {
   const filteredModels = models.filter((model: Model) =>
     model.name.toLowerCase().includes(modelSearchQuery.toLowerCase()) ||
     model.id.toLowerCase().includes(modelSearchQuery.toLowerCase()) ||
-    model.description.toLowerCase().includes(modelSearchQuery.toLowerCase())
+    (model.description && model.description.toLowerCase().includes(modelSearchQuery.toLowerCase()))
   );
 
   // Render loading state if auth is still being checked
@@ -617,7 +596,7 @@ export default function ChatPage() {
               <Drawer open={isModelDrawerOpen} onOpenChange={setIsModelDrawerOpen}>
                 <DrawerTrigger asChild>
                   <button className="bg-black/40 border border-white/10 rounded-lg p-2 text-xs flex items-center">
-                    <span className="max-w-[100px] truncate">{selectedModel?.name || 'Select Model'}</span>
+                    <span className="max-w-[100px] truncate">{selectedModel ? getModelNameWithoutProvider(selectedModel.name) : 'Select Model'}</span>
                     <ChevronDown className="w-3 h-3 ml-1 text-gray-300" />
                   </button>
                 </DrawerTrigger>
@@ -665,9 +644,9 @@ export default function ChatPage() {
                             }}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-medium text-sm text-white">{model.name}</span>
+                              <span className="font-medium text-sm text-white">{getModelNameWithoutProvider(model.name)}</span>
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">{model.description}</p>
+                            <p className="text-xs text-gray-400 mt-1">{formatSimplifiedPrice(model)}</p>
                           </div>
                         ))
                       ) : (
@@ -831,9 +810,9 @@ export default function ChatPage() {
                             onClick={() => handleModelChange(model.id)}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-medium text-sm text-white">{model.name}</span>
+                              <span className="font-medium text-sm text-white">{getModelNameWithoutProvider(model.name)}</span>
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">{model.description}</p>
+                            <p className="text-xs text-gray-400 mt-1">{formatSimplifiedPrice(model)}</p>
                           </div>
                         ))}
                       </div>

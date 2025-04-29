@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { models, getProviderFromModelName, fetchModels } from '@/app/data/models';
+import { models, getProviderFromModelName, fetchModels, getModelNameWithoutProvider } from '@/app/data/models';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -40,7 +40,7 @@ export default function ModelsPage() {
       try {
         await fetchModels();
         // Extract unique providers
-        const uniqueProviders = Array.from(new Set(models.map(model => 
+        const uniqueProviders = Array.from(new Set(models.map(model =>
           getProviderFromModelName(model.name)
         ))).sort();
         setProviders(uniqueProviders);
@@ -50,33 +50,34 @@ export default function ModelsPage() {
         setIsLoading(false);
       }
     }
-    
+
     loadModels();
   }, []);
 
   // Filter and sort models
   const filteredModels = models.filter(model => {
-    const matchesSearch = model.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProvider = selectedProviders.length === 0 || 
+    const matchesSearch = model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      model.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesProvider = selectedProviders.length === 0 ||
       selectedProviders.includes(getProviderFromModelName(model.name));
     return matchesSearch && matchesProvider;
   }).sort((a, b) => {
-    switch(sortBy) {
+    switch (sortBy) {
       case 'name':
-        return a.name.localeCompare(b.name);
+        return getModelNameWithoutProvider(a.name).localeCompare(getModelNameWithoutProvider(b.name));
       case 'provider':
         return getProviderFromModelName(a.name).localeCompare(getProviderFromModelName(b.name));
       case 'price':
-        return a.cost_per_1m_prompt_tokens - b.cost_per_1m_prompt_tokens;
+        return a.pricing.prompt - b.pricing.prompt;
       default:
         return 0;
     }
   });
 
   const handleProviderToggle = (provider: string) => {
-    setSelectedProviders(prev => 
-      prev.includes(provider) 
-        ? prev.filter(p => p !== provider) 
+    setSelectedProviders(prev =>
+      prev.includes(provider)
+        ? prev.filter(p => p !== provider)
         : [...prev, provider]
     );
   };
@@ -161,11 +162,10 @@ export default function ModelsPage() {
                     {providers.map(provider => (
                       <button
                         key={provider}
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          selectedProviders.includes(provider)
+                        className={`px-3 py-1 rounded-full text-sm ${selectedProviders.includes(provider)
                             ? 'bg-white text-black'
                             : 'bg-black border border-white/20 text-white'
-                        }`}
+                          }`}
                         onClick={() => handleProviderToggle(provider)}
                       >
                         {provider}
@@ -179,13 +179,12 @@ export default function ModelsPage() {
                   {filteredModels.length > 0 ? (
                     filteredModels.map((model) => {
                       const provider = getProviderFromModelName(model.name);
-                      const modelName = model.name.includes('/') ? model.name.split('/')[1] : model.name;
-                      const modelId = model.name.replace(/\//g, '-');
+                      const modelName = getModelNameWithoutProvider(model.name);
 
                       return (
                         <Link
-                          key={model.name}
-                          href={`/models/${modelId}`}
+                          key={model.id}
+                          href={`/models/${model.id.replace('/', '/')}`}
                           className="block bg-black border border-white/10 rounded-lg p-6 hover:border-white/20 transition-all"
                         >
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -194,10 +193,13 @@ export default function ModelsPage() {
                               <p className="text-sm text-gray-500 mb-2">{provider}</p>
                               <div className="flex flex-wrap gap-2 mt-2">
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                  ${(model.cost_per_1m_prompt_tokens / 1000).toFixed(5)}/token input
+                                  {model.sats_pricing.prompt.toFixed(8)} sats/token input
                                 </span>
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                  ${(model.cost_per_1m_completion_tokens / 1000).toFixed(5)}/token output
+                                  {model.sats_pricing.completion.toFixed(8)} sats/token output
+                                </span>
+                                <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
+                                  {model.context_length.toLocaleString()} tokens
                                 </span>
                               </div>
                             </div>
