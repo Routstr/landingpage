@@ -72,7 +72,7 @@ export default function RoadmapPage() {
       description: "Public model marketplace",
       detailed: true,
       milestones: [
-        "Public offer site market.routstr.org",
+        "Public offer site market.routstr.com",
         "Listings gossiped on-chain",
         "NIP-15 Marketplace",
         "NIP-99 Classified listings"

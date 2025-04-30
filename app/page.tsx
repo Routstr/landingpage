@@ -245,7 +245,7 @@ export default function Home() {
                           wrapLines={true}
                           wrapLongLines={true}
                         >
-                          {`curl -X POST https://api.routstr.org/v1/chat/completions \\
+                          {`curl -X POST https://api.routstr.com/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer cashuA1DkpMbgQ9VkL6U..." \\
   -d '{
