@@ -6,148 +6,68 @@ import RoadmapTimeline, { RoadmapItem } from "@/components/RoadmapTimeline";
 export default function RoadmapPage() {
   const roadmapItems: RoadmapItem[] = [
     {
-      id: "core-alpha",
-      timeframe: "Core Alpha",
-      description: "Foundation for decentralized LLM routing",
+      id: "rip-01",
+      timeframe: "RIP-01: API Proxy & Payments",
+      description: "OpenAI-API Proxy with Cashu Payments",
       detailed: true,
       milestones: [
-        "Smart-Client SDK α (JS/TS)",
-        "Proxy α with Cashu payments",
-        "Relay seed list + CI",
-        "NIP-01 Basic protocol flow",
-        "NIP-11 Relay-info doc",
-        "NIP-19 bech32 IDs",
-        "NIP-42 Client ↔ relay auth"
+        "HTTP proxy forwarding OpenAI-compatible API requests",
+        "Per-request micropayments with Cashu tokens",
+        "Token-based pricing by input/output tokens",
+        "Authorization via API keys or Cashu tokens",
+        "Cost reporting in streaming and non-streaming responses"
       ]
     },
     {
-      id: "proxy-payments",
-      timeframe: "Proxy Payments",
-      description: "Decentralized payment mechanisms",
+      id: "rip-02",
+      timeframe: "RIP-02: Node Listing",
+      description: "Nostr event spec for announcing inference nodes",
       detailed: true,
       milestones: [
-        "Cashu bearer-token auth",
-        "BOLT-12 invoice flow via Wallet-Connect",
-        "NIP-47 Wallet Connect",
-        "NIP-98 HTTP Auth"
+        "Nostr Kind 40500 event for node announcements",
+        "Node capabilities including models, pricing, region",
+        "Operator pubkey association",
+        "Endpoint URL and latency metrics",
+        "Client subscription to node listings"
       ]
     },
     {
-      id: "developer-experience",
-      timeframe: "Developer Experience",
-      description: "Tools to enhance developer productivity",
+      id: "rip-03",
+      timeframe: "RIP-03: Frontend Discovery",
+      description: "Web interface for browsing available nodes",
       detailed: true,
       milestones: [
-        "VS Code helper",
-        "routstr dev tunnel",
-        "LangChain / LlamaIndex connectors",
-        "NIP-50 Search (code examples indexed)"
+        "List active nodes from Nostr Kind 40500",
+        "Filter by models, region, price, social proximity",
+        "Node cards with descriptions and metrics",
+        "Search and filtering capabilities",
+        "Real-time updates on new node events"
       ]
     },
     {
-      id: "privacy-layer",
-      timeframe: "Privacy Layer",
-      description: "Enhanced privacy features",
+      id: "rip-04",
+      timeframe: "RIP-04: Evaluations & Quality",
+      description: "Anonymous quality control for providers",
       detailed: true,
       milestones: [
-        "One-flag Tor/SOCKS5 routing",
-        "Exit-latency feed",
-        "NIP-48 Proxy Tags (location / cost hints)"
+        "Client-side randomized evaluation submissions",
+        "Anonymized metrics on quality, latency, and cost",
+        "Provider ratings with ephemeral Nostr keys",
+        "Kind 31555 events with standardized tags",
+        "Aggregation of multiple evaluations"
       ]
     },
     {
-      id: "operator-dashboard",
-      timeframe: "Operator Dashboard GA",
-      description: "Comprehensive monitoring and management",
+      id: "rip-05",
+      timeframe: "RIP-05: Smart Clients",
+      description: "Client-side token and privacy management",
       detailed: true,
       milestones: [
-        "Settings / payments / real-time graphs",
-        "Eval runner (Llama-Eval)",
-        "NIP-45 Counting results (metrics envelopes)"
-      ]
-    },
-    {
-      id: "marketplace-beta",
-      timeframe: "Marketplace β",
-      description: "Public model marketplace",
-      detailed: true,
-      milestones: [
-        "Public offer site market.routstr.org",
-        "Listings gossiped on-chain",
-        "NIP-15 Marketplace",
-        "NIP-99 Classified listings"
-      ]
-    },
-    {
-      id: "discovery-search",
-      timeframe: "Discovery & Search",
-      description: "Finding the best models and providers",
-      detailed: true,
-      milestones: [
-        "Price/latency leaderboard",
-        "Full-text search endpoint",
-        "NIP-50 Search capability"
-      ]
-    },
-    {
-      id: "security-abuse",
-      timeframe: "Security & Abuse v1",
-      description: "Platform security and abuse prevention",
-      detailed: true,
-      milestones: [
-        "Threat model + first audit",
-        "WAF heuristics",
-        "Abuse reports",
-        "NIP-56 Reporting",
-        "NIP-32 Labeling (flag types)"
-      ]
-    },
-    {
-      id: "payments-v2",
-      timeframe: "Payments v2 & Liquidity",
-      description: "Advanced payment features",
-      detailed: true,
-      milestones: [
-        "Multi-mint Cashu wallet",
-        "Cashu ↔ BOLT-12 swaps",
-        "Zap-tip button for open relays",
-        "NIP-57 Lightning Zaps",
-        "NIP-65 Relay-list metadata"
-      ]
-    },
-    {
-      id: "enterprise-ha",
-      timeframe: "Enterprise HA",
-      description: "Enterprise-grade high availability",
-      detailed: true,
-      milestones: [
-        "Multi-PoP proxy pools (AWS + GCP)",
-        "VPC peering, 99.9% SLA",
-        "SOC-2 prep",
-        "NIP-11 extended fields (SLA)"
-      ]
-    },
-    {
-      id: "governance-draft",
-      timeframe: "Governance Draft",
-      description: "Community governance framework",
-      detailed: true,
-      milestones: [
-        "Open-governance charter pushed to chain",
-        "Steering-committee list",
-        "NIP-78 App-specific data",
-        "NIP-23 Long-form content"
-      ]
-    },
-    {
-      id: "dao-ready",
-      timeframe: "DAO-Ready & Voting",
-      description: "Decentralized autonomous organization",
-      detailed: true,
-      milestones: [
-        "Token-weighted proposal votes (Cashu proofs)",
-        "Ballots stored as long-form events",
-        "NIP-23 Long-form content"
+        "Local Cashu wallet and token management",
+        "Auto-redemption and token splitting",
+        "Proxy/Tor routing for privacy",
+        "Provider optimization based on metrics",
+        "Dynamic scoring for provider selection"
       ]
     }
   ];

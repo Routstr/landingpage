@@ -114,20 +114,20 @@ export default function Home() {
   // Roadmap items for the landing page
   const roadmapItems = [
     {
-      timeframe: "Core Alpha",
-      description: "Smart-Client SDK α (JS/TS), Proxy α with Cashu payments, Relay seed list + CI"
+      timeframe: "RIP-01: API Proxy & Payments",
+      description: "OpenAI-API Proxy with Cashu micropayments for LLM inference"
     },
     {
-      timeframe: "Proxy Payments",
-      description: "Cashu bearer-token auth, BOLT-12 invoice flow via Wallet-Connect"
+      timeframe: "RIP-02: Node Listing",
+      description: "Nostr event announcements for inference nodes and capabilities"
     },
     {
-      timeframe: "Developer Experience",
-      description: "VS Code helper, routstr dev tunnel, LangChain / LlamaIndex connectors"
+      timeframe: "RIP-03: Frontend Discovery",
+      description: "Web interface for browsing and filtering available nodes"
     },
     {
-      timeframe: "Privacy Layer",
-      description: "One-flag Tor/SOCKS5 routing, Exit-latency feed"
+      timeframe: "RIP-04 & RIP-05: Quality & Privacy",
+      description: "Anonymous evaluations and smart clients with Tor/proxy routing"
     }
   ];
 
@@ -245,7 +245,7 @@ export default function Home() {
                           wrapLines={true}
                           wrapLongLines={true}
                         >
-                          {`curl -X POST https://api.routstr.org/v1/chat/completions \\
+                          {`curl -X POST https://api.routstr.com/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer cashuA1DkpMbgQ9VkL6U..." \\
   -d '{
@@ -476,7 +476,7 @@ export default function Home() {
 
           <div className="mt-16 text-center">
             <Link
-              href="/roadmap"
+              href="https://github.com/routstr/protocol"
               className="inline-flex items-center justify-center gap-2 rounded-md bg-white/5 border border-white/10 px-6 py-3 text-sm text-white font-medium hover:bg-white/10 transition-colors"
             >
               View full roadmap
