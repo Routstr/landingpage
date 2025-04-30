@@ -41,7 +41,7 @@ export default function Footer() {
         </div>
         
         <div className="mt-8 sm:mt-12 border-t border-white/10 pt-6 sm:pt-8 text-center">
-          <p className="text-xs sm:text-sm text-gray-400">© {new Date().getFullYear()} Routstr. Licensed under GNU General Public License v3.0</p>
+          <p className="text-xs sm:text-sm text-gray-400">© {new Date().getFullYear()} Routstr.<br/>Licensed under GNU General Public License v3.0</p>
         </div>
       </div>
     </footer>
