@@ -8,7 +8,7 @@ import CtaSection from "@/components/CtaSection";
 import AnalyticsSection from "@/components/AnalyticsSection";
 import HeroSection from "../components/HeroSection";
 import ApiExample from "../components/ApiExample";
-import { getPopularModels, getProviderFromModelName, formatPrice, formatSatsPrice, fetchModels } from "./data/models";
+import { getPopularModels, getProviderFromModelName, fetchModels } from "./data/models";
 import RoadmapTimeline from "@/components/RoadmapTimeline";
 import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
