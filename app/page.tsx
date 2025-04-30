@@ -86,7 +86,7 @@ export default function Home() {
           const completionFormatted = formatSatsNumber(completionPrice);
 
           return {
-            id: model.name.replace(/\//g, '-'),
+            id: model.id,
             name: modelName,
             provider: provider,
             promptPrice: promptFormatted,
