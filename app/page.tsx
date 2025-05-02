@@ -56,6 +56,7 @@ export default function Home() {
     promptPrice: string;
     completionPrice: string;
     context: string;
+    created: number;
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -91,7 +92,8 @@ export default function Home() {
             provider: provider,
             promptPrice: promptFormatted,
             completionPrice: completionFormatted,
-            context: "128K tokens"
+            context: "128K tokens",
+            created: model.created
           };
         });
         setDisplayModels(models);
@@ -480,7 +482,17 @@ export default function Home() {
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="text-lg sm:text-xl font-bold text-white">{model.name}</h3>
-                        <p className="text-xs sm:text-sm text-gray-500">{model.provider}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs sm:text-sm text-gray-500">{model.provider}</p>
+                          <span className="text-xs text-gray-500">•</span>
+                          <p className="text-xs text-gray-500">
+                            {new Date(model.created * 1000).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
                         <div className="flex flex-col gap-1 mt-2">
                           <div className="text-xs sm:text-sm">
                             <span className="text-gray-400 font-medium">Input:</span>{" "}

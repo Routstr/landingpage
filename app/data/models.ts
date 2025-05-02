@@ -131,11 +131,11 @@ export function groupModelsByProvider(): Record<string, Model[]> {
 
 // Get popular models (for showcase)
 export function getPopularModels(count: number = 6): Model[] {
-  // Sort by a combination of factors and return top N
+  // Sort by created date (newest first) and return top N
   return [...models]
     .sort((a, b) => 
-      // Prioritize models from major providers
-      (getProviderFromModelName(b.name).localeCompare(getProviderFromModelName(a.name)))
+      // Prioritize newest models
+      b.created - a.created
     )
     .slice(0, count);
 }
