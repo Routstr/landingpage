@@ -106,29 +106,31 @@ export default function ModelsPage() {
               <>
                 {/* Search and filters */}
                 <div className="mb-10 flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 flex">
                     <input
                       type="text"
                       placeholder="Search models..."
-                      className="w-full px-4 py-2 bg-black border border-white/20 rounded-md text-white"
+                      className="w-full h-11 px-4 py-2 bg-black border border-white/20 rounded-md text-white focus:outline-none focus:ring-0 focus:border-white/20"
+                      style={{ minHeight: 44, maxHeight: 44 }}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div>
+                  <div className="flex items-stretch">
                     <Popover open={sortOpen} onOpenChange={setSortOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           role="combobox"
                           aria-expanded={sortOpen}
-                          className="w-[160px] justify-between border-white/20 bg-black text-white hover:bg-white/5 hover:text-white"
+                          className="w-[260px] h-11 justify-between border-white/20 bg-black text-white hover:bg-white/5 hover:text-white px-4"
+                          style={{ minHeight: 44, maxHeight: 44 }}
                         >
                           {sortOptions.find((option) => option.value === sortBy)?.label || "Sort by"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[160px] p-0 bg-black border border-white/20 text-white">
+                      <PopoverContent className="w-[260px] p-0 bg-black border border-white/20 text-white">
                         <Command className="bg-transparent">
                           <CommandList>
                             <CommandGroup>
@@ -167,8 +169,8 @@ export default function ModelsPage() {
                       <button
                         key={provider}
                         className={`px-3 py-1 rounded-full text-sm ${selectedProviders.includes(provider)
-                            ? 'bg-white text-black'
-                            : 'bg-black border border-white/20 text-white'
+                          ? 'bg-white text-black'
+                          : 'bg-black border border-white/20 text-white'
                           }`}
                         onClick={() => handleProviderToggle(provider)}
                       >
