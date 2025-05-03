@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import { useNostr } from '@/context/NostrContext';
+import { useState } from 'react';
+import LoginModal from './LoginModal';
 
 interface HeroSectionProps {
   title: string;
@@ -13,6 +17,20 @@ export default function HeroSection({
   footerText = 'Open Source • GNU General Public License v3.0 • Permissionless',
   className = ''
 }: HeroSectionProps) {
+  const { isAuthenticated } = useNostr();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const router = useRouter();
+
+  const handleChatNow = () => {
+    if (isAuthenticated) {
+      router.push('/chat');
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
+  const closeLoginModal = () => setShowLoginModal(false);
+
   return (
     <section className={`bg-black py-12 sm:py-16 md:py-20 relative overflow-hidden w-full ${className}`}>
       <div className="px-4 md:px-6 relative z-10">
@@ -24,20 +42,29 @@ export default function HeroSection({
             {title}
           </h1>
           <p className="mb-6 sm:mb-8 text-base sm:text-xl text-gray-300">{description}</p>
-          
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-6 sm:mb-8">
-            <Link href="/models" className="inline-flex h-10 items-center justify-center rounded-md bg-white text-black px-6 sm:px-8 text-sm font-medium transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-white">
+
+          <div className="flex flex-row gap-3 sm:gap-4 justify-center mb-6 sm:mb-8">
+            <Link href="/models" className="inline-flex h-10 items-center justify-center rounded-md bg-white text-black px-6 sm:px-8 text-sm font-medium transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-white cursor-pointer">
               Explore Models
             </Link>
+            <button
+              onClick={handleChatNow}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-amber-400 text-black px-6 sm:px-8 text-sm font-medium transition-colors hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer"
+            >
+              Chat now
+            </button>
           </div>
-          
+
           <div className="flex items-center justify-center text-xs text-gray-500 mb-2 overflow-x-auto">
             <code className="font-mono mr-2 px-2 py-1 rounded bg-black border border-white/10 whitespace-nowrap text-xs">docker run -p 8080:8080 ghcr.io/routstr/proxy</code>
           </div>
-          
+
           {footerText && <p className="text-xs text-gray-400 font-mono overflow-hidden text-ellipsis">{footerText}</p>}
         </div>
       </div>
+      {showLoginModal && (
+        <LoginModal isOpen={showLoginModal} onClose={closeLoginModal} />
+      )}
     </section>
   );
 } 
