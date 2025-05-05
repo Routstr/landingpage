@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNostr } from '@/context/NostrContext';
 import { useRouter } from 'next/navigation';
 import { CashuMint, CashuWallet, MintQuoteState } from '@cashu/cashu-ts';
@@ -54,7 +54,7 @@ export default function SettingsPage() {
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Define checkMintQuote before using it in useEffect
-  const checkMintQuote = async () => {
+  const checkMintQuote = useCallback(async () => {
     if (!cashuWallet || !mintQuote) return;
 
     // Don't set loading state during auto-checking
@@ -102,7 +102,7 @@ export default function SettingsPage() {
         setLoading(false);
       }
     }
-  };
+  }, [cashuWallet, mintQuote, isAutoChecking, mintAmount]);
 
   // Check authentication and init wallet
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function SettingsPage() {
         clearInterval(countdownIntervalRef.current);
       }
     };
-  }, [mintInvoice, mintQuote]);
+  }, [mintInvoice, mintQuote, checkMintQuote]);
 
   const createMintQuote = async () => {
     if (!cashuWallet) return;

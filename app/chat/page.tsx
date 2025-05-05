@@ -49,18 +49,18 @@ function useWindowSize() {
         height: window.innerHeight,
       });
     }
-    
+
     // Add event listener
     window.addEventListener('resize', handleResize);
-    
+
     // Call handler right away so state gets updated with initial window size
     handleResize();
-    
+
     // Add event listeners for iOS Safari to handle toolbar show/hide
     window.addEventListener('focusin', handleResize);
     window.addEventListener('focusout', handleResize);
     window.addEventListener('visibilitychange', handleResize);
-    
+
     // Special handling for iOS Safari
     let ticking = false;
     function onScroll() {
@@ -73,7 +73,7 @@ function useWindowSize() {
       }
     }
     window.addEventListener('scroll', onScroll);
-    
+
     // Remove event listener on cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -231,7 +231,7 @@ export default function ChatPage() {
       const timerId = setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
       }, 500);
-      
+
       return () => clearTimeout(timerId);
     }
   }, [isMobile]);
@@ -574,10 +574,10 @@ export default function ChatPage() {
     <main className="flex flex-col bg-black text-white" style={{ minHeight: '100vh' }}>
       <Header />
 
-      <div 
-        className="container mx-auto px-4 py-6 flex flex-col" 
-        style={{ 
-          height: isMobile ? `${windowHeight - 64 - 10}px` : 'calc(100vh - 64px)' 
+      <div
+        className="container mx-auto px-4 py-6 flex flex-col"
+        style={{
+          height: isMobile ? `${windowHeight - 64 - 10}px` : 'calc(100vh - 64px)'
         }}
       >
         {/* Mobile UI Controls */}
@@ -637,7 +637,7 @@ export default function ChatPage() {
                         filteredModels.map((model) => (
                           <div
                             key={model.id}
-                            className={`flex flex-col p-3 rounded-lg cursor-pointer ${selectedModel?.id === model.id ? 'bg-white/10 border border-white/20' : 'bg-black/30 border border-white/5 hover:bg-black/50'}`}
+                            className={`flex flex-col px-3 py-2 rounded-lg cursor-pointer ${selectedModel?.id === model.id ? 'bg-white/10 border border-white/20' : 'bg-black/30 border border-white/5 hover:bg-black/50'}`}
                             onClick={() => {
                               handleModelChange(model.id);
                               setIsModelDrawerOpen(false);
@@ -646,7 +646,7 @@ export default function ChatPage() {
                             <div className="flex items-center justify-between">
                               <span className="font-medium text-sm text-white">{getModelNameWithoutProvider(model.name)}</span>
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">{formatSimplifiedPrice(model)}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{formatSimplifiedPrice(model)}</p>
                           </div>
                         ))
                       ) : (
@@ -770,11 +770,11 @@ export default function ChatPage() {
               </div>
 
               {/* Model Selection */}
-              <div className="bg-black/40 border border-white/10 rounded-lg p-5 flex-1 overflow-y-auto">
-                <h3 className="text-sm font-medium mb-4">Select AI Model</h3>
+              <div className="bg-black/40 border border-white/10 rounded-lg p-5 flex-1 flex flex-col overflow-hidden">
+                <h3 className="text-sm font-medium mb-4 flex-shrink-0">Select AI Model</h3>
 
                 {/* Search Bar */}
-                <div className="mb-4">
+                <div className="mb-4 flex-shrink-0">
                   <div className="relative">
                     <input
                       type="text"
@@ -794,38 +794,41 @@ export default function ChatPage() {
                   </div>
                 </div>
 
-                {isLoadingModels ? (
-                  <div className="flex justify-center items-center py-6">
-                    <Loader2 className="h-6 w-6 text-white/50 animate-spin" />
-                  </div>
-                ) : (
-                  <>
-                    {filteredModels.length > 0 ? (
-                      <div className="space-y-3">
-                        {filteredModels.map((model) => (
-                          <div
-                            key={model.id}
-                            className={`flex flex-col p-3 rounded-lg cursor-pointer ${selectedModel?.id === model.id ? 'bg-white/10 border border-white/20' : 'bg-black/30 border border-white/5 hover:bg-black/50'
-                              }`}
-                            onClick={() => handleModelChange(model.id)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-sm text-white">{getModelNameWithoutProvider(model.name)}</span>
+                {/* Scrollable Model List Area */}
+                <div className="flex-1 overflow-y-auto">
+                  {isLoadingModels ? (
+                    <div className="flex justify-center items-center py-6">
+                      <Loader2 className="h-6 w-6 text-white/50 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      {filteredModels.length > 0 ? (
+                        <div className="space-y-3">
+                          {filteredModels.map((model) => (
+                            <div
+                              key={model.id}
+                              className={`flex flex-col px-3 py-2 rounded-lg cursor-pointer ${selectedModel?.id === model.id ? 'bg-white/10 border border-white/20' : 'bg-black/30 border border-white/5 hover:bg-black/50'
+                                }`}
+                              onClick={() => handleModelChange(model.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-sm text-white">{getModelNameWithoutProvider(model.name)}</span>
+                              </div>
+                              <p className="text-xs text-gray-400 mt-0.5">{formatSimplifiedPrice(model)}</p>
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">{formatSimplifiedPrice(model)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center text-gray-400 text-sm">
-                        <p>No models found matching &quot;{modelSearchQuery}&quot;</p>
-                      </div>
-                    )}
-                  </>
-                )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-gray-400 text-sm">
+                          <p>No models found matching &quot;{modelSearchQuery}&quot;</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
                 {error && (
-                  <div className="mt-4 p-3 bg-red-500/5 border border-red-500/10 rounded-lg">
+                  <div className="mt-4 p-3 bg-red-500/5 border border-red-500/10 rounded-lg flex-shrink-0">
                     <p className="text-xs text-red-400">{error}</p>
                   </div>
                 )}

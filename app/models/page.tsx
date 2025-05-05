@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 const sortOptions = [
+  { value: 'date', label: 'Sort by Release Date' },
   { value: 'name', label: 'Sort by Name' },
   { value: 'provider', label: 'Sort by Provider' },
   { value: 'price', label: 'Sort by Price' },
@@ -28,7 +29,7 @@ const sortOptions = [
 
 export default function ModelsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'provider' | 'price'>('name');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'provider' | 'price'>('date');
   const [providers, setProviders] = useState<string[]>([]);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
@@ -63,6 +64,9 @@ export default function ModelsPage() {
     return matchesSearch && matchesProvider;
   }).sort((a, b) => {
     switch (sortBy) {
+      case 'date':
+        // Sort by created date (newest first)
+        return b.created - a.created;
       case 'name':
         return getModelNameWithoutProvider(a.name).localeCompare(getModelNameWithoutProvider(b.name));
       case 'provider':
@@ -102,29 +106,31 @@ export default function ModelsPage() {
               <>
                 {/* Search and filters */}
                 <div className="mb-10 flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 flex">
                     <input
                       type="text"
                       placeholder="Search models..."
-                      className="w-full px-4 py-2 bg-black border border-white/20 rounded-md text-white"
+                      className="w-full h-11 px-4 py-2 bg-black border border-white/20 rounded-md text-white focus:outline-none focus:ring-0 focus:border-white/20"
+                      style={{ minHeight: 44, maxHeight: 44 }}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div>
+                  <div className="flex items-stretch">
                     <Popover open={sortOpen} onOpenChange={setSortOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           role="combobox"
                           aria-expanded={sortOpen}
-                          className="w-[160px] justify-between border-white/20 bg-black text-white hover:bg-white/5 hover:text-white"
+                          className="w-[260px] h-11 justify-between border-white/20 bg-black text-white hover:bg-white/5 hover:text-white px-4"
+                          style={{ minHeight: 44, maxHeight: 44 }}
                         >
                           {sortOptions.find((option) => option.value === sortBy)?.label || "Sort by"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[160px] p-0 bg-black border border-white/20 text-white">
+                      <PopoverContent className="w-[260px] p-0 bg-black border border-white/20 text-white">
                         <Command className="bg-transparent">
                           <CommandList>
                             <CommandGroup>
@@ -133,7 +139,7 @@ export default function ModelsPage() {
                                   key={option.value}
                                   value={option.value}
                                   onSelect={(value) => {
-                                    setSortBy(value as 'name' | 'provider' | 'price');
+                                    setSortBy(value as 'date' | 'name' | 'provider' | 'price');
                                     setSortOpen(false);
                                   }}
                                   className="text-white hover:bg-white/10"
@@ -163,8 +169,8 @@ export default function ModelsPage() {
                       <button
                         key={provider}
                         className={`px-3 py-1 rounded-full text-sm ${selectedProviders.includes(provider)
-                            ? 'bg-white text-black'
-                            : 'bg-black border border-white/20 text-white'
+                          ? 'bg-white text-black'
+                          : 'bg-black border border-white/20 text-white'
                           }`}
                         onClick={() => handleProviderToggle(provider)}
                       >
@@ -190,7 +196,17 @@ export default function ModelsPage() {
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                               <h3 className="text-xl font-bold text-white">{modelName}</h3>
-                              <p className="text-sm text-gray-500 mb-2">{provider}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-gray-500">{provider}</p>
+                                <span className="text-xs text-gray-500">•</span>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(model.created * 1000).toLocaleDateString(undefined, {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </p>
+                              </div>
                               <div className="flex flex-wrap gap-2 mt-2">
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
                                   {model.sats_pricing.prompt.toFixed(8)} sats/token input

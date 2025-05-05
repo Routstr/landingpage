@@ -83,8 +83,98 @@ export default function ModelDetailPage() {
     return (
       <main className="flex min-h-screen flex-col bg-black text-white">
         <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-white"></div>
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-4xl mx-auto">
+            {/* Back link skeleton */}
+            <div className="h-6 w-32 bg-zinc-800 rounded-md mb-6 animate-pulse"></div>
+            
+            {/* Hero section skeleton */}
+            <div className="mb-6 md:mb-10 bg-gradient-to-r from-black to-zinc-900 rounded-xl p-4 md:p-8 border border-zinc-800">
+              <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-6 mb-3 md:mb-6">
+                <div className="w-full md:w-2/3">
+                  <div className="h-10 w-64 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
+                  <div className="h-6 w-40 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
+                </div>
+                <div className="h-10 w-32 bg-zinc-800 rounded-md animate-pulse self-start"></div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="h-4 bg-zinc-800 rounded-md animate-pulse w-full"></div>
+                <div className="h-4 bg-zinc-800 rounded-md animate-pulse w-5/6"></div>
+                <div className="h-4 bg-zinc-800 rounded-md animate-pulse w-4/6"></div>
+              </div>
+            </div>
+            
+            {/* Stats skeleton */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-black/50 border border-zinc-800 rounded-lg p-4">
+                  <div className="h-3 w-20 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
+                  <div className="h-6 w-16 bg-zinc-800 rounded-md mb-1 animate-pulse"></div>
+                  <div className="h-3 w-24 bg-zinc-800 rounded-md animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Technical specs skeleton */}
+            <div className="p-6 bg-black/50 border border-zinc-800 rounded-lg mb-10">
+              <div className="h-6 w-48 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
+              <div className="space-y-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="border-b border-zinc-700 py-3 flex justify-between">
+                    <div className="h-4 w-32 bg-zinc-800 rounded-md animate-pulse"></div>
+                    <div className="h-4 w-48 bg-zinc-800 rounded-md animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Pricing skeleton */}
+            <div className="bg-black/50 border border-zinc-800 p-6 mb-10">
+              <div className="h-6 w-40 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
+              <div className="bg-black/30 border border-zinc-700 rounded-lg p-5 mb-6">
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="border-b border-zinc-700 py-2 flex justify-between">
+                      <div className="h-4 w-24 bg-zinc-800 rounded-md animate-pulse"></div>
+                      <div className="h-4 w-32 bg-zinc-800 rounded-md animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <div className="h-5 w-56 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
+                <div className="space-y-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-3 bg-zinc-800 rounded-md animate-pulse w-full"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* API integration skeleton */}
+            <div className="bg-black/50 border border-zinc-800 p-6 mb-12">
+              <div className="h-6 w-36 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
+              <div className="h-4 w-full bg-zinc-800 rounded-md mb-6 animate-pulse"></div>
+              
+              <div className="flex space-x-1 mb-4 border-b border-zinc-700">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-8 w-24 bg-zinc-800 rounded-t-lg animate-pulse"></div>
+                ))}
+              </div>
+              
+              <div className="bg-black/70 rounded-lg p-4 border border-zinc-700 h-48 animate-pulse"></div>
+              
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="rounded bg-black/30 p-3 border border-zinc-800">
+                    <div className="h-4 w-32 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
+                    <div className="h-3 w-full bg-zinc-800 rounded-md animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
         <Footer />
       </main>

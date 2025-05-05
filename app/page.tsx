@@ -8,9 +8,9 @@ import CtaSection from "@/components/CtaSection";
 import AnalyticsSection from "@/components/AnalyticsSection";
 import HeroSection from "../components/HeroSection";
 import ApiExample from "../components/ApiExample";
-import { getPopularModels, getProviderFromModelName, formatPrice } from "../app/data/models";
+import { getPopularModels, getProviderFromModelName, fetchModels } from "./data/models";
 import RoadmapTimeline from "@/components/RoadmapTimeline";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Globe } from "@/components/ui/globe";
@@ -49,6 +49,63 @@ const customTheme = {
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("users");
+  const [displayModels, setDisplayModels] = useState<Array<{
+    id: string;
+    name: string;
+    provider: string;
+    promptPrice: string;
+    completionPrice: string;
+    context: string;
+    created: number;
+  }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadModels() {
+      setIsLoading(true);
+      try {
+        await fetchModels();
+        const models = getPopularModels(5).map(model => {
+          const provider = getProviderFromModelName(model.name);
+          const modelName = model.name.split('/').length > 1 ? model.name.split('/')[1] : model.name;
+
+          // Format sats price in a more readable way
+          const promptPrice = model.sats_pricing.prompt;
+          const completionPrice = model.sats_pricing.completion;
+
+          // Format numbers to a simpler format
+          const formatSatsNumber = (num: number) => {
+            if (num < 0.0001) {
+              // Use scientific notation with fewer digits for very small numbers
+              return num.toExponential(2);
+            }
+            // Use fewer decimal places for better readability
+            return num.toFixed(Math.min(4, Math.max(1, 6 - Math.floor(Math.log10(num) + 1))));
+          };
+
+          const promptFormatted = formatSatsNumber(promptPrice);
+          const completionFormatted = formatSatsNumber(completionPrice);
+
+          return {
+            id: model.id,
+            name: modelName,
+            provider: provider,
+            promptPrice: promptFormatted,
+            completionPrice: completionFormatted,
+            context: "128K tokens",
+            created: model.created
+          };
+        });
+        setDisplayModels(models);
+      } catch (error) {
+        console.error("Error loading models:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadModels();
+  }, []);
 
   const features = [
     {
@@ -96,20 +153,6 @@ export default function Home() {
       iconColor: "text-white"
     }
   ];
-
-  // Get models from models.json data
-  const displayModels = getPopularModels(6).map(model => {
-    const provider = getProviderFromModelName(model.name);
-    const modelName = model.name.split('/').length > 1 ? model.name.split('/')[1] : model.name;
-
-    return {
-      id: model.name.replace(/\//g, '-'),
-      name: modelName,
-      provider: provider,
-      priceRange: formatPrice(model),
-      context: "128K tokens"
-    };
-  });
 
   // Roadmap items for the landing page
   const roadmapItems = [
@@ -412,34 +455,76 @@ export default function Home() {
 
           <div className="relative">
             <div className="flex flex-col space-y-4 max-w-4xl mx-auto">
-              {displayModels.map((model) => (
-                <Link
-                  key={model.id}
-                  href={`/models/${model.id}`}
-                  className="block bg-black border border-white/10 rounded-lg p-6 hover:border-white/20 transition-all"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-white">{model.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-500">{model.provider}</p>
-                      <div className="flex gap-4 mt-2">
-                        <div>
-                          <span className="text-xs sm:text-sm text-gray-400 font-medium">Price:</span> {model.priceRange}
+              {isLoading ? (
+                // Skeleton loading UI
+                Array(3).fill(0).map((_, index) => (
+                  <div key={index} className="bg-black border border-white/10 rounded-lg p-6 animate-pulse">
+                    <div className="flex justify-between items-center">
+                      <div className="w-full">
+                        <div className="h-6 bg-white/5 rounded w-1/3 mb-3"></div>
+                        <div className="h-4 bg-white/5 rounded w-1/4 mb-4"></div>
+                        <div className="flex flex-col gap-2 mt-2">
+                          <div className="h-4 bg-white/5 rounded w-2/3"></div>
+                          <div className="h-4 bg-white/5 rounded w-2/3"></div>
                         </div>
                       </div>
-                    </div>
-                    <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                      </svg>
+                      <div className="h-8 w-8 rounded-full bg-white/5 flex-shrink-0"></div>
                     </div>
                   </div>
-                </Link>
-              ))}
+                ))
+              ) : displayModels.length > 0 ? (
+                displayModels.map((model) => (
+                  <Link
+                    key={model.id}
+                    href={`/models/${model.id}`}
+                    className="block bg-black border border-white/10 rounded-lg p-6 hover:border-white/20 transition-all"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-bold text-white">{model.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs sm:text-sm text-gray-500">{model.provider}</p>
+                          <span className="text-xs text-gray-500">•</span>
+                          <p className="text-xs text-gray-500">
+                            {new Date(model.created * 1000).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-1 mt-2">
+                          <div className="text-xs sm:text-sm">
+                            <span className="text-gray-400 font-medium">Input:</span>{" "}
+                            <span className="font-mono text-white">{model.promptPrice}</span>{" "}
+                            <span className="text-gray-500">sats/token</span>
+                          </div>
+                          <div className="text-xs sm:text-sm">
+                            <span className="text-gray-400 font-medium">Output:</span>{" "}
+                            <span className="font-mono text-white">{model.completionPrice}</span>{" "}
+                            <span className="text-gray-500">sats/token</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-gray-400">No models available at the moment. Please check back later.</p>
+                </div>
+              )}
             </div>
 
             {/* Fade effect */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black to-transparent pointer-events-none"></div>
+            {displayModels.length > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black to-transparent pointer-events-none"></div>
+            )}
           </div>
 
           <div className="mt-8 text-center">
