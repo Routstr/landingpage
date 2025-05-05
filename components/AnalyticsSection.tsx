@@ -26,7 +26,7 @@ export default function AnalyticsSection({
             {/* Desktop/Tablet: show architecture.svg, Mobile: show architecture-mobile.svg */}
             <div className="hidden sm:block w-full">
               <Image
-                src="/architecture.svg"
+                src="/assets/architecture.svg"
                 alt="Architecture diagram"
                 width={900}
                 height={185}
