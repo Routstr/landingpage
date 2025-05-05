@@ -22,7 +22,7 @@ export default function Header() {
           </Link>
           <nav className="hidden md:flex">
             <ul className="flex space-x-6">
-              <li><Link href="#features" className="text-sm text-gray-400 hover:text-white transition-colors">Features</Link></li>
+              <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors">Features</Link></li>
               <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">Models</Link></li>
               {isAuthenticated && (
                 <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link></li>
@@ -69,17 +69,17 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden px-4 py-3 bg-black/95 border-t border-white/10 absolute z-50 w-full">
           <ul className="space-y-4 mb-4">
-            <li><Link href="#features" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Features</Link></li>
+            <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Features</Link></li>
             <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Models</Link></li>
             <li><Link href="https://github.com/routstr" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">GitHub</Link></li>
             {isAuthenticated && (
               <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Chat</Link></li>
             )}
             <li>
-              <a 
-                href="https://github.com/routstr" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="https://github.com/routstr"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-3 py-0.5 rounded-md border border-white/10 bg-white/5 text-sm text-white hover:bg-white/10 transition-all"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" className="text-amber-400">
