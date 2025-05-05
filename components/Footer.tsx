@@ -24,7 +24,7 @@ export default function Footer() {
 
         {/* Connect */}
         <div className="flex flex-col md:flex-row items-center gap-4">
-          <Link href="https://twitter.com/routstr" className="text-sm text-gray-400 hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">Twitter</Link>
+          <Link href="https://x.com/routstrai" className="text-sm text-gray-400 hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">Twitter</Link>
           <Link href="https://njump.me/npub130mznv74rxs032peqym6g3wqavh472623mt3z5w73xq9r6qqdufs7ql29s" className="text-sm text-gray-400 hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">Nostr</Link>
           <Link href="https://github.com/routstr" className="text-sm text-gray-400 hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">GitHub</Link>
         </div>
