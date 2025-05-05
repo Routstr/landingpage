@@ -21,14 +21,16 @@ export default function AnalyticsSection({
         
         <div className="mx-auto max-w-4xl p-6 rounded-lg border border-white/10 bg-black font-mono text-xs text-gray-400">
           <pre className="overflow-x-auto whitespace-pre">
-{`┌──────────────┐        Cashu/BOLT12        ┌───────────────┐
-│  Your App    │  ───────────────────────▶ │ Routstr Proxy │
-└──────────────┘                            └───────────────┘
-        ▲                                         │  OpenAI‑style HTTP
-        │ Smart Client SDK                        ▼
-┌──────────────────┐                   ┌────────────────────┐
-│  Tor / HTTPS     │ ───────────────▶  │ Upstream Providers │
-└──────────────────┘                   └────────────────────┘`}
+{`┌──────────────┐       Cashu/Api-Key + Tor       ┌───────────────┐
+│  Your App    │  ────────────────────────────▶  │ Routstr Proxy │
+└──────────────┘                                 └───────────────┘
+                                                         │
+                                                         │ OpenAI‑style HTTP
+                                                         ▼
+                                               ┌────────────────────┐
+                                               │ Upstream Providers │
+                                               └────────────────────┘
+                                                 (Self-hosted or proxied)`}
           </pre>
           
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -46,7 +48,7 @@ export default function AnalyticsSection({
               <h3 className="text-white mb-2 font-medium">Self-Hosted Proxy</h3>
               <ul className="list-disc list-inside space-y-1 text-gray-400">
                 <li>Works with any OpenAI-compatible server</li>
-                <li>Accepts Cashu and BOLT12 payments</li>
+                <li>Accepts Cashu and API-Keys</li>
                 <li>Secure rate limiting</li>
                 <li>Optional Tor Hidden Service mode</li>
               </ul>
