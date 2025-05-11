@@ -24,6 +24,7 @@ import {
   Send
 } from 'lucide-react';
 import { Model, getModelNameWithoutProvider } from '@/app/data/models';
+import ReactMarkdown from 'react-markdown';
 
 // Custom function to format pricing in a simplified way
 const formatSimplifiedPrice = (model: Model): string => {
@@ -121,35 +122,35 @@ export default function ChatPage() {
   const saveCurrentConversation = useCallback(() => {
     if (!activeConversationId) return;
 
-    // Generate a title from the first user message if none exists
-    let title = conversations.find(c => c.id === activeConversationId)?.title;
-    if (!title || title.startsWith('Conversation ')) {
-      const firstUserMessage = messages.find(m => m.role === 'user')?.content;
-      if (firstUserMessage) {
-        title = firstUserMessage.length > 30
-          ? firstUserMessage.substring(0, 30) + '...'
-          : firstUserMessage;
+    // Use functional update for setConversations to avoid dependency on `conversations`
+    setConversations(prevConversations => {
+      let title = prevConversations.find(c => c.id === activeConversationId)?.title;
+      if (!title || title.startsWith('Conversation ')) {
+        const firstUserMessage = messages.find(m => m.role === 'user')?.content;
+        if (firstUserMessage) {
+          title = firstUserMessage.length > 30
+            ? firstUserMessage.substring(0, 30) + '...'
+            : firstUserMessage;
+        }
       }
-    }
 
-    // Update the conversation
-    const updatedConversations = conversations.map(conversation => {
-      if (conversation.id === activeConversationId) {
-        return {
-          ...conversation,
-          title: title || conversation.title,
-          messages: [...messages]
-        };
-      }
-      return conversation;
+      const updatedConversations = prevConversations.map(conversation => {
+        if (conversation.id === activeConversationId) {
+          return {
+            ...conversation,
+            title: title || conversation.title,
+            messages: [...messages] // `messages` comes from component scope, correctly in useCallback deps
+          };
+        }
+        return conversation;
+      });
+      localStorage.setItem('saved_conversations', JSON.stringify(updatedConversations));
+      return updatedConversations;
     });
-
-    setConversations(updatedConversations);
-    localStorage.setItem('saved_conversations', JSON.stringify(updatedConversations));
-  }, [activeConversationId, conversations, messages]);
+  }, [activeConversationId, messages]);
 
   // Fetch available models from API
-  const fetchModels = async () => {
+  const fetchModels = useCallback(async () => {
     try {
       setIsLoadingModels(true);
       const response = await fetch('https://api.routstr.com/');
@@ -183,7 +184,7 @@ export default function ChatPage() {
     } finally {
       setIsLoadingModels(false);
     }
-  };
+  }, []);
 
   // Get user balance and saved conversations from localStorage on page load
   useEffect(() => {
@@ -214,15 +215,28 @@ export default function ChatPage() {
       }
 
       // Load saved conversations
-      const savedConversations = localStorage.getItem('saved_conversations');
-      if (savedConversations) {
-        setConversations(JSON.parse(savedConversations));
+      const savedConversationsData = localStorage.getItem('saved_conversations');
+      if (savedConversationsData) {
+        try {
+          const parsedConversations = JSON.parse(savedConversationsData);
+          if (Array.isArray(parsedConversations)) {
+            setConversations(parsedConversations);
+          } else {
+            console.warn('Saved conversations from localStorage is not an array. Initializing as empty.');
+            setConversations([]);
+          }
+        } catch (error) {
+          console.error('Failed to parse saved conversations from localStorage:', error);
+          setConversations([]);
+        }
+      } else {
+        setConversations([]); // Initialize if not present
       }
 
       // Fetch available models
       fetchModels();
     }
-  }, [isAuthenticated, router, authChecked]);
+  }, [isAuthenticated, router, authChecked, fetchModels]);
 
   // iOS Safari viewport height stabilization
   useEffect(() => {
@@ -884,6 +898,10 @@ export default function ChatPage() {
                                 </button>
                               </div>
                             </div>
+                          ) : message.role === 'assistant' ? (
+                            <div className="prose prose-invert max-w-none text-sm">
+                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                            </div>
                           ) : (
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                           )}
@@ -910,7 +928,9 @@ export default function ChatPage() {
                 {streamingContent && (
                   <div className="flex justify-start">
                     <div className="max-w-[85%] rounded-lg p-3 bg-white/5 border border-white/10 text-gray-200">
-                      <p className="text-sm whitespace-pre-wrap">{streamingContent}</p>
+                      <div className="prose prose-invert max-w-none text-sm">
+                        <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 )}
