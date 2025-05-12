@@ -24,6 +24,20 @@ export default function Header() {
             <ul className="flex space-x-6">
               <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors">Features</Link></li>
               <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">Models</Link></li>
+              <li>
+                <a
+                  href="https://docs.routstr.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                >
+                  Docs
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
+                  </svg>
+                  <span className="sr-only">(opens in a new tab)</span>
+                </a>
+              </li>
               {isAuthenticated && (
                 <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link></li>
               )}
@@ -71,23 +85,24 @@ export default function Header() {
           <ul className="space-y-4 mb-4">
             <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Features</Link></li>
             <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Models</Link></li>
+            <li>
+              <a
+                href="https://docs.routstr.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-400 hover:text-white transition-colors block py-1 inline-flex items-center gap-1"
+              >
+                Docs
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
+                </svg>
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            </li>
             <li><Link href="https://github.com/routstr" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">GitHub</Link></li>
             {isAuthenticated && (
               <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Chat</Link></li>
             )}
-            <li>
-              <a
-                href="https://github.com/routstr"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-0.5 rounded-md border border-white/10 bg-white/5 text-sm text-white hover:bg-white/10 transition-all"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" className="text-amber-400">
-                  <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
-                </svg>
-                Star on GitHub
-              </a>
-            </li>
           </ul>
           <div className="py-2">
             <NostrLogin />

@@ -16,6 +16,18 @@ export default function Footer() {
         <nav className="flex flex-col md:flex-row items-center gap-4">
           <Link href="/" className="text-sm text-gray-400 hover:text-white transition-colors">Home</Link>
           <Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">Models</Link>
+          <a
+            href="https://docs.routstr.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+          >
+            Docs
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
+            </svg>
+            <span className="sr-only">(opens in a new tab)</span>
+          </a>
           <Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link>
           <Link href="/roadmap" className="text-sm text-gray-400 hover:text-white transition-colors">Roadmap</Link>
           <Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy</Link>
