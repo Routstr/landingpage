@@ -756,7 +756,7 @@ export default function ChatPage() {
                 </div>
 
                 {/* Always show conversations */}
-                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">
+                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-black/20">
                   {conversations.length === 0 ? (
                     <p className="text-xs text-gray-400 text-center py-2">No saved conversations</p>
                   ) : (
@@ -809,7 +809,7 @@ export default function ChatPage() {
                 </div>
 
                 {/* Scrollable Model List Area */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-black/20">
                   {isLoadingModels ? (
                     <div className="flex justify-center items-center py-6">
                       <Loader2 className="h-6 w-6 text-white/50 animate-spin" />
@@ -817,7 +817,7 @@ export default function ChatPage() {
                   ) : (
                     <>
                       {filteredModels.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-3 pr-2">
                           {filteredModels.map((model) => (
                             <div
                               key={model.id}
