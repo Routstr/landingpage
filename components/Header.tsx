@@ -1,12 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import NostrLogin from './NostrLogin';
-import { useNostr } from '@/context/NostrContext';
 import { useState } from 'react';
 
 export default function Header() {
-  const { isAuthenticated } = useNostr();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -14,7 +11,7 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b border-white/10 py-4 bg-black w-full">
+    <header className="border-b border-white/10 py-4 bg-black w-full max-w-5xl mx-auto">
       <div className="flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">
@@ -38,9 +35,6 @@ export default function Header() {
                   <span className="sr-only">(opens in a new tab)</span>
                 </a>
               </li>
-              {isAuthenticated && (
-                <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link></li>
-              )}
             </ul>
           </nav>
         </div>
@@ -56,9 +50,6 @@ export default function Header() {
             </svg>
             Star on GitHub
           </a>
-          <div className="hidden md:block">
-            <NostrLogin />
-          </div>
 
           {/* Mobile menu button */}
           <button
@@ -100,13 +91,7 @@ export default function Header() {
               </a>
             </li>
             <li><Link href="https://github.com/routstr" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">GitHub</Link></li>
-            {isAuthenticated && (
-              <li><Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Chat</Link></li>
-            )}
           </ul>
-          <div className="py-2">
-            <NostrLogin />
-          </div>
         </div>
       )}
     </header>
