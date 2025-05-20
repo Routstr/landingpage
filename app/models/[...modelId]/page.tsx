@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
@@ -23,6 +23,7 @@ function decodeSegments(segments: string[]): string[] {
 
 export default function ModelDetailPage() {
   const params = useParams();
+  const router = useRouter();
   // Handle the catch-all route by joining the path segments
   const modelIdParts = params.modelId as string[];
 
@@ -329,9 +330,14 @@ print(completion.choices[0].message.content)`
                   <h1 className="text-3xl md:text-4xl font-bold mb-1 md:mb-2 text-white">{displayName}</h1>
                   <p className="text-lg md:text-xl text-gray-300 mb-2 md:mb-4">by {provider}</p>
                 </div>
-                <button className="px-6 py-2 md:py-3 bg-white text-black rounded-md font-medium hover:bg-gray-200 transition-colors self-start">
+                <a
+                  href={`https://chat.routstr.com/?model=${encodeURIComponent(model.id)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-2 md:py-3 bg-white text-black rounded-md font-medium hover:bg-gray-200 transition-colors self-start"
+                >
                   Try It Now
-                </button>
+                </a>
               </div>
 
               <div className="prose prose-invert max-w-none">
