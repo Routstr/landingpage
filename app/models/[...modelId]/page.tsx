@@ -23,7 +23,6 @@ function decodeSegments(segments: string[]): string[] {
 
 export default function ModelDetailPage() {
   const params = useParams();
-  const router = useRouter();
   // Handle the catch-all route by joining the path segments
   const modelIdParts = params.modelId as string[];
 
