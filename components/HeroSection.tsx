@@ -29,7 +29,7 @@ export default function HeroSection({
               Explore Models
             </Link>
             <Link
-              href="chat.routstr.com"
+              href="https://chat.routstr.com"
               className="inline-flex h-10 items-center justify-center rounded-md bg-amber-400 text-black px-6 sm:px-8 text-sm font-medium transition-colors hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer"
             >
               Chat now
