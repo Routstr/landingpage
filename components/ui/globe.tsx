@@ -80,22 +80,31 @@ export function Globe({
 
     window.addEventListener("resize", onResize);
     onResize();
+    let globe: ReturnType<typeof createGlobe> | null = null;
 
-    const globe = createGlobe(canvasRef.current!, {
-      ...config,
-      width: widthRef.current * 2,
-      height: widthRef.current * 2,
-      onRender: (state) => {
-        if (!pointerInteracting.current) phiRef.current += 0.005;
-        state.phi = phiRef.current + rs.get();
-        state.width = widthRef.current * 2;
-        state.height = widthRef.current * 2;
-      },
-    });
+    try {
+      globe = createGlobe(canvasRef.current!, {
+        ...config,
+        width: widthRef.current * 2,
+        height: widthRef.current * 2,
+        onRender: (state) => {
+          if (!pointerInteracting.current) phiRef.current += 0.005;
+          state.phi = phiRef.current + rs.get();
+          state.width = widthRef.current * 2;
+          state.height = widthRef.current * 2;
+        },
+      });
+    } catch (e) {
+      console.error("Globe Error: createGlobe call failed.", e);
+      console.error("Globe Error Details: Canvas at time of error:", canvasRef.current);
+      return;
+    }
 
     setTimeout(() => (canvasRef.current!.style.opacity = "1"), 0);
     return () => {
-      globe.destroy();
+      if (globe) {
+        globe.destroy();
+      }
       window.removeEventListener("resize", onResize);
     };
   }, [rs, config]);
