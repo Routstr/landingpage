@@ -33,7 +33,7 @@ npm run dev
 - `npm run lint`: Run ESLint
 
 ## Contributing
-Please check the **Issues** tab for contributing. 
+Please check the **Issues** tab to see what you can work on, ensure no one else is working on that particular issue on project management [here](https://github.com/orgs/Routstr/projects/1) and happy contributing :). 
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
