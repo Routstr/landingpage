@@ -1,8 +1,39 @@
-# routstr-frontend
+# Frontend Application README
 
-- discover open source models provided by other people
-- choose different payment methods
-- filter by model, price per tokens, evals, ratings, and more
-- read the documentation
-- explore the ecosystem
-- make money hosting your own model
+## Overview
+This repository contains the frontend application for Routstr, a decentralized LLM routing marketplace powered by Nostr and Bitcoin. Built with Next.js, it provides a user interface for interacting with AI models through an OpenAI-compatible API.
+
+## Features
+- **Decentralized Routing**: Privacy-focused API access using Nostr and Bitcoin
+- **Real-time Interaction**: Live chat interface with model responses
+- **Customizable UI**: Theme and layout options for different use cases
+- **Payment Integration**: Support for Cashu ecash tokens and Lightning payments
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- npm (v8+)
+
+### Installation
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start the development server:
+```bash
+npm run dev
+```
+
+### Available Scripts
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm run start`: Start production server
+- `npm run lint`: Run ESLint
+
+## Contributing
+Please check the **Issues** tab for contributing. 
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
