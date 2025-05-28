@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../../components/Header';
@@ -11,9 +11,9 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Card } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
-import ProviderPage from '@/app/providers/[id]/page';
+// import ProviderPage from '@/app/providers/[id]/page';
 import ProvidersTable from '@/components/ProvidersTable';
-import { UnfoldHorizontal } from 'lucide-react';
+// import { UnfoldHorizontal } from 'lucide-react';
 
 // Define types for code examples
 type CodeLanguage = 'curl' | 'javascript' | 'python';
@@ -33,6 +33,17 @@ interface EndpointData {
   }>;
 }
 
+interface Provider {
+  provider_name: string;
+  context_length: number;
+  max_completion_tokens: number;
+  pricing: {
+    prompt: string;
+    completion: string;
+  };
+  // Add other provider properties as needed
+}
+
 export default function ModelDetailPage() {
   const params = useParams();
   const { models, loading, error, fetchModels, findModel } = useModels();
@@ -49,6 +60,19 @@ export default function ModelDetailPage() {
   const [model, setModel] = useState<Model | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [bitcoinPrice, setBitcoinPrice] = useState<number>();
+
+  const formatAndSetProvidersData = useCallback((providersData: Provider[]) => {
+    const formattedData = {
+      endpoints: providersData.map((provider: Provider) => ({
+        provider: provider.provider_name,
+        context: provider.context_length,
+        max_output: provider.max_completion_tokens || provider.context_length,
+        input_cost: parseFloat(provider.pricing.prompt)*1000000*(100000000 / (bitcoinPrice??110000)),
+        output_cost: parseFloat(provider.pricing.completion)*1000000*(100000000 / (bitcoinPrice??110000))
+      }))
+    };
+    setEndpointsData(formattedData);
+  }, [bitcoinPrice]);
 
   useEffect(() => {
     async function loadModelData() {
@@ -95,26 +119,7 @@ export default function ModelDetailPage() {
     }
 
     loadModelData()
-  }, [decodedModelId, models, findModel, fetchModels]);
-
-  const formatAndSetProvidersData = (providersData: any) => {
-  //   if (bitcoinPrice == undefined) {
-  //     setBitcoinPrice(110000);
-  //   }
-  // if (bitcoinPrice != undefined){
-    const formattedData = {
-      endpoints: providersData.map((provider: any) => ({
-        provider: provider.provider_name,
-        context: provider.context_length,
-        max_output: provider.max_completion_tokens || provider.context_length,
-        input_cost: parseFloat(provider.pricing.prompt)*1000000*(100000000 / (bitcoinPrice??110000)),
-        output_cost: parseFloat(provider.pricing.completion)*1000000*(100000000 / (bitcoinPrice??110000))
-      }))
-    };
-    setEndpointsData(formattedData);
-  // }
-  }
-
+  }, [decodedModelId, models, findModel, fetchModels, formatAndSetProvidersData]);
 
   if (loading) {
     return (

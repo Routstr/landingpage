@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
 import { Model, RoutstrNodeInfo } from '@/app/data/models';
 
 interface ModelsState {
@@ -62,7 +62,7 @@ const ModelsContext = createContext<ModelsContextType | undefined>(undefined);
 export function ModelsProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(modelsReducer, initialState);
 
-  const fetchModels = async () => {
+  const fetchModels = useCallback(async () => {
     // Don't fetch if already loading or recently fetched (within 5 minutes)
     if (state.loading || (state.lastFetched && Date.now() - state.lastFetched < 5 * 60 * 1000)) {
       return;
@@ -89,7 +89,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
         payload: error instanceof Error ? error.message : 'Unknown error occurred' 
       });
     }
-  };
+  }, [state.loading, state.lastFetched]);
 
   const clearError = () => {
     dispatch({ type: 'CLEAR_ERROR' });
@@ -112,7 +112,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     if (state.models.length === 0 && !state.loading && !state.error) {
       fetchModels();
     }
-  }, []);
+  }, [fetchModels, state.error, state.loading, state.models.length]);
 
   const contextValue: ModelsContextType = {
     ...state,
