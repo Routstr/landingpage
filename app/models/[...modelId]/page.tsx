@@ -5,11 +5,15 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
-import { Model, models, getProviderFromModelName, fetchModels, getModelNameWithoutProvider } from '@/app/data/models';
+import { Model, getProviderFromModelName, getModelNameWithoutProvider } from '@/app/data/models';
+import { useModels } from '@/app/contexts/ModelsContext';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Card } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
+import ProviderPage from '@/app/providers/[id]/page';
+import ProvidersTable from '@/components/ProvidersTable';
+import { UnfoldHorizontal } from 'lucide-react';
 
 // Define types for code examples
 type CodeLanguage = 'curl' | 'javascript' | 'python';
@@ -19,10 +23,21 @@ function decodeSegments(segments: string[]): string[] {
   return segments.map((s) => decodeURIComponent(s));
 }
 
-// Model type imported from models.ts
+interface EndpointData {
+  endpoints: Array<{
+    provider: string;
+    context: number;
+    max_output: number;
+    input_cost: number;
+    output_cost: number;
+  }>;
+}
 
 export default function ModelDetailPage() {
   const params = useParams();
+  const { models, loading, error, fetchModels, findModel } = useModels();
+  const [endpointsData, setEndpointsData] = useState<EndpointData | null>(null);
+  
   // Handle the catch-all route by joining the path segments
   const modelIdParts = params.modelId as string[];
 
@@ -31,20 +46,18 @@ export default function ModelDetailPage() {
   const decodedModelId = decodedModelIdParts.join('/');
 
   const [activeTab, setActiveTab] = useState<CodeLanguage>('curl');
-  const [isLoading, setIsLoading] = useState(true);
   const [model, setModel] = useState<Model | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [bitcoinPrice, setBitcoinPrice] = useState<number>();
 
   useEffect(() => {
     async function loadModelData() {
-      setIsLoading(true);
-
       try {
         // Try to find the model using the decoded model ID
         let foundModel = findModel(decodedModelId);
 
-        if (!foundModel) {
-          // If model is not found, try to fetch fresh data from API
+        if (!foundModel && models.length === 0) {
+          // If model is not found and no models loaded, try to fetch fresh data from API
           await fetchModels();
           foundModel = findModel(decodedModelId);
         }
@@ -52,34 +65,58 @@ export default function ModelDetailPage() {
         if (foundModel) {
           setModel(foundModel);
           setNotFound(false);
+          
+          // Fetch endpoints data for ProvidersTable
+          try {
+            const url = `https://openrouter.ai/api/v1/models/${foundModel.id}/endpoints`;
+            const response = await fetch(url, {method: 'GET'});
+            const endpointsData = await response.json();
+            formatAndSetProvidersData(endpointsData['data']['endpoints']);
+          } catch (error) {
+            console.error("Failed to fetch model endpoints:", error);
+          }
+
+          try {
+            const btcUrl = "https://api.coinbase.com/v2/prices/BTC-USD/spot";
+            const btcResponse = await fetch(btcUrl, {method: 'GET'});
+            const btcPriceData = await btcResponse.json();
+            console.log("BTC PRICE", btcPriceData['data']['amount']);
+            setBitcoinPrice(btcPriceData['data']['amount']);
+          } catch (error) {
+            console.error("Failed to fetch BTC price:", error);
+          }
         } else {
           setNotFound(true);
         }
       } catch (error) {
         console.error('Error loading model data:', error);
         setNotFound(true);
-      } finally {
-        setIsLoading(false);
       }
     }
 
-    loadModelData();
-  }, [decodedModelId]);
+    loadModelData()
+  }, [decodedModelId, models, findModel, fetchModels]);
 
-  // Function to find a model using multiple strategies
-  function findModel(id: string): Model | undefined {
-    // Direct match by ID
-    let foundModel = models.find(m => m.id === id);
-
-    // Case-insensitive match by ID
-    if (!foundModel) {
-      foundModel = models.find(m => m.id.toLowerCase() === id.toLowerCase());
-    }
-
-    return foundModel;
+  const formatAndSetProvidersData = (providersData: any) => {
+  //   if (bitcoinPrice == undefined) {
+  //     setBitcoinPrice(110000);
+  //   }
+  // if (bitcoinPrice != undefined){
+    const formattedData = {
+      endpoints: providersData.map((provider: any) => ({
+        provider: provider.provider_name,
+        context: provider.context_length,
+        max_output: provider.max_completion_tokens || provider.context_length,
+        input_cost: parseFloat(provider.pricing.prompt)*1000000*(100000000 / (bitcoinPrice??110000)),
+        output_cost: parseFloat(provider.pricing.completion)*1000000*(100000000 / (bitcoinPrice??110000))
+      }))
+    };
+    setEndpointsData(formattedData);
+  // }
   }
 
-  if (isLoading) {
+
+  if (loading) {
     return (
       <main className="flex min-h-screen flex-col bg-black text-white">
         <Header />
@@ -174,6 +211,22 @@ export default function ModelDetailPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="flex min-h-screen flex-col bg-black text-white">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-4">Error Loading Models</h1>
+            <p className="text-xl text-gray-300 mb-6">{error}</p>
+            <Link href="/models" className="text-white underline">Back to models</Link>
           </div>
         </div>
         <Footer />
@@ -356,8 +409,8 @@ print(completion.choices[0].message.content)`
                 </ReactMarkdown>
               </div>
             </div>
-
             {/* Key stats */}
+            <h2 className="text-2xl font-bold mb-6">Top Provider</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
               <div className="bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all">
                 <h3 className="text-xs text-gray-300 mb-1">Input Cost</h3>
@@ -380,6 +433,10 @@ print(completion.choices[0].message.content)`
                 <p className="text-xs text-gray-400">release date</p>
               </div>
             </div>
+            
+            <Card className="p-6 bg-black/50 border border-white/10 rounded-lg mb-10">
+              {endpointsData?.endpoints && <div><ProvidersTable endpoints={endpointsData.endpoints}/></div>}
+            </Card>
 
             {/* Model Details */}
             <Card className="p-6 bg-black/50 border border-white/10 rounded-lg mb-10">
@@ -534,4 +591,4 @@ print(completion.choices[0].message.content)`
       <Footer />
     </main>
   );
-} 
+}
