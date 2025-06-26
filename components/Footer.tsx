@@ -28,7 +28,7 @@ export default function Footer() {
             </svg>
             <span className="sr-only">(opens in a new tab)</span>
           </a>
-          <Link href="/chat" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link>
+          <Link href="https://chat.routstr.com" className="text-sm text-gray-400 hover:text-white transition-colors">Chat</Link>
           <Link href="/roadmap" className="text-sm text-gray-400 hover:text-white transition-colors">Roadmap</Link>
           <Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy</Link>
           <Link href="/terms" className="text-sm text-gray-400 hover:text-white transition-colors">Terms</Link>
