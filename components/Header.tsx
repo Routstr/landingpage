@@ -35,6 +35,20 @@ export default function Header() {
                   <span className="sr-only">(opens in a new tab)</span>
                 </a>
               </li>
+              <li>
+                <a
+                  href="/topup"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                >
+                  Top-Up
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
+                  </svg>
+                  <span className="sr-only">(opens in a new tab)</span>
+                </a>
+              </li>
             </ul>
           </nav>
         </div>
@@ -84,6 +98,20 @@ export default function Header() {
                 className="text-sm text-gray-400 hover:text-white transition-colors block py-1 inline-flex items-center gap-1"
               >
                 Docs
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
+                </svg>
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/topup"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-400 hover:text-white transition-colors block py-1 inline-flex items-center gap-1"
+              >
+                Top-Up
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
                 </svg>
