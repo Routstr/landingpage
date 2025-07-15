@@ -132,6 +132,7 @@ const TopUpPage = () => {
   const checkPaymentStatus = async (quoteId: string, amount: number) => {
     setIsCheckingPayment(true);
     setError(null);
+    setSuccess('Checking Lightning payment status...');
 
     const mint = new CashuMint(mintUrl);
     const wallet = new CashuWallet(mint);
@@ -166,11 +167,14 @@ const TopUpPage = () => {
           });
 
           setMintedTokens(token as string);
-          setSuccess(`Lightning payment received! ${amount} sats minted as Cashu tokens.`);
+          setSuccess(`Lightning payment received! ${amount} sats minted as Cashu tokens. Topping up your API key...`);
           setIsCheckingPayment(false);
           
           // Update balance
           setBalance(getBalanceFromStoredProofs());
+          
+          // Automatically perform top-up
+          await performTopUp();
           return;
         }
       } catch (err) {
@@ -190,14 +194,9 @@ const TopUpPage = () => {
   };
 
   const generateCashuToken = async () => {
-    if (!validateAmount(amount)) {
-      setError('Please enter a valid amount');
-      return;
-    }
-
-    const amountNum = parseInt(amount);
-    if (amountNum > balance) {
-      setError(`Insufficient balance. You have ${balance} sats available.`);
+    const amountNum = balance;
+    if (amountNum === 0) {
+      setError('No local balance to generate token from.');
       return;
     }
 
@@ -209,7 +208,7 @@ const TopUpPage = () => {
       if (token) {
         setCashuToken(token);
         setBalance(getBalanceFromStoredProofs()); // Update balance
-        setSuccess(`Generated Cashu token for ${amountNum} sats`);
+        setSuccess(`Generated Cashu token for ${balance} sats`);
       } else {
         setError('Failed to generate Cashu token. Please check your balance.');
       }
@@ -227,16 +226,11 @@ const TopUpPage = () => {
       return;
     }
 
-    if (!validateAmount(amount)) {
-      setError('Please enter a valid amount');
-      return;
-    }
-
     let tokenToUse = '';
 
     if (paymentMethod === 'cashu') {
       if (!cashuToken) {
-        setError('Please generate a Cashu token first');
+        setError('Please provide a Cashu token');
         return;
       }
       tokenToUse = cashuToken;
@@ -270,7 +264,7 @@ const TopUpPage = () => {
       }
 
       const data = await response.json();
-      setSuccess(`Successfully topped up ${amount} sats to your API key!`);
+      setSuccess(`Successfully topped up your API key!`);
       
       // Reset form
       setCashuToken('');
@@ -328,22 +322,6 @@ const TopUpPage = () => {
         )}
 
         <div className="space-y-6">
-          {/* API Key Input */}
-          <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">API Key</h3>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white focus:border-white/30 focus:outline-none"
-              placeholder="Enter your API key"
-              required
-            />
-            <p className="text-xs text-white/50 mt-2">
-              Enter the API key you want to top up
-            </p>
-          </div>
-
           {/* Payment Method Toggle */}
           <div className="bg-white/5 border border-white/10 rounded-lg p-6">
             <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
@@ -371,78 +349,98 @@ const TopUpPage = () => {
             </div>
           </div>
 
-          {/* Amount Input */}
+          {/* API Key Input */}
           <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Amount</h3>
-            
-            {/* Quick Amount Buttons */}
-            <div className="grid grid-cols-4 gap-2 mb-4">
-              {popularAmounts.map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => handleQuickAmount(amt)}
-                  className="bg-white/5 border border-white/20 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10 hover:border-white/30 transition-colors"
-                >
-                  {amt} sats
-                </button>
-              ))}
-            </div>
-
-            {/* Manual Amount Input */}
+            <h3 className="text-lg font-semibold mb-4">API Key</h3>
             <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white focus:border-white/30 focus:outline-none"
-              placeholder="Enter amount in sats"
-              min="1"
+              placeholder="Enter your API key"
+              required
             />
+            <p className="text-xs text-white/50 mt-2">
+              Enter the API key you want to top up
+            </p>
           </div>
+
+          {paymentMethod === 'lightning' && (
+            <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">Amount</h3>
+              
+              {/* Quick Amount Buttons */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {popularAmounts.map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => handleQuickAmount(amt)}
+                    className="bg-white/5 border border-white/20 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10 hover:border-white/30 transition-colors"
+                  >
+                    {amt} sats
+                  </button>
+                ))}
+              </div>
+  
+              {/* Manual Amount Input */}
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white focus:border-white/30 focus:outline-none"
+                placeholder="Enter amount in sats"
+                min="1"
+              />
+            </div>
+          )}
 
           {/* Payment Method Specific Content */}
           {paymentMethod === 'cashu' && (
             <div className="bg-white/5 border border-white/10 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">Cashu Token</h3>
               
-              {!cashuToken ? (
-                <button
-                  onClick={generateCashuToken}
-                  disabled={isProcessing || !amount}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating Token...
-                    </>
-                  ) : (
-                    'Generate Cashu Token'
-                  )}
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <div className="bg-white/5 border border-white/10 rounded-md p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-white/70">Generated Token</span>
-                      <button
-                        onClick={() => copyToClipboard(cashuToken, 'Token')}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="font-mono text-xs break-all text-white/70 max-h-20 overflow-y-auto">
-                      {cashuToken}
-                    </div>
+              <div className="space-y-3">
+                <textarea
+                  value={cashuToken}
+                  onChange={(e) => setCashuToken(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white focus:border-white/30 focus:outline-none font-mono text-sm"
+                  placeholder="Paste your Cashu token here..."
+                  rows={4}
+                />
+                <p className="text-xs text-white/50">
+                  Enter a valid Cashu token to top up your API key. The token will be used directly for the top-up.
+                </p>
+                
+                {/* Optional: Still allow generating from local balance */}
+                {!cashuToken && (
+                  <div className="border-t border-white/10 pt-3">
+                    <p className="text-xs text-white/50 mb-2">Or generate a token from your local balance:</p>
+                    <button
+                      onClick={generateCashuToken}
+                      disabled={isProcessing || balance === 0}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center text-sm"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating Token...
+                        </>
+                      ) : (
+                        'Generate from Local Balance'
+                      )}
+                    </button>
                   </div>
+                )}
+                
+                {cashuToken && (
                   <button
                     onClick={() => setCashuToken('')}
                     className="text-sm text-white/70 hover:text-white"
                   >
-                    Generate New Token
+                    Clear Token
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
@@ -520,9 +518,8 @@ const TopUpPage = () => {
             disabled={
               isProcessing ||
               !apiKey ||
-              !amount ||
               (paymentMethod === 'cashu' && !cashuToken) ||
-              (paymentMethod === 'lightning' && !mintedTokens)
+              (paymentMethod === 'lightning' && (!amount || !mintedTokens))
             }
             className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-medium text-lg transition-colors flex items-center justify-center"
           >
@@ -532,7 +529,7 @@ const TopUpPage = () => {
                 Processing Top-up...
               </>
             ) : (
-              `Top-up ${amount || '0'} sats`
+              `Top-up`
             )}
           </button>
 
@@ -543,7 +540,7 @@ const TopUpPage = () => {
               <div className="text-sm text-blue-200">
                 <p className="font-medium mb-1">How it works:</p>
                 <ul className="space-y-1 text-blue-200/80">
-                  <li>• <strong>Cashu:</strong> Generate a token from your local balance and use it to top-up</li>
+                  <li>• <strong>Cashu:</strong> Paste your Cashu token directly, or generate one from your local balance</li>
                   <li>• <strong>Lightning:</strong> Pay the generated invoice to automatically mint tokens, then top-up</li>
                   <li>• All top-ups are sent to <code className="bg-blue-500/20 px-1 rounded">https://api.routstr.com</code></li>
                 </ul>
