@@ -35,6 +35,45 @@ const TopUpPage = () => {
   const [isCheckingApiKeyBalance, setIsCheckingApiKeyBalance] = useState(false);
   const [isApiKeyInvalid, setIsApiKeyInvalid] = useState(false);
 
+  const fetchApiKeyBalance = async (key: string) => {
+    if (!key) {
+      setApiKeyBalance(null);
+      setIsApiKeyInvalid(false);
+      return;
+    }
+
+    setIsCheckingApiKeyBalance(true);
+    try {
+      const response = await fetch(`https://api.routstr.com/v1/wallet/info`, {
+        headers: {
+          'Authorization': `Bearer ${key}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.detail?.error?.code === "invalid_api_key") {
+          setApiKeyBalance(null);
+          setIsApiKeyInvalid(true);
+          toast.error('Invalid API Key.');
+        } else {
+          throw new Error(errorData.detail || `Failed to fetch balance with status ${response.status}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+      setApiKeyBalance(data.balance / 1000);
+      setIsApiKeyInvalid(false);
+    } catch (error) {
+      console.error('Error fetching API key balance:', error);
+      setApiKeyBalance(null);
+      setIsApiKeyInvalid(true);
+      toast.error(`Error fetching API key balance: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsCheckingApiKeyBalance(false);
+    }
+  };
   // API Key display state
   const [showFullApiKey, setShowFullApiKey] = useState(false);
 
@@ -55,6 +94,10 @@ const TopUpPage = () => {
     setBalance(currentBalance);
   }, []);
 
+  // Fetch API key balance when API key changes
+  useEffect(() => {
+    fetchApiKeyBalance(apiKey);
+  }, [apiKey]);
 
   // Load API key from localStorage on component mount
   useEffect(() => {
@@ -338,6 +381,22 @@ const TopUpPage = () => {
                 >
                   Cashu Token
                 </button>
+            {apiKey && (
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 mt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-white/70">API Key Balance</span>
+                  {isCheckingApiKeyBalance ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-white/70" />
+                  ) : isApiKeyInvalid ? (
+                    <span className="text-red-400 text-lg font-semibold">Invalid API Key</span>
+                  ) : (
+                    <span className="text-lg font-semibold text-white">
+                      {apiKeyBalance !== null ? `${apiKeyBalance} sats` : 'N/A'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
                 <button
                   onClick={() => handlePaymentMethodChange('lightning')}
                   className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
