@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Copy, Loader2, Zap, QrCode, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Copy, Loader2, Zap, AlertCircle } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import QRCode from 'react-qr-code';
-import { generateApiToken, getBalanceFromStoredProofs, unifiedRefund } from '@/utils/cashuUtils';
-import { CashuMint, CashuWallet, getEncodedTokenV4, getDecodedToken } from '@cashu/cashu-ts';
+import { CashuMint, CashuWallet, getEncodedTokenV4 } from '@cashu/cashu-ts';
 
 interface LightningInvoice {
   paymentRequest: string;
@@ -23,8 +22,7 @@ const TopUpPage = () => {
   
   // Lightning state
   const [lightningInvoice, setLightningInvoice] = useState<LightningInvoice | null>(null);
-  const [mintUrl, setMintUrl] = useState('https://mint.minibits.cash/Bitcoin');
-  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+  const mintUrl = 'https://mint.minibits.cash/Bitcoin';
   const [mintedTokens, setMintedTokens] = useState<string | null>(null);
   
   // UI state
@@ -32,21 +30,19 @@ const TopUpPage = () => {
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isRefunding, setIsRefunding] = useState(false); // New state for refund loading
   const [refundedToken, setRefundedToken] = useState<string | null>(null); // New state for refunded token
-  const [balance, setBalance] = useState(0);
   const paymentCheckRef = useRef<NodeJS.Timeout | null>(null);
   const [apiKeyBalance, setApiKeyBalance] = useState<number | null>(null);
   const [isCheckingApiKeyBalance, setIsCheckingApiKeyBalance] = useState(false);
   const [isApiKeyInvalid, setIsApiKeyInvalid] = useState(false);
 
-  // Define the base URLs to check
-  const BASE_URLS = [
-    'https://api.routstr.com',
-    'https://ai.redsh1ft.com',
-    'https://routstr.otrta.me',
-    'https://privateprovider.xyz'
-  ];
-
-  const fetchApiKeyBalance = async (key: string, providedBaseUrl?: string) => {
+  const fetchApiKeyBalance = useCallback(async (key: string, providedBaseUrl?: string) => {
+    // Define the base URLs to check
+    const BASE_URLS = [
+      'https://api.routstr.com',
+      'https://ai.redsh1ft.com',
+      'https://routstr.otrta.me',
+      'https://privateprovider.xyz'
+    ];
     if (!key) {
       setApiKeyBalance(null);
       setIsApiKeyInvalid(false);
@@ -100,7 +96,7 @@ const TopUpPage = () => {
       toast.error('Invalid API Key or no matching base URL found.');
     }
     setIsCheckingApiKeyBalance(false);
-  };
+  }, []);
   // API Key display state
   const [showFullApiKey, setShowFullApiKey] = useState(false);
 
@@ -115,16 +111,10 @@ const TopUpPage = () => {
   // Popular amounts for quick selection
   const popularAmounts = [100, 500, 1000, 5000];
 
-  // Load balance on component mount
-  useEffect(() => {
-    const currentBalance = getBalanceFromStoredProofs();
-    setBalance(currentBalance);
-  }, []);
-
   // Fetch API key balance when API key changes or baseUrl is set
   useEffect(() => {
     fetchApiKeyBalance(apiKey, baseUrl);
-  }, [apiKey, baseUrl]);
+  }, [apiKey, baseUrl, fetchApiKeyBalance]);
 
   // Load API key from localStorage on component mount
   useEffect(() => {
@@ -172,7 +162,6 @@ const TopUpPage = () => {
     setPaymentMethod(method);
     setLightningInvoice(null);
     setMintedTokens(null);
-    setIsCheckingPayment(false);
   };
 
   const generateLightningInvoice = async () => {
@@ -189,7 +178,6 @@ const TopUpPage = () => {
 
     setIsGeneratingInvoice(true);
     setMintedTokens(null);
-    setIsCheckingPayment(false);
 
     try {
       const mint = new CashuMint(mintUrl);
@@ -215,7 +203,6 @@ const TopUpPage = () => {
   };
 
   const checkPaymentStatus = async (quoteId: string, amount: number) => {
-    setIsCheckingPayment(true);
     toast.info('Checking Lightning payment status...');
 
     const mint = new CashuMint(mintUrl);
@@ -227,7 +214,6 @@ const TopUpPage = () => {
 
     const checkPayment = async () => {
       if (attempts >= maxAttempts) {
-        setIsCheckingPayment(false);
         toast.error('Payment not received within timeout. Please check your Lightning invoice and try again.');
         return;
       }
@@ -254,11 +240,7 @@ const TopUpPage = () => {
  
            setMintedTokens(token as string);
            toast.success(`Lightning payment received! ${amount} sats minted as Cashu tokens. Topping up your API key...`);
-           setIsCheckingPayment(false);
            setLightningInvoice(null);
-           
-           // Update balance
-           setBalance(getBalanceFromStoredProofs());
            
            // Automatically perform top-up
            await performTopUp(token as string);
@@ -273,7 +255,6 @@ const TopUpPage = () => {
        if (attempts < maxAttempts) {
          paymentCheckRef.current = setTimeout(checkPayment, 5000);
        } else {
-         setIsCheckingPayment(false);
          toast.error('Payment not received within timeout. Please check your Lightning invoice and try again.');
        }
     };
@@ -362,21 +343,6 @@ const TopUpPage = () => {
     }
   };
 
-  const receiveToken = async (token: string): Promise<any[]> => {
-    const mint = new CashuMint(mintUrl);
-    const wallet = new CashuWallet(mint);
-    await wallet.loadMint();
-
-    const result = await wallet.receive(token);
-    const proofs = Array.isArray(result) ? result : [];
-
-    if (proofs && proofs.length > 0) {
-      const storedProofs = localStorage.getItem('cashu_proofs');
-      const existingProofs = storedProofs ? JSON.parse(storedProofs) : [];
-      localStorage.setItem('cashu_proofs', JSON.stringify([...existingProofs, ...proofs]));
-    }
-    return proofs;
-  };
 
   const handleRefund = async () => {
     if (!apiKey || !baseUrl) {
@@ -410,7 +376,7 @@ const TopUpPage = () => {
       if (receivedProofs.length > 0) {
         const token = getEncodedTokenV4({
           mint: mintUrl,
-          proofs: receivedProofs.map((p: any) => ({
+          proofs: receivedProofs.map((p: { id: string; amount: number; secret: string; C: string }) => ({
             id: p.id,
             amount: p.amount,
             secret: p.secret,
@@ -435,7 +401,7 @@ const TopUpPage = () => {
     try {
       await navigator.clipboard.writeText(text);
       toast.success(`${label} copied to clipboard!`);
-    } catch (err) {
+    } catch {
       toast.error('Failed to copy to clipboard');
     }
   };
