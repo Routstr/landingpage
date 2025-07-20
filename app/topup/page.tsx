@@ -403,9 +403,9 @@ const TopUpPage = () => {
         throw new Error(errorData.detail || `Refund failed with status ${response.status}`);
       }
 
-      const { send_token } = await response.json();
-      const { proofs } = getDecodedToken(send_token);
-      const receivedProofs = await wallet.receive(send_token);
+      const data = await response.json();
+      console.log(data)
+      const receivedProofs = await wallet.receive(data.token);
 
       if (receivedProofs.length > 0) {
         const token = getEncodedTokenV4({
@@ -503,7 +503,15 @@ const TopUpPage = () => {
                         {isCheckingApiKeyBalance ? (
                           <Loader2 className="h-5 w-5 animate-spin text-white/70" />
                         ) : isApiKeyInvalid ? (
-                          <span className="text-red-400 text-lg font-semibold">Invalid API Key</span>
+                          <div className="flex flex-col items-end">
+                            <span className="text-red-400 text-lg font-semibold">Invalid API Key</span>
+                            <button
+                              onClick={() => { setApiKey(''); setIsApiKeyInvalid(false); setShowFullApiKey(true); }}
+                              className="text-blue-400 hover:text-blue-300 text-sm mt-1"
+                            >
+                              Clear
+                            </button>
+                          </div>
                         ) : (
                           <div className="flex flex-col items-center">
 
@@ -529,6 +537,31 @@ const TopUpPage = () => {
                   </div>
                 )}
               </div>
+
+              {/* Refunded Tokens Section */}
+              {refundedToken && (
+                <div className="mb-6 border-t border-white/10 pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Refunded Cashu Token</h3>
+                  <div className="bg-white/5 border border-white/10 rounded-md p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-white/70">Token</span>
+                      <button
+                        onClick={() => copyToClipboard(refundedToken, 'Refunded Token')}
+                        className="text-blue-400 hover:text-blue-300"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="font-mono text-xs break-all text-white/70 max-h-20 overflow-y-auto">
+                      {refundedToken}
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/50 mt-2">
+                    This is your refunded Cashu token.
+                  </p>
+                </div>
+              )}
+
 
               {/* Payment Method Toggle */}
               <div className="mb-6 border-t border-white/10 pt-6">
@@ -706,30 +739,6 @@ const TopUpPage = () => {
                   </div>
                   <p className="text-xs text-white/50 mt-2">
                     Copy this token if the top-up fails for a refund.
-                  </p>
-                </div>
-              )}
-
-              {/* Refunded Tokens Section */}
-              {refundedToken && (
-                <div className="mb-6 border-t border-white/10 pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Refunded Cashu Token</h3>
-                  <div className="bg-white/5 border border-white/10 rounded-md p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-white/70">Token</span>
-                      <button
-                        onClick={() => copyToClipboard(refundedToken, 'Refunded Token')}
-                        className="text-blue-400 hover:text-blue-300"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="font-mono text-xs break-all text-white/70 max-h-20 overflow-y-auto">
-                      {refundedToken}
-                    </div>
-                  </div>
-                  <p className="text-xs text-white/50 mt-2">
-                    This is your refunded Cashu token.
                   </p>
                 </div>
               )}
