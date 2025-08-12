@@ -41,7 +41,9 @@ const TopUpPage = () => {
       'https://api.routstr.com',
       'https://ai.redsh1ft.com',
       'https://routstr.otrta.me',
-      'https://privateprovider.xyz'
+      'https://privateprovider.xyz',
+      'https://staging.routstr.com',
+      'https://routstr.rewolf.dev'
     ];
     if (!key) {
       setApiKeyBalance(null);
