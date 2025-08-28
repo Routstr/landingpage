@@ -76,7 +76,10 @@ const TopUpPage = () => {
           setApiKeyBalance(data.balance / 1000);
           setBaseUrl(url); // Set the base URL if successful
           foundValidBaseUrl = true;
-          toast.success(`API Key valid for ${url}`);
+          // Only show success toast if we're auto-discovering the URL (not provided via query param)
+          if (!providedBaseUrl) {
+            toast.success(`API Key valid for ${url}`);
+          }
           break; // Exit loop on first successful URL
         } else {
           const errorData = await response.json().catch(() => ({}));
@@ -95,7 +98,11 @@ const TopUpPage = () => {
     if (!foundValidBaseUrl) {
       setApiKeyBalance(null);
       setIsApiKeyInvalid(true);
-      toast.error('Invalid API Key or no matching base URL found.');
+      if (providedBaseUrl) {
+        toast.error(`Invalid API Key for provider: ${providedBaseUrl}`);
+      } else {
+        toast.error('Invalid API Key or no matching base URL found.');
+      }
     }
     setIsCheckingApiKeyBalance(false);
   }, []);
@@ -118,12 +125,26 @@ const TopUpPage = () => {
     fetchApiKeyBalance(apiKey, baseUrl);
   }, [apiKey, baseUrl, fetchApiKeyBalance]);
 
-  // Load API key from localStorage on component mount
+  // Load API key from localStorage and query parameters on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setApiKey(localStorage.getItem('routstr_api_key') || '');
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlApiKey = urlParams.get('apikey');
+      const urlProviderUrl = urlParams.get('provider_url');
+      
+      if (urlApiKey) {
+        setApiKey(urlApiKey);
+        if (urlProviderUrl) {
+          setBaseUrl(urlProviderUrl);
+          // Fetch balance with the provided URL
+          fetchApiKeyBalance(urlApiKey, urlProviderUrl);
+        }
+      } else {
+        // Fallback to localStorage if no URL parameters
+        setApiKey(localStorage.getItem('routstr_api_key') || '');
+      }
     }
-  }, []);
+  }, [fetchApiKeyBalance]);
 
   // Save API key to localStorage whenever it changes
   useEffect(() => {
@@ -744,7 +765,8 @@ const TopUpPage = () => {
                   <ul className="space-y-1 text-blue-200/80">
                     <li>• <strong>Cashu:</strong> Paste your Cashu token directly, or generate one from your local balance</li>
                     <li>• <strong>Lightning:</strong> Pay the generated invoice to automatically mint tokens, then top-up</li>
-                    <li>• All top-ups are sent to the API endpoint determined by your API key.</li>
+                    <li>• <strong>URL Parameters:</strong> Use <code className="bg-white/10 px-1 rounded">?apikey=YOUR_KEY&provider_url=https://api.provider.com</code> to auto-fill fields</li>
+                    <li>• All top-ups are sent to the API endpoint determined by your API key or provided URL.</li>
                   </ul>
                 </div>
               </div>
