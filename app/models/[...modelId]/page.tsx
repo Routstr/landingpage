@@ -7,12 +7,13 @@ import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 import { Model, getProviderFromModelName, getModelNameWithoutProvider } from '@/app/data/models';
 import { useModels } from '@/app/contexts/ModelsContext';
+import { Provider } from '@/app/data/models';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Card } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 // import ProviderPage from '@/app/providers/[id]/page';
-import ProvidersTable from '@/components/ProvidersTable';
+// ProvidersTable removed
 // import { UnfoldHorizontal } from 'lucide-react';
 
 // Define types for code examples
@@ -23,15 +24,7 @@ function decodeSegments(segments: string[]): string[] {
   return segments.map((s) => decodeURIComponent(s));
 }
 
-interface EndpointData {
-  endpoints: Array<{
-    provider: string;
-    context: number;
-    max_output: number;
-    input_cost: number;
-    output_cost: number;
-  }>;
-}
+// Removed EndpointData
 
 interface Provider {
   provider_name: string;
@@ -46,8 +39,8 @@ interface Provider {
 
 export default function ModelDetailPage() {
   const params = useParams();
-  const { models, loading, error, fetchModels, findModel } = useModels();
-  const [endpointsData, setEndpointsData] = useState<EndpointData | null>(null);
+  const { models, loading, error, fetchModels, findModel, getProvidersForModel } = useModels();
+  const [providersForModel, setProvidersForModel] = useState<Provider[]>([]);
   
   // Handle the catch-all route by joining the path segments
   const modelIdParts = params.modelId as string[];
@@ -61,18 +54,7 @@ export default function ModelDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [bitcoinPrice, setBitcoinPrice] = useState<number>();
 
-  const formatAndSetProvidersData = useCallback((providersData: Provider[]) => {
-    const formattedData = {
-      endpoints: providersData.map((provider: Provider) => ({
-        provider: provider.provider_name,
-        context: provider.context_length,
-        max_output: provider.max_completion_tokens || provider.context_length,
-        input_cost: parseFloat(provider.pricing.prompt)*1000000*(100000000 / (bitcoinPrice??110000)),
-        output_cost: parseFloat(provider.pricing.completion)*1000000*(100000000 / (bitcoinPrice??110000))
-      }))
-    };
-    setEndpointsData(formattedData);
-  }, [bitcoinPrice]);
+  // Removed endpoints table preparation
 
   useEffect(() => {
     async function loadModelData() {
@@ -89,26 +71,11 @@ export default function ModelDetailPage() {
         if (foundModel) {
           setModel(foundModel);
           setNotFound(false);
+          setProvidersForModel(getProvidersForModel(foundModel.id));
           
-          // Fetch endpoints data for ProvidersTable
-          try {
-            const url = `https://openrouter.ai/api/v1/models/${foundModel.id}/endpoints`;
-            const response = await fetch(url, {method: 'GET'});
-            const endpointsData = await response.json();
-            formatAndSetProvidersData(endpointsData['data']['endpoints']);
-          } catch (error) {
-            console.error("Failed to fetch model endpoints:", error);
-          }
+          // Removed external endpoints fetch
 
-          try {
-            const btcUrl = "https://api.coinbase.com/v2/prices/BTC-USD/spot";
-            const btcResponse = await fetch(btcUrl, {method: 'GET'});
-            const btcPriceData = await btcResponse.json();
-            console.log("BTC PRICE", btcPriceData['data']['amount']);
-            setBitcoinPrice(btcPriceData['data']['amount']);
-          } catch (error) {
-            console.error("Failed to fetch BTC price:", error);
-          }
+          // Removed BTC price fetch (unused)
         } else {
           setNotFound(true);
         }
@@ -119,7 +86,7 @@ export default function ModelDetailPage() {
     }
 
     loadModelData()
-  }, [decodedModelId, models, findModel, fetchModels, formatAndSetProvidersData]);
+  }, [decodedModelId, models, findModel, fetchModels]);
 
   if (loading) {
     return (
@@ -239,7 +206,7 @@ export default function ModelDetailPage() {
     );
   }
 
-  if (notFound || !model) {
+  if (notFound) {
     return (
       <main className="flex min-h-screen flex-col bg-black text-white">
         <Header />
@@ -259,6 +226,11 @@ export default function ModelDetailPage() {
         <Footer />
       </main>
     );
+  }
+
+  // Guard against transient state where model isn't set yet
+  if (!model) {
+    return null;
   }
 
   const provider = getProviderFromModelName(model.name);
@@ -414,34 +386,31 @@ print(completion.choices[0].message.content)`
                 </ReactMarkdown>
               </div>
             </div>
-            {/* Key stats */}
-            <h2 className="text-2xl font-bold mb-6">Top Provider</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
-              <div className="bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all">
-                <h3 className="text-xs text-gray-300 mb-1">Input Cost</h3>
-                <p className="text-xl font-bold text-white">{model.sats_pricing.prompt.toFixed(8)}</p>
-                <p className="text-xs text-gray-400">sats per token</p>
+            {/* Providers offering this model */}
+            {providersForModel.length > 0 && (
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold mb-4">Available From Providers</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {providersForModel.map((p) => (
+                    <Link
+                      key={p.id}
+                      href={`/providers/${p.d_tag || p.id}`}
+                      className="flex items-center justify-between bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all"
+                    >
+                      <div>
+                        <div className="text-white font-medium">{p.name}</div>
+                        <div className="text-xs text-gray-400 truncate">{p.endpoint_url}</div>
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-300">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </Link>
+                  ))}
+                </div>
               </div>
-              <div className="bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all">
-                <h3 className="text-xs text-gray-300 mb-1">Output Cost</h3>
-                <p className="text-xl font-bold text-white">{model.sats_pricing.completion.toFixed(8)}</p>
-                <p className="text-xs text-gray-400">sats per token</p>
-              </div>
-              <div className="bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all">
-                <h3 className="text-xs text-gray-300 mb-1">Context Length</h3>
-                <p className="text-xl font-bold text-white">{model.context_length.toLocaleString()}</p>
-                <p className="text-xs text-gray-400">tokens</p>
-              </div>
-              <div className="bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all">
-                <h3 className="text-xs text-gray-300 mb-1">Created</h3>
-                <p className="text-xl font-bold text-white">{formatDate(model.created)}</p>
-                <p className="text-xs text-gray-400">release date</p>
-              </div>
-            </div>
+            )}
             
-            <Card className="p-6 bg-black/50 border border-white/10 rounded-lg mb-10">
-              {endpointsData?.endpoints && <div><ProvidersTable endpoints={endpointsData.endpoints}/></div>}
-            </Card>
+            {/* Endpoints table removed */}
 
             {/* Model Details */}
             <Card className="p-6 bg-black/50 border border-white/10 rounded-lg mb-10">

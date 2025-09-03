@@ -53,6 +53,12 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <Link
+            href="/providers"
+            className="hidden md:inline-flex items-center gap-2 px-3 py-0.5 rounded-md border border-white/10 bg-white/5 text-sm text-white hover:bg-white/10 transition-all"
+          >
+            Providers
+          </Link>
           <a
             href="https://github.com/routstr"
             target="_blank"
@@ -90,12 +96,13 @@ export default function Header() {
           <ul className="space-y-4 mb-4">
             <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Features</Link></li>
             <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Models</Link></li>
+            <li><Link href="/providers" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Providers</Link></li>
             <li>
               <a
                 href="https://docs.routstr.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-gray-400 hover:text-white transition-colors block py-1 inline-flex items-center gap-1"
+                className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1 py-1"
               >
                 Docs
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
@@ -109,7 +116,7 @@ export default function Header() {
                 href="/topup"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-gray-400 hover:text-white transition-colors block py-1 inline-flex items-center gap-1"
+                className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1 py-1"
               >
                 Top-Up
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">

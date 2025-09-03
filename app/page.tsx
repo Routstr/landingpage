@@ -3,8 +3,6 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CtaSection from "@/components/CtaSection";
-// import TestimonialsSection from "@/components/TestimonialsSection";
-// import FeaturesSection from "@/components/FeaturesSection";
 import AnalyticsSection from "@/components/AnalyticsSection";
 import HeroSection from "../components/HeroSection";
 import ApiExample from "../components/ApiExample";
@@ -14,6 +12,7 @@ import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Globe } from "@/components/ui/globe";
+import FullScreenGlobeDialog from "@/components/client/FullScreenGlobeDialog";
 
 // Custom theme based on atomDark but more minimal
 const customTheme = {
@@ -49,6 +48,7 @@ const customTheme = {
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("users");
+  const [globeOpen, setGlobeOpen] = useState(false);
   const [displayModels, setDisplayModels] = useState<Array<{
     id: string;
     name: string;
@@ -185,11 +185,30 @@ export default function Home() {
       />
 
       {/* Globe Visualization */}
-      <section className="pb-8 sm:pb-12 bg-black relative">
-        <div className="container mx-auto relative h-[300px] sm:h-[400px] md:h-[500px]">
-          <Globe />
+      <section className="pb-8 sm:pb-12 bg-black">
+        <div className="container mx-auto px-4 relative group">
+          <div className="relative max-w-[600px] mx-auto">
+            <button
+              type="button"
+              aria-label="Open globe"
+              className="absolute inset-0 z-10 cursor-pointer w-full h-full"
+              onClick={() => setGlobeOpen(true)}
+            />
+            <div className="pointer-events-none absolute inset-0 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+              <div className="flex items-center gap-2 rounded-full bg-black/70 border border-white/20 px-4 py-2 text-sm sm:text-base text-white shadow-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5 19.5 4.5M9 4.5h10.5V15" />
+                </svg>
+                <span>Click to explore</span>
+              </div>
+            </div>
+            <Globe />
+          </div>
         </div>
+        <FullScreenGlobeDialog open={globeOpen} onOpenChange={setGlobeOpen} />
       </section>
+
+      {/* Testimonials Section removed temporarily */}
 
       {/* How It Works Section */}
       <section className="py-12 sm:py-16 md:py-20 bg-black">

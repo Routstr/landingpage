@@ -1,11 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
-import { Model, RoutstrNodeInfo } from '@/app/data/models';
+import { Model, Provider } from '@/app/data/models';
 
 interface ModelsState {
   models: Model[];
-  nodeInfo: Partial<RoutstrNodeInfo>;
+  providerMap: Map<string, Provider[]>;
   loading: boolean;
   error: string | null;
   lastFetched: number | null;
@@ -13,17 +13,13 @@ interface ModelsState {
 
 type ModelsAction =
   | { type: 'FETCH_START' }
-  | { type: 'FETCH_SUCCESS'; payload: { models: Model[]; nodeInfo: RoutstrNodeInfo } }
+  | { type: 'FETCH_SUCCESS'; payload: { models: Model[]; providerMap: Map<string, Provider[]> } }
   | { type: 'FETCH_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' };
 
 const initialState: ModelsState = {
   models: [],
-  nodeInfo: {
-    name: "Routstr Node",
-    description: "A Routstr Node",
-    version: "0.0.1"
-  },
+  providerMap: new Map<string, Provider[]>(),
   loading: false,
   error: null,
   lastFetched: null,
@@ -38,7 +34,7 @@ function modelsReducer(state: ModelsState, action: ModelsAction): ModelsState {
         ...state,
         loading: false,
         models: action.payload.models,
-        nodeInfo: action.payload.nodeInfo,
+        providerMap: action.payload.providerMap,
         lastFetched: Date.now(),
         error: null,
       };
@@ -55,6 +51,7 @@ interface ModelsContextType extends ModelsState {
   fetchModels: () => Promise<void>;
   clearError: () => void;
   findModel: (id: string) => Model | undefined;
+  getProvidersForModel: (id: string) => Provider[];
 }
 
 const ModelsContext = createContext<ModelsContextType | undefined>(undefined);
@@ -71,17 +68,34 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'FETCH_START' });
 
     try {
-      const response = await fetch('https://api.routstr.com/');
-      
+      const response = await fetch('https://staging.routstr.com/v1/providers/?include_json=true');
       if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.status}`);
+        throw new Error(`Failed to fetch providers: ${response.status}`);
       }
-      
-      const data: RoutstrNodeInfo = await response.json();
-      
-      dispatch({ 
-        type: 'FETCH_SUCCESS', 
-        payload: { models: data.models, nodeInfo: data } 
+      const data = await response.json();
+
+      // Assemble models from provider health responses and deduplicate
+      const modelMap = new Map<string, Model>();
+      const providerMap = new Map<string, Provider[]>();
+      const providers = Array.isArray(data.providers) ? data.providers : [];
+      providers.forEach((entry: any) => {
+        const health = entry?.health;
+        const providerObj = entry?.provider as Provider | undefined;
+        const models = health?.json?.models as Model[] | undefined;
+        if (Array.isArray(models)) {
+          models.forEach((m) => {
+            modelMap.set(m.id, m);
+            if (providerObj) {
+              const existing = providerMap.get(m.id) || [];
+              providerMap.set(m.id, [...existing, providerObj]);
+            }
+          });
+        }
+      });
+
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: { models: Array.from(modelMap.values()), providerMap },
       });
     } catch (error) {
       dispatch({ 
@@ -96,15 +110,33 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
   };
 
   const findModel = (id: string): Model | undefined => {
-    // Direct match by ID
+    const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
+    const target = normalize(id);
+
+    // Exact match
     let foundModel = state.models.find(m => m.id === id);
+    if (foundModel) return foundModel;
 
-    // Case-insensitive match by ID
-    if (!foundModel) {
-      foundModel = state.models.find(m => m.id.toLowerCase() === id.toLowerCase());
+    // Case-insensitive / decoded match
+    foundModel = state.models.find(m => normalize(m.id) === target);
+    if (foundModel) return foundModel;
+
+    // Fallback: match last segment if unique
+    const targetLast = target.split('/').pop();
+    const candidates = state.models.filter(m => normalize(m.id).split('/').pop() === targetLast);
+    if (candidates.length === 1) return candidates[0];
+
+    return undefined;
+  };
+
+  const getProvidersForModel = (id: string): Provider[] => {
+    const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
+    const direct = state.providerMap.get(id);
+    if (direct && direct.length > 0) return direct;
+    for (const [key, value] of state.providerMap.entries()) {
+      if (normalize(key) === normalize(id)) return value;
     }
-
-    return foundModel;
+    return [];
   };
 
   // Auto-fetch on mount if no data
@@ -119,6 +151,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     fetchModels,
     clearError,
     findModel,
+    getProvidersForModel,
   };
 
   return (

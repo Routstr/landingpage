@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { models, getProviderFromModelName, fetchModels, getModelNameWithoutProvider } from '@/app/data/models';
+import { models, getProviderFromModelName, fetchModels, getModelNameWithoutProvider, getModelDisplayName, getPrimaryProviderForModel } from '@/app/data/models';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -19,6 +20,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const sortOptions = [
   { value: 'date', label: 'Sort by Release Date' },
@@ -28,6 +30,7 @@ const sortOptions = [
 ];
 
 export default function ModelsPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'provider' | 'price'>('date');
   const [providers, setProviders] = useState<string[]>([]);
@@ -99,9 +102,53 @@ export default function ModelsPage() {
             </p>
 
             {isLoading ? (
-              <div className="flex justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-white"></div>
-              </div>
+              <>
+                {/* Search and filters skeleton */}
+                <div className="mb-10 flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <Skeleton className="w-full h-11" />
+                  </div>
+                  <div className="flex items-stretch">
+                    <Skeleton className="w-[260px] h-11" />
+                  </div>
+                </div>
+
+                {/* Provider filters skeleton */}
+                <div className="mb-8">
+                  <Skeleton className="h-6 w-24 mb-3" />
+                  <div className="flex flex-wrap gap-3">
+                    {[...Array(6)].map((_, i) => (
+                      <Skeleton key={i} className="h-8 w-20 rounded-full" />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Models list skeleton */}
+                <div className="grid grid-cols-1 gap-4">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="bg-black border border-white/10 rounded-lg p-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <Skeleton className="h-6 w-64 mb-2" />
+                          <div className="flex flex-wrap gap-2 mt-2 mb-3">
+                            <Skeleton className="h-6 w-32 rounded" />
+                            <Skeleton className="h-6 w-36 rounded" />
+                            <Skeleton className="h-6 w-28 rounded" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-4 w-6" />
+                            <Skeleton className="h-4 w-32" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-4" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <>
                 {/* Search and filters */}
@@ -183,30 +230,21 @@ export default function ModelsPage() {
                 {/* Models list */}
                 <div className="grid grid-cols-1 gap-4">
                   {filteredModels.length > 0 ? (
-                    filteredModels.map((model) => {
+                    filteredModels.map((model, index) => {
                       const provider = getProviderFromModelName(model.name);
-                      const modelName = getModelNameWithoutProvider(model.name);
+                      const primaryProvider = getPrimaryProviderForModel(model.id);
+                      const modelName = getModelDisplayName(model);
 
                       return (
                         <Link
-                          key={model.id}
+                          key={`${model.id}-${index}`}
                           href={`/models/${model.id.replace('/', '/')}`}
                           className="block bg-black border border-white/10 rounded-lg p-6 hover:border-white/20 transition-all"
                         >
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                               <h3 className="text-xl font-bold text-white">{modelName}</h3>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm text-gray-500">{provider}</p>
-                                <span className="text-xs text-gray-500">•</span>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(model.created * 1000).toLocaleDateString(undefined, {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </p>
-                              </div>
+                              {/* Meta row removed per request (USD prices and duplicate context). */}
                               <div className="flex flex-wrap gap-2 mt-2">
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
                                   {model.sats_pricing.prompt.toFixed(8)} sats/token input
@@ -217,6 +255,34 @@ export default function ModelsPage() {
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
                                   {model.context_length.toLocaleString()} tokens
                                 </span>
+                              </div>
+                              {/* Provider shown at the bottom instead */}
+                              <div className="mt-3">
+                                <span className="text-sm text-gray-500">by</span>{' '}
+                                {primaryProvider ? (
+                                  <span
+                                    role="link"
+                                    tabIndex={0}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      router.push(`/providers/${primaryProvider.d_tag || primaryProvider.id}`);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        router.push(`/providers/${primaryProvider.d_tag || primaryProvider.id}`);
+                                      }
+                                    }}
+                                    className="text-sm text-gray-300 hover:text-white underline-offset-2 hover:underline cursor-pointer"
+                                    aria-label={`View ${primaryProvider.name} provider`}
+                                  >
+                                    {primaryProvider.name}
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-gray-500">{provider}</span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

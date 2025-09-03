@@ -22,18 +22,7 @@ const GLOBE_CONFIG: COBEOptions = {
   baseColor: [1, 1, 1],
   markerColor: [251 / 255, 100 / 255, 21 / 255],
   glowColor: [1, 1, 1],
-  markers: [
-    { location: [14.5995, 120.9842], size: 0.03 },
-    { location: [19.076, 72.8777], size: 0.1 },
-    { location: [23.8103, 90.4125], size: 0.05 },
-    { location: [30.0444, 31.2357], size: 0.07 },
-    { location: [39.9042, 116.4074], size: 0.08 },
-    { location: [-23.5505, -46.6333], size: 0.1 },
-    { location: [19.4326, -99.1332], size: 0.1 },
-    { location: [40.7128, -74.006], size: 0.1 },
-    { location: [34.6937, 135.5022], size: 0.05 },
-    { location: [41.0082, 28.9784], size: 0.06 },
-  ],
+  markers: [],
 };
 
 export function Globe({
@@ -43,11 +32,13 @@ export function Globe({
   className?: string;
   config?: COBEOptions;
 }) {
+  const markersRef = useRef<{ location: [number, number]; size: number }[]>([]);
   const phiRef = useRef(0);
   const widthRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
+  const geoCache = useRef(new Map<string, { lat: number; lng: number }>());
 
   const r = useMotionValue(0);
   const rs = useSpring(r, {
@@ -72,6 +63,7 @@ export function Globe({
   };
 
   useEffect(() => {
+    let cancelled = false;
     const onResize = () => {
       if (canvasRef.current) {
         widthRef.current = canvasRef.current.offsetWidth;
@@ -92,6 +84,10 @@ export function Globe({
           state.phi = phiRef.current + rs.get();
           state.width = widthRef.current * 2;
           state.height = widthRef.current * 2;
+          // update markers dynamically if set
+          if (markersRef.current && (state as any).markers !== markersRef.current) {
+            (state as any).markers = markersRef.current;
+          }
         },
       });
     } catch (e) {
@@ -101,18 +97,126 @@ export function Globe({
     }
 
     setTimeout(() => (canvasRef.current!.style.opacity = "1"), 0);
+
+    // Fetch providers and set markers with client-side geolocation
+    (async () => {
+      async function geolocateHost(host: string): Promise<{ lat: number; lng: number } | null> {
+        // Skip localhost, private IPs, and .onion domains
+        if (host === 'localhost' || host.startsWith('127.') || host.startsWith('192.168.') || 
+            host.startsWith('10.') || host.endsWith('.onion') || host.startsWith('172.')) {
+          return null;
+        }
+        
+        const cached = geoCache.current.get(host);
+        if (cached) return cached;
+        
+        const services = [
+          {
+            url: `http://ip-api.com/json/${encodeURIComponent(host)}?fields=status,lat,lon`,
+            parser: (data: any) => data.status === 'success' ? { lat: data.lat, lng: data.lon } : null
+          },
+          {
+            url: `https://ipapi.co/${encodeURIComponent(host)}/json/`,
+            parser: (data: any) => data.latitude && data.longitude ? { lat: parseFloat(data.latitude), lng: parseFloat(data.longitude) } : null
+          },
+          {
+            url: `https://ipwho.is/${encodeURIComponent(host)}`,
+            parser: (data: any) => data.success && data.latitude && data.longitude ? { lat: parseFloat(data.latitude), lng: parseFloat(data.longitude) } : null
+          }
+        ];
+        
+        for (const service of services) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const resp = await fetch(service.url, { 
+              signal: controller.signal,
+              headers: { 'Accept': 'application/json', 'User-Agent': 'routstr-globe/1.0' },
+              mode: 'cors'
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!resp.ok) continue;
+            
+            const data = await resp.json();
+            const coords = service.parser(data);
+            
+            if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number' && 
+                !isNaN(coords.lat) && !isNaN(coords.lng) && 
+                coords.lat >= -90 && coords.lat <= 90 && coords.lng >= -180 && coords.lng <= 180) {
+              geoCache.current.set(host, coords);
+              return coords;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        return null;
+      }
+
+      try {
+        const res = await fetch('https://staging.routstr.com/v1/providers/?include_json=true');
+        if (!res.ok) throw new Error(`Failed providers fetch: ${res.status}`);
+        const data = await res.json();
+        const entries = Array.isArray(data.providers) ? data.providers : [];
+        
+        const markers = await Promise.all(entries.map(async (entry: any) => {
+          const endpoint = entry?.health?.json?.http_url || entry?.provider?.endpoint_url || entry?.provider?.endpoint_urls?.[0];
+          let lat: number | undefined;
+          let lng: number | undefined;
+          
+          if (endpoint) {
+            try {
+              const host = (() => { 
+                try { 
+                  return new URL(endpoint).hostname; 
+                } catch { 
+                  const m = String(endpoint).match(/^[a-z0-9.-]+/i); 
+                  return m ? m[0] : null; 
+                } 
+              })();
+              
+              if (host) {
+                const coords = await geolocateHost(host);
+                if (coords) {
+                  lat = coords.lat;
+                  lng = coords.lng;
+                }
+              }
+            } catch {}
+          }
+          
+          if (lat === undefined || lng === undefined) {
+            const base = entry?.provider?.pubkey || entry?.provider?.id || entry?.provider?.d_tag || entry?.health?.json?.http_url || Math.random().toString(36).slice(2);
+            const h = (() => { let x = 5381; for (let i = 0; i < base.length; i++) x = (x * 33) ^ base.charCodeAt(i); return x >>> 0; })();
+            lat = ((h % 12000) / 100) - 60;
+            lng = (((Math.floor(h / 12000)) % 36000) / 100) - 180;
+          }
+          return { location: [lat, lng] as [number, number], size: 0.08 };
+        }));
+        
+        if (!cancelled) {
+          markersRef.current = markers;
+        }
+      } catch (e) {
+        // ignore failure, keep no markers
+      }
+    })();
     return () => {
       if (globe) {
         globe.destroy();
       }
       window.removeEventListener("resize", onResize);
+      cancelled = true;
     };
   }, [rs, config]);
 
   return (
     <div
       className={cn(
-        "absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[600px]",
+        "relative mx-auto aspect-[1/1] w-full max-w-[700px]",
         className,
       )}
     >
