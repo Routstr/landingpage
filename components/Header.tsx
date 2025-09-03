@@ -19,8 +19,8 @@ export default function Header() {
           </Link>
           <nav className="hidden md:flex">
             <ul className="flex space-x-6">
-              <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors">Features</Link></li>
               <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">Models</Link></li>
+              <li><Link href="/providers" className="text-sm text-gray-400 hover:text-white transition-colors">Providers</Link></li>
               <li>
                 <a
                   href="https://docs.routstr.com"
