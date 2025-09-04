@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
-import { Model, Provider } from '@/app/data/models';
+import { Model, Provider, ProviderWithHealth } from '@/app/data/models';
 
 interface ModelsState {
   models: Model[];
@@ -78,7 +78,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       const modelMap = new Map<string, Model>();
       const providerMap = new Map<string, Provider[]>();
       const providers = Array.isArray(data.providers) ? data.providers : [];
-      providers.forEach((entry: any) => {
+      providers.forEach((entry: ProviderWithHealth) => {
         const health = entry?.health;
         const providerObj = entry?.provider as Provider | undefined;
         const models = health?.json?.models as Model[] | undefined;
@@ -133,7 +133,8 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
     const direct = state.providerMap.get(id);
     if (direct && direct.length > 0) return direct;
-    for (const [key, value] of state.providerMap.entries()) {
+    const entries = Array.from(state.providerMap.entries());
+    for (const [key, value] of entries) {
       if (normalize(key) === normalize(id)) return value;
     }
     return [];

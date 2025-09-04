@@ -121,7 +121,7 @@ export default function ProviderPage() {
       let p = getProviderById(providerId);
       if (!p) {
         await fetchModels();
-        p = getProviderById(providerId) || null;
+        p = getProviderById(providerId) || undefined;
       }
       if (!isActive) return;
       setProvider(p || null);
@@ -142,7 +142,7 @@ export default function ProviderPage() {
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Provider Not Found</h1>
             <p className="text-gray-400 mb-6">
-              The provider you're looking for doesn't exist.
+              The provider you&#39;re looking for doesn&#39;t exist.
             </p>
             <Link href="/providers" className="text-white hover:text-gray-300">
               ← Back to providers

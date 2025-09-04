@@ -44,7 +44,6 @@ export interface Model {
     max_completion_tokens: number | null;
     is_moderated: boolean;
   };
-  per_request_limits: PerRequestLimits | null;
 }
 
 export interface Provider {
@@ -146,6 +145,7 @@ export async function fetchModels(): Promise<void> {
               image: rawModel.pricing?.image ?? 0,
               web_search: rawModel.pricing?.web_search ?? 0,
               internal_reasoning: rawModel.pricing?.internal_reasoning ?? 0,
+              max_cost: rawModel.pricing?.max_cost ?? 0,
             },
             sats_pricing: {
               prompt: rawModel.sats_pricing?.prompt ?? 0,
@@ -155,8 +155,14 @@ export async function fetchModels(): Promise<void> {
               web_search: rawModel.sats_pricing?.web_search ?? 0,
               internal_reasoning:
                 rawModel.sats_pricing?.internal_reasoning ?? 0,
+              max_cost: rawModel.sats_pricing?.max_cost ?? 0,
             },
             per_request_limits: rawModel.per_request_limits ?? null,
+            top_provider: {
+              context_length: rawModel.context_length ?? 0,
+              max_completion_tokens: null,
+              is_moderated: false,
+            },
           };
 
           modelMap.set(model.id, model);

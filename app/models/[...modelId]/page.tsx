@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
-import { Model, getProviderFromModelName, getModelNameWithoutProvider } from '@/app/data/models';
+import { Model, Provider, getProviderFromModelName, getModelNameWithoutProvider } from '@/app/data/models';
 import { useModels } from '@/app/contexts/ModelsContext';
-import { Provider } from '@/app/data/models';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Card } from '@/components/ui/card';
@@ -26,17 +25,6 @@ function decodeSegments(segments: string[]): string[] {
 
 // Removed EndpointData
 
-interface Provider {
-  provider_name: string;
-  context_length: number;
-  max_completion_tokens: number;
-  pricing: {
-    prompt: string;
-    completion: string;
-  };
-  // Add other provider properties as needed
-}
-
 export default function ModelDetailPage() {
   const params = useParams();
   const { models, loading, error, fetchModels, findModel, getProvidersForModel } = useModels();
@@ -52,7 +40,6 @@ export default function ModelDetailPage() {
   const [activeTab, setActiveTab] = useState<CodeLanguage>('curl');
   const [model, setModel] = useState<Model | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [bitcoinPrice, setBitcoinPrice] = useState<number>();
 
   // Removed endpoints table preparation
 
@@ -86,7 +73,7 @@ export default function ModelDetailPage() {
     }
 
     loadModelData()
-  }, [decodedModelId, models, findModel, fetchModels]);
+  }, [decodedModelId, models, findModel, fetchModels, getProvidersForModel]);
 
   if (loading) {
     return (

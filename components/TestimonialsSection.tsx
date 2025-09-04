@@ -1,4 +1,3 @@
-import TestimonialCard from './TestimonialCard';
 import Image from 'next/image';
 
 interface Testimonial {

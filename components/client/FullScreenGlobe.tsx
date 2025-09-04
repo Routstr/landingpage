@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import * as THREE from "three";
 import GlobeTooltip from "./GlobeTooltip";
-import type { ProvidersResponse } from "@/app/data/models";
 
 type ApiProvider = {
   provider: {
@@ -32,7 +31,7 @@ type ApiProvider = {
   health?: {
     status_code?: number;
     endpoint?: string;
-    json?: any;
+    json?: Record<string, unknown>;
   };
 };
 
@@ -109,26 +108,26 @@ async function geolocateEndpoint(
         url: `http://ip-api.com/json/${encodeURIComponent(
           host
         )}?fields=status,lat,lon`,
-        parser: (data: any) =>
-          data.status === "success" ? { lat: data.lat, lng: data.lon } : null,
+        parser: (data: Record<string, unknown>) =>
+          data.status === "success" ? { lat: data.lat as number, lng: data.lon as number } : null,
       },
       {
         url: `https://ipapi.co/${encodeURIComponent(host)}/json/`,
-        parser: (data: any) =>
+        parser: (data: Record<string, unknown>) =>
           data.latitude && data.longitude
             ? {
-                lat: parseFloat(data.latitude),
-                lng: parseFloat(data.longitude),
+                lat: parseFloat(data.latitude as string),
+                lng: parseFloat(data.longitude as string),
               }
             : null,
       },
       {
         url: `https://ipwho.is/${encodeURIComponent(host)}`,
-        parser: (data: any) =>
+        parser: (data: Record<string, unknown>) =>
           data.success && data.latitude && data.longitude
             ? {
-                lat: parseFloat(data.latitude),
-                lng: parseFloat(data.longitude),
+                lat: parseFloat(data.latitude as string),
+                lng: parseFloat(data.longitude as string),
               }
             : null,
       },
@@ -169,19 +168,19 @@ async function geolocateEndpoint(
           geoCache.set(host, coords);
           return coords;
         }
-      } catch (e) {
+      } catch {
         // Service failed, try next one
         continue;
       }
     }
-  } catch (e) {
+  } catch {
     // All services failed
   }
 
   return null;
 }
 
-async function fetchCountriesGeoJson(): Promise<any> {
+async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
   const res = await fetch(
     "https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson"
   );
@@ -218,7 +217,7 @@ function transformApiProvider(
 
   // Determine a stable fallback coordinate based on endpoint/pubkey/id
   const primaryEndpoint =
-    (apiProvider as any)?.health?.json?.http_url ||
+    (apiProvider.health?.json as Record<string, unknown>)?.http_url as string ||
     apiProvider.provider.endpoint_url ||
     httpEndpoints[0] ||
     torEndpoints[0];
@@ -232,22 +231,22 @@ function transformApiProvider(
     String(baseKey || `${apiProvider.provider.id}-seed`)
   );
 
-  let lat: number = fallback.lat;
-  let lng: number = fallback.lng;
+  const lat: number = fallback.lat;
+  const lng: number = fallback.lng;
   let city: string | undefined;
   let country: string | undefined;
 
   // Prefer models from health.json if available
   const modelsFromHealth: string[] = Array.isArray(
-    (apiProvider as any)?.health?.json?.models
+    (apiProvider.health?.json as Record<string, unknown>)?.models
   )
     ? (
-        (apiProvider as any).health.json.models as Array<
+        (apiProvider.health?.json as Record<string, unknown>).models as Array<
           { id?: string } | string
         >
       )
-        .map((m: any) => (typeof m === "string" ? m : m?.id))
-        .filter(Boolean)
+        .map((m: { id?: string } | string) => (typeof m === "string" ? m : m?.id))
+        .filter(Boolean) as string[]
     : [];
 
   return {
@@ -279,20 +278,21 @@ function transformApiProvider(
 export default function FullScreenGlobe() {
   const Globe = useMemo(() => {
     if (typeof window === "undefined") return null;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require("react-globe.gl").default as any;
+    // Dynamic require needed for SSR compatibility
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+    return require("react-globe.gl").default as React.ComponentType<any>;
   }, []);
 
-  const globeRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const globeRef = useRef<any>(null); // Globe component doesn't have proper types
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const size = useMemo(() => {
     return dimensions.height; // size globe by viewport height only
   }, [dimensions]);
-  const [hexData, setHexData] = useState<any[]>([]);
-  const [ringsData, setRingsData] = useState<any[]>([]);
-  const [hoveredProvider, setHoveredProvider] =
-    useState<ProviderLocation | null>(null);
+  const [hexData, setHexData] = useState<Record<string, unknown>[]>([]);
+  const [ringsData, setRingsData] = useState<Array<{ lat: number; lng: number; maxRadius: number; propagationSpeed: number; repeatPeriod: number; provider: ProviderLocation }>>([]);
+  const [, setHoveredProvider] = useState<ProviderLocation | null>(null);
   const [providers, setProviders] = useState<ProviderLocation[]>([]);
   const [selectedProvider, setSelectedProvider] =
     useState<ProviderLocation | null>(null);
@@ -303,7 +303,7 @@ export default function FullScreenGlobe() {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    let raf: number | null = null;
+    const raf: number | null = null;
     const onResize = () => {
       setDimensions({ width: window.innerWidth, height: window.innerHeight });
     };
@@ -323,8 +323,8 @@ export default function FullScreenGlobe() {
         setProviders(transformedProviders);
         setRingsData(
           transformedProviders.map((p) => ({
-            lat: p.lat,
-            lng: p.lng,
+            lat: p.lat ?? 0,
+            lng: p.lng ?? 0,
             maxRadius: 4,
             propagationSpeed: 4,
             repeatPeriod: 1400,
@@ -336,8 +336,8 @@ export default function FullScreenGlobe() {
         const geolocated = await Promise.all(
           transformedProviders.map(async (p) => {
             const endpoint =
-              (apiProviders.find((ap) => ap.provider.id === p.id) as any)
-                ?.health?.json?.http_url ||
+              (apiProviders.find((ap) => ap.provider.id === p.id)?.health?.json as Record<string, unknown>)
+                ?.http_url as string ||
               p.endpoints.http[0] ||
               p.endpoints.tor[0] ||
               (apiProviders.find((ap) => ap.provider.id === p.id)?.provider
@@ -362,8 +362,8 @@ export default function FullScreenGlobe() {
         setProviders(geolocated);
         setRingsData(
           geolocated.map((p) => ({
-            lat: p.lat,
-            lng: p.lng,
+            lat: p.lat ?? 0,
+            lng: p.lng ?? 0,
             maxRadius: 4,
             propagationSpeed: 4,
             repeatPeriod: 1400,
@@ -375,7 +375,6 @@ export default function FullScreenGlobe() {
         // fallback to no points if fetch fails
         setProviders([]);
         setRingsData([]);
-        // eslint-disable-next-line no-console
         console.error("Globe provider fetch failed", e);
       });
     return () => {
@@ -504,7 +503,7 @@ export default function FullScreenGlobe() {
         onGlobeClick={handleGlobeClick}
         // Pulsing rings
         ringsData={ringsData}
-        ringColor={(ring: any) => {
+        ringColor={(ring: { provider?: ProviderLocation }) => {
           if (!ring.provider) return "rgba(198, 85, 206, .8)";
           switch (ring.provider.status) {
             case "online":

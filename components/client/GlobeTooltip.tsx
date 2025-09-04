@@ -28,13 +28,16 @@ interface GlobeTooltipProps {
 }
 
 export default function GlobeTooltip({ provider, position }: GlobeTooltipProps) {
-  if (!provider || !position) return null;
-
   const [isVisible, setIsVisible] = React.useState(false);
+  
   React.useEffect(() => {
-    setIsVisible(true);
-    return () => setIsVisible(false);
+    if (provider && position) {
+      setIsVisible(true);
+      return () => setIsVisible(false);
+    }
   }, [provider, position]);
+
+  if (!provider || !position) return null;
 
   function truncateMiddle(value: string, max = 28) {
     if (value.length <= max) return value;
@@ -42,16 +45,6 @@ export default function GlobeTooltip({ provider, position }: GlobeTooltipProps) 
     return `${value.slice(0, part)}...${value.slice(-part)}`;
   }
 
-  function formatCaps(capString: string) {
-    const parts = capString.split(',').map((s) => s.trim());
-    const tokens = parts.find((p) => p.startsWith('max_tokens:'))?.split(':')[1];
-    const vision = parts.find((p) => p.startsWith('vision:'))?.split(':')[1] === 'true';
-    const tools = parts.find((p) => p.startsWith('tools:'))?.split(':')[1] === 'true';
-    const tokenLabel = tokens ? `${Math.round(Number(tokens) / 1000)}k` : undefined;
-    return [tokenLabel, vision ? 'vision' : undefined, tools ? 'tools' : undefined]
-      .filter(Boolean)
-      .join(' · ');
-  }
 
   function formatDate(unix?: number) {
     if (!unix) return undefined;
@@ -182,9 +175,6 @@ export default function GlobeTooltip({ provider, position }: GlobeTooltipProps) 
                       className="px-1.5 py-0.5 rounded-md bg-white/5 text-gray-100/95 text-[10px] ring-1 ring-white/10 hover:bg-white/10 transition-colors"
                     >
                       <span className="underline/0 hover:underline">{m}</span>
-                      {provider.modelCaps?.[m] ? (
-                        <span className="ml-1 text-gray-300/70">({formatCaps(provider.modelCaps[m])})</span>
-                      ) : null}
                     </Link>
                   ))}
                   {provider.models!.length > 6 ? (

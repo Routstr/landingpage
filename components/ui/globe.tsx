@@ -6,6 +6,42 @@ import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
+// Type definitions
+interface GeoLocationResponse {
+  lat?: number;
+  lng?: number;
+  latitude?: string | number;
+  longitude?: string | number;
+  status?: string;
+  success?: boolean;
+}
+
+interface ProviderEntry {
+  health?: {
+    json?: {
+      http_url?: string;
+    };
+  };
+  provider?: {
+    endpoint_url?: string;
+    endpoint_urls?: string[];
+    pubkey?: string;
+    id?: string;
+    d_tag?: string;
+  };
+}
+
+interface ProvidersResponse {
+  providers?: ProviderEntry[];
+}
+
+interface COBEState {
+  phi: number;
+  width: number;
+  height: number;
+  markers: { location: [number, number]; size: number }[];
+}
+
 const MOVEMENT_DAMPING = 1400;
 
 const GLOBE_CONFIG: COBEOptions = {
@@ -85,8 +121,8 @@ export function Globe({
           state.width = widthRef.current * 2;
           state.height = widthRef.current * 2;
           // update markers dynamically if set
-          if (markersRef.current && (state as any).markers !== markersRef.current) {
-            (state as any).markers = markersRef.current;
+          if (markersRef.current && (state as COBEState).markers !== markersRef.current) {
+            (state as COBEState).markers = markersRef.current;
           }
         },
       });
@@ -113,15 +149,15 @@ export function Globe({
         const services = [
           {
             url: `http://ip-api.com/json/${encodeURIComponent(host)}?fields=status,lat,lon`,
-            parser: (data: any) => data.status === 'success' ? { lat: data.lat, lng: data.lon } : null
+            parser: (data: GeoLocationResponse) => data.status === 'success' ? { lat: data.lat!, lng: data.lng! } : null
           },
           {
             url: `https://ipapi.co/${encodeURIComponent(host)}/json/`,
-            parser: (data: any) => data.latitude && data.longitude ? { lat: parseFloat(data.latitude), lng: parseFloat(data.longitude) } : null
+            parser: (data: GeoLocationResponse) => data.latitude && data.longitude ? { lat: parseFloat(String(data.latitude)), lng: parseFloat(String(data.longitude)) } : null
           },
           {
             url: `https://ipwho.is/${encodeURIComponent(host)}`,
-            parser: (data: any) => data.success && data.latitude && data.longitude ? { lat: parseFloat(data.latitude), lng: parseFloat(data.longitude) } : null
+            parser: (data: GeoLocationResponse) => data.success && data.latitude && data.longitude ? { lat: parseFloat(String(data.latitude)), lng: parseFloat(String(data.longitude)) } : null
           }
         ];
         
@@ -149,7 +185,7 @@ export function Globe({
               geoCache.current.set(host, coords);
               return coords;
             }
-          } catch (e) {
+          } catch {
             continue;
           }
         }
@@ -159,10 +195,10 @@ export function Globe({
       try {
         const res = await fetch('https://staging.routstr.com/v1/providers/?include_json=true');
         if (!res.ok) throw new Error(`Failed providers fetch: ${res.status}`);
-        const data = await res.json();
+        const data: ProvidersResponse = await res.json();
         const entries = Array.isArray(data.providers) ? data.providers : [];
         
-        const markers = await Promise.all(entries.map(async (entry: any) => {
+        const markers = await Promise.all(entries.map(async (entry: ProviderEntry) => {
           const endpoint = entry?.health?.json?.http_url || entry?.provider?.endpoint_url || entry?.provider?.endpoint_urls?.[0];
           let lat: number | undefined;
           let lng: number | undefined;
@@ -200,7 +236,7 @@ export function Globe({
         if (!cancelled) {
           markersRef.current = markers;
         }
-      } catch (e) {
+      } catch {
         // ignore failure, keep no markers
       }
     })();

@@ -19,7 +19,10 @@ export interface ApiProviderEnvelope {
   health?: {
     status_code?: number;
     endpoint?: string;
-    json?: any;
+    json?: {
+      models?: Array<{ id: string; [key: string]: unknown }>;
+      [key: string]: unknown;
+    };
   };
 }
 
