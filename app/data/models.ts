@@ -1,5 +1,3 @@
-import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
-
 export interface PerRequestLimits {
   readonly prompt_tokens?: number;
   readonly completion_tokens?: number;
@@ -60,7 +58,8 @@ export interface Provider {
   description: string;
   contact: string | null;
   pricing_url: string | null;
-  mint_url: string;
+  mint_url?: string | null;
+  mint_urls?: readonly string[];
   version: string;
   supported_models: readonly string[];
   content: string;
@@ -108,13 +107,11 @@ export async function fetchModels(): Promise<void> {
     const data: ProvidersResponse = await response.json();
 
     // Filter out providers that don't have models available in their health response
-    // and filter out providers that only have staging endpoints in production
     const activeProviders = data.providers.filter(
-      ({ provider, health }) =>
+      ({ health }) =>
         health.status_code === 200 &&
         health.json?.models &&
-        health.json.models.length > 0 &&
-        !shouldHideProviderCompletely(provider.endpoint_urls || [])
+        health.json.models.length > 0
     );
 
     // Extract all models from all providers and map them to providers
@@ -125,10 +122,22 @@ export async function fetchModels(): Promise<void> {
     const modelMap = new Map<string, Model>(); // To deduplicate models
 
     activeProviders.forEach(({ provider, health }) => {
-      // Filter staging endpoints from provider endpoints
-      const filteredEndpoints = filterStagingEndpoints(provider.endpoint_urls || []);
-      const filteredProvider = { ...provider, endpoint_urls: filteredEndpoints };
-      allProviders.push(filteredProvider);
+      // Normalize mint fields across API variants
+      const mintUrlsFromProvider = (provider as unknown as { mint_urls?: string[] }).mint_urls || [];
+      const mintUrlsFromHealth = Array.isArray(health?.json?.mints) ? (health!.json!.mints as string[]) : [];
+      const normalizedMintUrls = (mintUrlsFromProvider.length > 0 ? mintUrlsFromProvider : mintUrlsFromHealth).filter(
+        (u) => typeof u === "string" && u.length > 0
+      );
+      const singleMintUrlFromProvider = (provider as unknown as { mint_url?: string | null }).mint_url ?? null;
+      const normalizedMintUrl = singleMintUrlFromProvider ?? (normalizedMintUrls.length > 0 ? normalizedMintUrls[0] : null);
+
+      const providerAugmented: Provider = {
+        ...provider,
+        mint_urls: normalizedMintUrls,
+        mint_url: normalizedMintUrl,
+      } as Provider;
+
+      allProviders.push(providerAugmented);
       if (health.json?.models) {
         // Deduplicate models by ID and ensure proper Model structure
         health.json.models.forEach((rawModel) => {
@@ -174,15 +183,15 @@ export async function fetchModels(): Promise<void> {
 
           modelMap.set(model.id, model);
           const existingProviders = newModelProvidersMap.get(model.id) || [];
-          newModelProvidersMap.set(model.id, [...existingProviders, filteredProvider]);
+          newModelProvidersMap.set(model.id, [...existingProviders, provider]);
         });
 
         // Map models to this provider
         const providerModels = health.json.models.map(
           (rawModel) => modelMap.get(rawModel.id)!
         );
-        newProviderModelMap.set(filteredProvider.id, providerModels);
-        newProviderModelMap.set(filteredProvider.d_tag, providerModels);
+        newProviderModelMap.set(provider.id, providerModels);
+        newProviderModelMap.set(provider.d_tag, providerModels);
       }
     });
 

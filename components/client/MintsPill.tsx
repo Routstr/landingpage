@@ -19,9 +19,9 @@ function MintIcon() {
 
 function CopyIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-      <path d="M9 7.5A2.25 2.25 0 0 1 11.25 5.25h6A2.25 2.25 0 0 1 19.5 7.5v6a2.25 2.25 0 0 1-2.25 2.25h-6A2.25 2.25 0 0 1 9 13.5v-6z" />
-      <path d="M7.5 8.25A2.25 2.25 0 0 0 5.25 10.5v6A2.25 2.25 0 0 0 7.5 18.75h6a.75.75 0 0 0 .75-.75v-1.5h1.5v1.5A2.25 2.25 0 0 1 13.5 21H7.5A2.25 2.25 0 0 1 5.25 18.75v-6A2.25 2.25 0 0 1 7.5 10.5h1.5V9A.75.75 0 0 1 9.75 8.25H11.25V6.75H9.75z" />
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
     </svg>
   );
 }
@@ -68,13 +68,13 @@ export function MintsPill({ label = 'Mints', mints }: MintsPillProps) {
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="h-7 px-2 py-0 rounded-full ml-1 shrink-0"
+                  className="h-8 w-8 p-0 rounded-full shrink-0 leading-none"
                   onClick={() => handleCopy(url, idx)}
                   title={copiedIndex === idx ? 'Copied' : 'Copy URL'}
                 >
                   {copiedIndex === idx ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-emerald-400">
-                      <path fillRule="evenodd" d="M10.28 15.53a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 1 1 1.06-1.06l1.72 1.72 4.47-4.47a.75.75 0 1 1 1.06 1.06l-5.06 5.06z" clipRule="evenodd" />
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-emerald-400">
+                      <path d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
                     <CopyIcon />

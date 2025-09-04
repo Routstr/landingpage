@@ -363,7 +363,7 @@ export default function Home() {
                           </span>
                         </div>
                         <span className="text-white font-mono truncate max-w-[120px]">
-                          cashuA1Dk...L6U
+                          cashuA1DkpMbgQ9VkL6U...
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
