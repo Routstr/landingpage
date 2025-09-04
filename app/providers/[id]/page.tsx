@@ -15,6 +15,7 @@ import {
   type Model,
 } from "@/app/data/models";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProviderReviews } from "@/components/ProviderReviews";
 
 export default function ProviderPage() {
   const params = useParams();
@@ -394,6 +395,10 @@ export default function ProviderPage() {
                   </tbody>
                 </table>
               </div>
+              {/* Reviews Section */}
+              {provider ? (
+                <ProviderReviews providerId={provider.id} />
+              ) : null}
             </div>
           </div>
         </div>

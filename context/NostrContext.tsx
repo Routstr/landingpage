@@ -18,11 +18,11 @@ type NostrContextType = {
   isAuthenticated: boolean;
   isNostrAvailable: boolean;
   privateKey: Uint8Array | null;
-  login: () => Promise<void>;
+  login: () => Promise<boolean>;
   loginWithNsec: (nsec: string) => boolean;
   logout: () => void;
   pool: SimplePool | null;
-  publishEvent: (content: string, kind?: number) => Promise<Event | null>;
+  publishEvent: (content: string, kind?: number, tags?: string[][]) => Promise<Event | null>;
 };
 
 const NostrContext = createContext<NostrContextType>({
@@ -30,7 +30,7 @@ const NostrContext = createContext<NostrContextType>({
   isAuthenticated: false,
   isNostrAvailable: false,
   privateKey: null,
-  login: async () => {},
+  login: async () => false,
   loginWithNsec: () => false,
   logout: () => {},
   pool: null,
@@ -79,17 +79,18 @@ export function NostrProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async () => {
-    if (!isNostrAvailable) return;
-    
+  const login = async (): Promise<boolean> => {
     try {
       const pubkey = await getPublicKey();
       if (pubkey) {
         setPublicKey(pubkey);
         localStorage.setItem('nostr_pubkey', pubkey);
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error logging in with Nostr:', error);
+      return false;
     }
   };
 
@@ -123,7 +124,7 @@ export function NostrProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('nostr_nsec');
   };
 
-  const publishEvent = async (content: string, kind = 1): Promise<Event | null> => {
+  const publishEvent = async (content: string, kind = 1, tags: string[][] = []): Promise<Event | null> => {
     if (!pool) return null;
     
     try {
@@ -131,7 +132,7 @@ export function NostrProvider({ children }: { children: ReactNode }) {
       const eventTemplate = {
         kind,
         created_at: Math.floor(Date.now() / 1000),
-        tags: [],
+        tags,
         content
       };
       

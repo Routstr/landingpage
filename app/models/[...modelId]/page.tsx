@@ -10,7 +10,10 @@ import { useModels } from '@/app/contexts/ModelsContext';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Card } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronsUpDown as ChevronsUpDownIcon, Check as CheckIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { ModelReviews } from '@/components/ModelReviews';
 // import ProviderPage from '@/app/providers/[id]/page';
 // ProvidersTable removed
 // import { UnfoldHorizontal } from 'lucide-react';
@@ -29,6 +32,7 @@ export default function ModelDetailPage() {
   const params = useParams();
   const { models, loading, error, fetchModels, findModel, getProvidersForModel } = useModels();
   const [providersForModel, setProvidersForModel] = useState<Provider[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   
   // Handle the catch-all route by joining the path segments
   const modelIdParts = params.modelId as string[];
@@ -59,6 +63,10 @@ export default function ModelDetailPage() {
           setModel(foundModel);
           setNotFound(false);
           setProvidersForModel(getProvidersForModel(foundModel.id));
+          const p = getProvidersForModel(foundModel.id);
+          if (p && p.length > 0) {
+            setSelectedProviderId((prev) => prev || p[0].id);
+          }
           
           // Removed external endpoints fetch
 
@@ -221,11 +229,17 @@ export default function ModelDetailPage() {
   }
 
   const provider = getProviderFromModelName(model.name);
+  const selectedProvider = providersForModel.find((p) => p.id === selectedProviderId) || providersForModel[0];
+  const providerBaseUrl = (() => {
+    const base = selectedProvider?.endpoint_url || '';
+    if (!base) return '';
+    return base.endsWith('/v1') ? base : `${base.replace(/\/$/, '')}/v1`;
+  })();
   const displayName = getModelNameWithoutProvider(model.name);
 
   // API code examples for this specific model
   const codeExamples = {
-    curl: `curl -X POST https://api.routstr.com/v1/chat/completions \\
+    curl: `curl -X POST ${providerBaseUrl || 'https://api.routstr.com/v1'}/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer cashuBpGFteCJodHRwczovL21p..." \\
   -d '{
@@ -241,7 +255,7 @@ export default function ModelDetailPage() {
     javascript: `import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  baseURL: 'https://api.routstr.com/v1',
+  baseURL: '${providerBaseUrl || 'https://api.routstr.com/v1'}',
   apiKey: 'cashuBpGFteCJodHRwczovL21p...' 
 });
 
@@ -260,7 +274,7 @@ main();`,
     python: `from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://api.routstr.com/v1",
+    base_url="${providerBaseUrl || 'https://api.routstr.com/v1'}",
     api_key="cashuBpGFteCJodHRwczovL21p..." 
 )
 
@@ -491,7 +505,46 @@ print(completion.choices[0].message.content)`
 
             {/* API Section */}
             <Card className="bg-black/50 border border-white/10 p-6 mb-12">
-              <h2 className="text-xl font-bold mb-4 text-white">API Integration</h2>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-xl font-bold text-white">API Integration</h2>
+                {providersForModel.length > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Provider</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-left text-sm text-white hover:bg-white/10"
+                          aria-label="Select provider for API base URL"
+                        >
+                          <span className="truncate">{selectedProvider?.name || 'Select provider'}</span>
+                          <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-1 bg-black text-white border-white/10">
+                        <div role="listbox" aria-label="Select provider" className="max-h-64 overflow-y-auto">
+                          {providersForModel.map((p) => {
+                            const isActive = p.id === selectedProviderId;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                role="option"
+                                aria-selected={isActive}
+                                onClick={() => setSelectedProviderId(p.id)}
+                                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
+                              >
+                                <CheckIcon className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
+                                <span className="truncate">{p.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ) : null}
+              </div>
               <p className="text-sm text-gray-200 mb-6">
                 Access <span className="font-semibold text-white">{displayName}</span> with a simple API call using your Cashu token for authentication.
               </p>
@@ -545,6 +598,9 @@ print(completion.choices[0].message.content)`
                 </div>
               </div>
             </Card>
+
+            {/* Model Reviews Section */}
+            <ModelReviews modelId={model.id} providersForModel={providersForModel} />
           </div>
         </div>
       </section>
