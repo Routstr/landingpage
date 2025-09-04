@@ -253,7 +253,6 @@ export function getUsdPricingShort(model: Model): string {
 
 // Get the display name for a model (remove provider prefix if present)
 export function getModelDisplayName(model: Model): string {
-  // Check if the name contains a provider prefix (e.g., "OpenAI: GPT-4")
   const colonIndex = model.name.indexOf(":");
   if (colonIndex !== -1) {
     return model.name.substring(colonIndex + 1).trim();

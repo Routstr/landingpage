@@ -17,7 +17,7 @@ export default function HeroSection({
       <div className="px-4 md:px-6 relative z-10">
         <div className="mx-auto max-w-3xl text-center">
           <div className="inline-block mb-3 px-3 py-1 bg-white/10 text-white rounded-full text-xs font-mono">
-            Powered by Nostr + Bitcoin
+            Powered by Nostr + Cashu
           </div>
           <h1 className="mb-4 sm:mb-6 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
             {title}
