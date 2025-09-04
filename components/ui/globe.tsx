@@ -13,6 +13,7 @@ interface GeoLocationResponse {
   lng?: number;
   latitude?: string | number;
   longitude?: string | number;
+  lon?: string | number;
   status?: string;
   success?: boolean;
 }
@@ -150,7 +151,10 @@ export function Globe({
         const services = [
           {
             url: `http://ip-api.com/json/${encodeURIComponent(host)}?fields=status,lat,lon`,
-            parser: (data: GeoLocationResponse) => data.status === 'success' ? { lat: data.lat!, lng: data.lng! } : null
+            parser: (data: GeoLocationResponse) =>
+              data.status === 'success' && data.lat !== undefined && data.lon !== undefined
+                ? { lat: Number(data.lat), lng: Number(data.lon) }
+                : null
           },
           {
             url: `https://ipapi.co/${encodeURIComponent(host)}/json/`,
