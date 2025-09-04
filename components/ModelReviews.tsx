@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNostr } from "@/context/NostrContext";
 import { type Event } from "nostr-tools";
 import { getDefaultRelays } from "@/lib/nostr";
@@ -41,7 +41,7 @@ function formatTimeAgo(createdAtSeconds: number): string {
 }
 
 export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) {
-  const { isAuthenticated, publicKey, login, loginWithNsec, isNostrAvailable, publishEvent, pool, logout } = useNostr();
+  const { isAuthenticated, publicKey, publishEvent, pool, logout } = useNostr();
   const [selectedProviderId, setSelectedProviderId] = useState<string>(providersForModel[0]?.id || "");
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,8 +50,6 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState<null | { id: string; pubkey: string }>(null);
-  const [nsecInput, setNsecInput] = useState("");
-  const [nsecError, setNsecError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -128,7 +126,7 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
       } else {
         setError("Failed to publish review");
       }
-    } catch (e) {
+    } catch {
       setError("Error submitting review");
     } finally {
       setIsSubmitting(false);
@@ -295,5 +293,3 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
     </section>
   );
 }
-
-

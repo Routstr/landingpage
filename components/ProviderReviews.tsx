@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNostr } from "@/context/NostrContext";
 import { type Event } from "nostr-tools";
 import { getDefaultRelays, validateNsec } from "@/lib/nostr";
@@ -128,7 +128,7 @@ export function ProviderReviews({ providerId }: ProviderReviewsProps) {
       } else {
         setError("Failed to publish review");
       }
-    } catch (e) {
+    } catch {
       setError("Error submitting review");
     } finally {
       setIsSubmitting(false);
@@ -204,7 +204,7 @@ export function ProviderReviews({ providerId }: ProviderReviewsProps) {
                 <DialogHeader>
                   <DialogTitle>Login to post a review</DialogTitle>
                   <DialogDescription className="text-gray-400">
-                    Use a NIP-07 browser extension or paste your nsec. We'll use your key to sign review events.
+                    Use a NIP-07 browser extension or paste your nsec. We&apos;ll use your key to sign review events.
                   </DialogDescription>
                 </DialogHeader>
 
