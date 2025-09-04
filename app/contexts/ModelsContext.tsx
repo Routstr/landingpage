@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
 import { Model, Provider, ProviderWithHealth } from '@/app/data/models';
+import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
 
 interface ModelsState {
   models: Model[];
@@ -68,7 +69,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'FETCH_START' });
 
     try {
-      const response = await fetch('https://staging.routstr.com/v1/providers/?include_json=true');
+      const response = await fetch('https://api.routstr.com/v1/providers/?include_json=true');
       if (!response.ok) {
         throw new Error(`Failed to fetch providers: ${response.status}`);
       }
@@ -78,20 +79,33 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       const modelMap = new Map<string, Model>();
       const providerMap = new Map<string, Provider[]>();
       const providers = Array.isArray(data.providers) ? data.providers : [];
-      providers.forEach((entry: ProviderWithHealth) => {
-        const health = entry?.health;
-        const providerObj = entry?.provider as Provider | undefined;
-        const models = health?.json?.models as Model[] | undefined;
-        if (Array.isArray(models)) {
-          models.forEach((m) => {
-            modelMap.set(m.id, m);
-            if (providerObj) {
-              const existing = providerMap.get(m.id) || [];
-              providerMap.set(m.id, [...existing, providerObj]);
-            }
-          });
-        }
-      });
+      providers
+        .filter((entry: ProviderWithHealth) => {
+          // Filter out providers that only have staging endpoints in production
+          const allEndpoints = entry?.provider?.endpoint_urls || [];
+          return !shouldHideProviderCompletely(allEndpoints);
+        })
+        .forEach((entry: ProviderWithHealth) => {
+          const health = entry?.health;
+          const providerObj = entry?.provider as Provider | undefined;
+          const models = health?.json?.models as Model[] | undefined;
+          
+          // Filter staging endpoints from provider object
+          if (providerObj) {
+            const filteredEndpoints = filterStagingEndpoints(providerObj.endpoint_urls || []);
+            providerObj.endpoint_urls = filteredEndpoints;
+          }
+          
+          if (Array.isArray(models)) {
+            models.forEach((m) => {
+              modelMap.set(m.id, m);
+              if (providerObj) {
+                const existing = providerMap.get(m.id) || [];
+                providerMap.set(m.id, [...existing, providerObj]);
+              }
+            });
+          }
+        });
 
       dispatch({
         type: 'FETCH_SUCCESS',

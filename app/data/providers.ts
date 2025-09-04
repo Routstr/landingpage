@@ -1,3 +1,5 @@
+import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
+
 export interface ApiProviderEnvelope {
   provider: {
     id: string;
@@ -41,7 +43,7 @@ export let providers: ProviderSummary[] = [];
 
 export async function fetchProviders(): Promise<void> {
   try {
-    const res = await fetch('https://staging.routstr.com/v1/providers/?include_json=true');
+    const res = await fetch('https://api.routstr.com/v1/providers/?include_json=true');
     if (!res.ok) throw new Error(`Failed to fetch providers: ${res.status}`);
     const json = await res.json();
     const list: ApiProviderEnvelope[] = Array.isArray(json.providers) ? json.providers : [];
@@ -50,29 +52,40 @@ export async function fetchProviders(): Promise<void> {
       (p?.health?.status_code === 200) && Array.isArray(p?.health?.json?.models) && p.health!.json!.models!.length > 0
     );
 
-    providers = filtered.map((p) => {
-      const http: string[] = [];
-      const tor: string[] = [];
-      for (const url of p.provider.endpoint_urls || []) {
-        if (typeof url !== 'string') continue;
-        if (url.includes('.onion')) tor.push(url);
-        else http.push(url);
-      }
-      // Build supported models from health.json if available, else fallback to provider.supported_models
-      const supportedModelsFromHealth = Array.isArray(p?.health?.json?.models)
-        ? (p.health!.json!.models as Array<{ id: string }>).map(m => m.id)
-        : [];
-      return {
-        id: p.provider.id,
-        pubkey: p.provider.pubkey,
-        name: p.provider.name,
-        description: p.provider.description,
-        endpoints: { http, tor },
-        mint_url: p.provider.mint_url,
-        version: p.provider.version,
-        supported_models: supportedModelsFromHealth.length > 0 ? supportedModelsFromHealth : (p.provider.supported_models || []),
-      } as ProviderSummary;
-    });
+    providers = filtered
+      .filter((p) => {
+        // Filter out providers that only have staging endpoints in production
+        const allEndpoints = p.provider.endpoint_urls || [];
+        return !shouldHideProviderCompletely(allEndpoints);
+      })
+      .map((p) => {
+        const http: string[] = [];
+        const tor: string[] = [];
+        
+        // Filter staging endpoints from the provider's endpoint list
+        const filteredEndpoints = filterStagingEndpoints(p.provider.endpoint_urls || []);
+        
+        for (const url of filteredEndpoints) {
+          if (typeof url !== 'string') continue;
+          if (url.includes('.onion')) tor.push(url);
+          else http.push(url);
+        }
+        
+        // Build supported models from health.json if available, else fallback to provider.supported_models
+        const supportedModelsFromHealth = Array.isArray(p?.health?.json?.models)
+          ? (p.health!.json!.models as Array<{ id: string }>).map(m => m.id)
+          : [];
+        return {
+          id: p.provider.id,
+          pubkey: p.provider.pubkey,
+          name: p.provider.name,
+          description: p.provider.description,
+          endpoints: { http, tor },
+          mint_url: p.provider.mint_url,
+          version: p.provider.version,
+          supported_models: supportedModelsFromHealth.length > 0 ? supportedModelsFromHealth : (p.provider.supported_models || []),
+        } as ProviderSummary;
+      });
   } catch (err) {
     console.error('Error fetching providers:', err);
     providers = [];

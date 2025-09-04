@@ -42,7 +42,7 @@ const TopUpPage = () => {
       'https://ai.redsh1ft.com',
       'https://routstr.otrta.me',
       'https://privateprovider.xyz',
-      'https://staging.routstr.com',
+      'https://api.routstr.com',
       'https://routstr.rewolf.dev'
     ];
     if (!key) {

@@ -1,3 +1,5 @@
+import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
+
 export interface PerRequestLimits {
   readonly prompt_tokens?: number;
   readonly completion_tokens?: number;
@@ -96,7 +98,7 @@ export let modelProvidersMap: Map<string, Provider[]> = new Map();
 export async function fetchModels(): Promise<void> {
   try {
     const response = await fetch(
-      "https://staging.routstr.com/v1/providers/?include_json=true"
+      "https://api.routstr.com/v1/providers/?include_json=true"
     );
 
     if (!response.ok) {
@@ -106,11 +108,13 @@ export async function fetchModels(): Promise<void> {
     const data: ProvidersResponse = await response.json();
 
     // Filter out providers that don't have models available in their health response
+    // and filter out providers that only have staging endpoints in production
     const activeProviders = data.providers.filter(
-      ({ health }) =>
+      ({ provider, health }) =>
         health.status_code === 200 &&
         health.json?.models &&
-        health.json.models.length > 0
+        health.json.models.length > 0 &&
+        !shouldHideProviderCompletely(provider.endpoint_urls || [])
     );
 
     // Extract all models from all providers and map them to providers
@@ -121,7 +125,10 @@ export async function fetchModels(): Promise<void> {
     const modelMap = new Map<string, Model>(); // To deduplicate models
 
     activeProviders.forEach(({ provider, health }) => {
-      allProviders.push(provider);
+      // Filter staging endpoints from provider endpoints
+      const filteredEndpoints = filterStagingEndpoints(provider.endpoint_urls || []);
+      const filteredProvider = { ...provider, endpoint_urls: filteredEndpoints };
+      allProviders.push(filteredProvider);
       if (health.json?.models) {
         // Deduplicate models by ID and ensure proper Model structure
         health.json.models.forEach((rawModel) => {
@@ -167,15 +174,15 @@ export async function fetchModels(): Promise<void> {
 
           modelMap.set(model.id, model);
           const existingProviders = newModelProvidersMap.get(model.id) || [];
-          newModelProvidersMap.set(model.id, [...existingProviders, provider]);
+          newModelProvidersMap.set(model.id, [...existingProviders, filteredProvider]);
         });
 
         // Map models to this provider
         const providerModels = health.json.models.map(
           (rawModel) => modelMap.get(rawModel.id)!
         );
-        newProviderModelMap.set(provider.id, providerModels);
-        newProviderModelMap.set(provider.d_tag, providerModels);
+        newProviderModelMap.set(filteredProvider.id, providerModels);
+        newProviderModelMap.set(filteredProvider.d_tag, providerModels);
       }
     });
 

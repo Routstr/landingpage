@@ -5,6 +5,7 @@ import { useMotionValue, useSpring } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
 
 // Type definitions
 interface GeoLocationResponse {
@@ -193,13 +194,21 @@ export function Globe({
       }
 
       try {
-        const res = await fetch('https://staging.routstr.com/v1/providers/?include_json=true');
+        const res = await fetch('https://api.routstr.com/v1/providers/?include_json=true');
         if (!res.ok) throw new Error(`Failed providers fetch: ${res.status}`);
         const data: ProvidersResponse = await res.json();
         const entries = Array.isArray(data.providers) ? data.providers : [];
         
-        const markers = await Promise.all(entries.map(async (entry: ProviderEntry) => {
-          const endpoint = entry?.health?.json?.http_url || entry?.provider?.endpoint_url || entry?.provider?.endpoint_urls?.[0];
+        // Filter out providers that only have staging endpoints in production
+        const filteredEntries = entries.filter((entry: ProviderEntry) => {
+          const allEndpoints = entry?.provider?.endpoint_urls || [];
+          return !shouldHideProviderCompletely(allEndpoints);
+        });
+        
+        const markers = await Promise.all(filteredEntries.map(async (entry: ProviderEntry) => {
+          // Filter staging endpoints when selecting endpoint for geolocation
+          const filteredEndpoints = filterStagingEndpoints(entry?.provider?.endpoint_urls || []);
+          const endpoint = entry?.health?.json?.http_url || entry?.provider?.endpoint_url || filteredEndpoints[0];
           let lat: number | undefined;
           let lng: number | undefined;
           

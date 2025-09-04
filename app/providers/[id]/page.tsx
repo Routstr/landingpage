@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { InfoPill } from "@/components/client/InfoPill";
+import { MintsPill } from "@/components/client/MintsPill";
 import {
   fetchModels,
   getProviderById,
@@ -234,9 +235,14 @@ export default function ProviderPage() {
                         label="Endpoint"
                         value={provider.endpoint_url}
                       />
-                      {provider.mint_url ? (
-                        <InfoPill label="Mint" value={provider.mint_url} />
-                      ) : null}
+                      {(() => {
+                        const urls = (provider.mint_urls && provider.mint_urls.length > 0)
+                          ? provider.mint_urls
+                          : (provider.mint_url ? [provider.mint_url] : []);
+                        return urls.length > 0 ? (
+                          <MintsPill mints={urls} />
+                        ) : null;
+                      })()}
                     </div>
                   </>
                 )

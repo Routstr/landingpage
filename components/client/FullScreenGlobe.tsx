@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import * as THREE from "three";
 import GlobeTooltip from "./GlobeTooltip";
+import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
 
 type ApiProvider = {
   provider: {
@@ -190,12 +191,18 @@ async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unkno
 async function fetchProviders(): Promise<ApiProvider[]> {
   try {
     const res = await fetch(
-      "https://staging.routstr.com/v1/providers/?include_json=true"
+      "https://api.routstr.com/v1/providers/?include_json=true"
     );
     const data = await res.json();
     const list: ApiProvider[] = data.providers || [];
-    // Include all providers; positioning will fallback when needed
-    return list;
+    
+    // Filter out providers that only have staging endpoints in production
+    const filteredProviders = list.filter((provider) => {
+      const allEndpoints = provider.provider.endpoint_urls || [];
+      return !shouldHideProviderCompletely(allEndpoints);
+    });
+    
+    return filteredProviders;
   } catch (error) {
     console.error("Failed to fetch providers:", error);
     return [];
@@ -205,11 +212,12 @@ async function fetchProviders(): Promise<ApiProvider[]> {
 function transformApiProvider(
   apiProvider: ApiProvider
 ): ProviderLocation | null {
-  // Parse endpoint URLs to separate HTTP and Tor
+  // Parse endpoint URLs to separate HTTP and Tor, filtering out staging endpoints
   const httpEndpoints: string[] = [];
   const torEndpoints: string[] = [];
 
-  (apiProvider.provider.endpoint_urls || []).forEach((url) => {
+  const filteredEndpoints = filterStagingEndpoints(apiProvider.provider.endpoint_urls || []);
+  filteredEndpoints.forEach((url) => {
     if (typeof url !== "string") return;
     if (url.includes(".onion")) torEndpoints.push(url);
     else httpEndpoints.push(url);
