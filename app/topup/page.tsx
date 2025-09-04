@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Copy, Loader2, Zap, AlertCircle } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import QRCode from 'react-qr-code';
-import { CashuMint, CashuWallet, getEncodedTokenV4 } from '@cashu/cashu-ts';
+import { CashuMint, CashuWallet, getDecodedToken, getEncodedTokenV4 } from '@cashu/cashu-ts';
 
 interface LightningInvoice {
   paymentRequest: string;
@@ -375,10 +375,6 @@ const TopUpPage = () => {
 
     setIsRefunding(true);
     try {
-      const mint = new CashuMint(mintUrl);
-      const wallet = new CashuWallet(mint);
-      await wallet.loadMint();
-
       const response = await fetch(`${baseUrl}/v1/wallet/refund`, {
         method: 'POST',
         headers: {
@@ -393,12 +389,17 @@ const TopUpPage = () => {
       }
 
       const data = await response.json();
-      console.log(data)
+      const tokenMintUrl = getDecodedToken(data.token).mint;
+
+      const mint = new CashuMint(tokenMintUrl);
+      const wallet = new CashuWallet(mint);
+      await wallet.loadMint();
+
       const receivedProofs = await wallet.receive(data.token);
 
       if (receivedProofs.length > 0) {
         const token = getEncodedTokenV4({
-          mint: mintUrl,
+          mint: tokenMintUrl,
           proofs: receivedProofs.map((p: { id: string; amount: number; secret: string; C: string }) => ({
             id: p.id,
             amount: p.amount,

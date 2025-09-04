@@ -39,7 +39,7 @@ export interface Model {
     max_cost: number;
   };
   per_request_limits: PerRequestLimits | null;
-  top_provider: {
+  top_provider?: {
     context_length: number;
     max_completion_tokens: number | null;
     is_moderated: boolean;
