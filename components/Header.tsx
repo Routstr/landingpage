@@ -53,12 +53,6 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <Link
-            href="/providers"
-            className="hidden md:inline-flex items-center gap-2 px-3 py-0.5 rounded-md border border-white/10 bg-white/5 text-sm text-white hover:bg-white/10 transition-all"
-          >
-            Providers
-          </Link>
           <a
             href="https://github.com/routstr"
             target="_blank"
