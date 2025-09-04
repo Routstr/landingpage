@@ -403,7 +403,7 @@ export default function Home() {
                       Receive token instantly
                     </h4>
                     <p className="text-sm sm:text-base text-gray-400 mb-3 text-center sm:text-left">
-                      If you paid via Lightning, you'll receive a token
+                      If you paid via Lightning, you&apos;ll receive a token
                       instantly. If you already have one, use it as your API
                       authorization key.
                     </p>
