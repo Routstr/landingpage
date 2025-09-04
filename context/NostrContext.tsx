@@ -9,7 +9,8 @@ import {
   getDefaultRelays,
   decodePrivateKey,
   getPublicKeyFromPrivateKey,
-  signEventWithPrivateKey
+  signEventWithPrivateKey,
+  signEvent as signWithExtension
 } from '@/lib/nostr';
 import type { Event } from 'nostr-tools';
 
@@ -85,6 +86,18 @@ export function NostrProvider({ children }: { children: ReactNode }) {
       if (pubkey) {
         setPublicKey(pubkey);
         localStorage.setItem('nostr_pubkey', pubkey);
+
+        // Proactively request signing permission from the extension
+        // by attempting to sign a harmless event (not published).
+        // This ensures required permissions are granted up-front.
+        const signed = await signWithExtension('[routstr] permission check');
+        if (!signed) {
+          // If user denies signing permission, treat login as failed
+          // so UI can prompt the user appropriately.
+          localStorage.removeItem('nostr_pubkey');
+          setPublicKey(null);
+          return false;
+        }
         return true;
       }
       return false;
