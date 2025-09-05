@@ -105,7 +105,7 @@ async function geolocateEndpoint(
     // Use multiple fallback services for 100% accuracy
     const services = [
       {
-        url: `http://ip-api.com/json/${encodeURIComponent(
+        url: `https://ip-api.com/json/${encodeURIComponent(
           host
         )}?fields=status,lat,lon`,
         parser: (data: Record<string, unknown>) =>

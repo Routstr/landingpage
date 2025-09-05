@@ -149,7 +149,7 @@ export function Globe({
         
         const services = [
           {
-            url: `http://ip-api.com/json/${encodeURIComponent(host)}?fields=status,lat,lon`,
+            url: `https://ip-api.com/json/${encodeURIComponent(host)}?fields=status,lat,lon`,
             parser: (data: GeoLocationResponse) =>
               data.status === 'success' && data.lat !== undefined && data.lon !== undefined
                 ? { lat: Number(data.lat), lng: Number(data.lon) }
