@@ -8,7 +8,7 @@ import { getDefaultRelays, validateNsec } from "@/lib/nostr";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface ProviderReviewsProps {
-  providerId: string;
+  providerNpub: string;
 }
 
 interface ReviewItem {
@@ -18,7 +18,7 @@ interface ReviewItem {
   created_at: number;
 }
 
-export function ProviderReviews({ providerId }: ProviderReviewsProps) {
+export function ProviderReviews({ providerNpub }: ProviderReviewsProps) {
   const { isAuthenticated, publicKey, login, loginWithNsec, publishEvent, pool, isNostrAvailable, logout } = useNostr();
   const [isLoading, setIsLoading] = useState(true);
   const [items, setItems] = useState<ReviewItem[]>([]);
@@ -62,7 +62,7 @@ export function ProviderReviews({ providerId }: ProviderReviewsProps) {
     }
   }, [loginOpen]);
 
-  // Fetch reviews from relays using kind 1985 (arbitrary app-specific) with tag ["t","provider:<id>"]
+  // Fetch reviews from relays using kind 1985 (arbitrary app-specific) with tag ["t","provider:<npub>"]
   useEffect(() => {
     let active = true;
     if (!pool) {
@@ -78,7 +78,7 @@ export function ProviderReviews({ providerId }: ProviderReviewsProps) {
       [
         {
           kinds: [1985],
-          "#t": ["provider:" + providerId],
+          "#t": ["provider:" + providerNpub],
           limit: 50,
         },
       ],
@@ -104,7 +104,7 @@ export function ProviderReviews({ providerId }: ProviderReviewsProps) {
       active = false;
       try { closer.close(); } catch {}
     };
-  }, [pool, providerId]);
+  }, [pool, providerNpub]);
 
   // Subscribe to reactions (kind 7) for the loaded reviews and compute counts
   useEffect(() => {
@@ -160,8 +160,8 @@ export function ProviderReviews({ providerId }: ProviderReviewsProps) {
     try {
       const content = reviewText.trim();
       const kind = 1985;
-      // Use context publish which signs and publishes with tag t=provider:<id>
-      const signed = await publishEvent(content, kind, [["t", "provider:" + providerId]]);
+      // Use context publish which signs and publishes with tag t=provider:<npub>
+      const signed = await publishEvent(content, kind, [["t", "provider:" + providerNpub]]);
       if (signed) {
         // optimistic prepend
         setItems((prev) => [
@@ -173,6 +173,13 @@ export function ProviderReviews({ providerId }: ProviderReviewsProps) {
           },
           ...prev,
         ]);
+        // optimistic auto-upvote by the author
+        setUserUpvoted((prev) => ({ ...prev, [signed.id]: true }));
+        setUpvoteCounts((prev) => ({ ...prev, [signed.id]: (prev[signed.id] || 0) + 1 }));
+        // publish NIP-25 reaction to upvote
+        try {
+          await publishEvent("+", 7, [["e", signed.id],["p", signed.pubkey]]);
+        } catch {}
         setReviewText("");
       } else {
         setError("Failed to publish review");

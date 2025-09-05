@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
 import { Model, Provider, ProviderWithHealth } from '@/app/data/models';
-import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
+import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter';
 
 interface ModelsState {
   models: Model[];
@@ -81,9 +81,12 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       const providers = Array.isArray(data.providers) ? data.providers : [];
       providers
         .filter((entry: ProviderWithHealth) => {
-          // Filter out providers that only have staging endpoints in production
-          const allEndpoints = entry?.provider?.endpoint_urls || [];
-          return !shouldHideProviderCompletely(allEndpoints);
+          // Filter out providers that only have staging endpoints or are tagged as staging
+          const provider = entry?.provider;
+          const allEndpoints = provider?.endpoint_urls || [];
+          const nameOrTag = `${provider?.name || ''}`.toLowerCase();
+          const looksLikeStaging = nameOrTag.includes('staging');
+          return !shouldHideProvider(allEndpoints) && !looksLikeStaging;
         })
         .forEach((entry: ProviderWithHealth) => {
           const health = entry?.health;
@@ -94,6 +97,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
           if (providerObj) {
             const filteredEndpoints = filterStagingEndpoints(providerObj.endpoint_urls || []);
             providerObj.endpoint_urls = filteredEndpoints;
+            providerObj.endpoint_url = filteredEndpoints[0] || providerObj.endpoint_url || '';
           }
           
           if (Array.isArray(models)) {

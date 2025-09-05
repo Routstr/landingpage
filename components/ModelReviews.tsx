@@ -43,7 +43,7 @@ function formatTimeAgo(createdAtSeconds: number): string {
 
 export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) {
   const { isAuthenticated, publicKey, publishEvent, pool, logout } = useNostr();
-  const [selectedProviderId, setSelectedProviderId] = useState<string>(providersForModel[0]?.id || "");
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(providersForModel[0]?.pubkey || "");
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [reviewText, setReviewText] = useState("");
@@ -170,6 +170,13 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
           { id: signed.id, pubkey: signed.pubkey, content: signed.content, created_at: signed.created_at },
           ...prev,
         ]);
+        // optimistic auto-upvote by the author
+        setUserUpvoted((prev) => ({ ...prev, [signed.id]: true }));
+        setUpvoteCounts((prev) => ({ ...prev, [signed.id]: (prev[signed.id] || 0) + 1 }));
+        // publish NIP-25 reaction to upvote
+        try {
+          await publishEvent("+", 7, [["e", signed.id],["p", signed.pubkey]]);
+        } catch {}
         setReviewText("");
       } else {
         setError("Failed to publish review");
@@ -250,7 +257,7 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
               aria-label="Select provider"
             >
               <span className="truncate">
-                {providersForModel.find((p) => p.id === selectedProviderId)?.name || "Select a provider"}
+                {providersForModel.find((p) => p.pubkey === selectedProviderId)?.name || "Select a provider"}
               </span>
               <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
             </button>
@@ -258,7 +265,7 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
           <PopoverContent className="w-64 p-1 bg-black text-white border-white/10">
             <div role="listbox" aria-label="Select provider" className="max-h-64 overflow-y-auto">
               {providersForModel.map((p) => {
-                const isActive = p.id === selectedProviderId;
+                const isActive = p.pubkey === selectedProviderId;
                 return (
                   <button
                     key={p.id}
@@ -266,7 +273,7 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
                     role="option"
                     aria-selected={isActive}
                     onClick={() => {
-                      setSelectedProviderId(p.id);
+                      setSelectedProviderId(p.pubkey);
                       setOpen(false);
                     }}
                     className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-white/10 ${isActive ? "bg-white/10" : ""}`}

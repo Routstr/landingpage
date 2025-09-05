@@ -1,4 +1,4 @@
-import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
+import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter';
 
 export interface ApiProviderEnvelope {
   provider: {
@@ -6,7 +6,6 @@ export interface ApiProviderEnvelope {
     pubkey: string;
     created_at: number;
     kind: number;
-    d_tag: string;
     endpoint_url: string;
     endpoint_urls: string[];
     name: string;
@@ -54,9 +53,9 @@ export async function fetchProviders(): Promise<void> {
 
     providers = filtered
       .filter((p) => {
-        // Filter out providers that only have staging endpoints in production
+        // Filter out providers that only have staging endpoints
         const allEndpoints = p.provider.endpoint_urls || [];
-        return !shouldHideProviderCompletely(allEndpoints);
+        return !shouldHideProvider(allEndpoints);
       })
       .map((p) => {
         const http: string[] = [];

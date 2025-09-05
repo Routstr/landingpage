@@ -17,6 +17,7 @@ import {
 } from "@/app/data/models";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProviderReviews } from "@/components/ProviderReviews";
+import { formatPublicKey } from "@/lib/nostr";
 
 export default function ProviderPage() {
   const params = useParams();
@@ -403,7 +404,7 @@ export default function ProviderPage() {
               </div>
               {/* Reviews Section */}
               {provider ? (
-                <ProviderReviews providerId={provider.id} />
+                <ProviderReviews providerNpub={formatPublicKey(provider.pubkey)} />
               ) : null}
             </div>
           </div>

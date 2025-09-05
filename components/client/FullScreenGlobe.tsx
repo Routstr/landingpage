@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import * as THREE from "three";
 import GlobeTooltip from "./GlobeTooltip";
-import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
+import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
 
 type ApiProvider = {
   provider: {
@@ -17,7 +17,6 @@ type ApiProvider = {
     pubkey: string;
     created_at: number;
     kind: number;
-    d_tag: string;
     endpoint_url: string;
     endpoint_urls: string[];
     name: string;
@@ -196,10 +195,10 @@ async function fetchProviders(): Promise<ApiProvider[]> {
     const data = await res.json();
     const list: ApiProvider[] = data.providers || [];
     
-    // Filter out providers that only have staging endpoints in production
+    // Filter out providers that only have staging endpoints
     const filteredProviders = list.filter((provider) => {
       const allEndpoints = provider.provider.endpoint_urls || [];
-      return !shouldHideProviderCompletely(allEndpoints);
+      return !shouldHideProvider(allEndpoints);
     });
     
     return filteredProviders;
@@ -217,6 +216,7 @@ function transformApiProvider(
   const torEndpoints: string[] = [];
 
   const filteredEndpoints = filterStagingEndpoints(apiProvider.provider.endpoint_urls || []);
+  
   filteredEndpoints.forEach((url) => {
     if (typeof url !== "string") return;
     if (url.includes(".onion")) torEndpoints.push(url);
@@ -232,9 +232,7 @@ function transformApiProvider(
   const baseKey =
     typeof primaryEndpoint === "string" && primaryEndpoint.length > 0
       ? primaryEndpoint
-      : apiProvider.provider.pubkey ||
-        apiProvider.provider.id ||
-        apiProvider.provider.d_tag;
+      : apiProvider.provider.pubkey || apiProvider.provider.id;
   const fallback = hashToLatLng(
     String(baseKey || `${apiProvider.provider.id}-seed`)
   );
@@ -268,7 +266,7 @@ function transformApiProvider(
     status: "online",
     description: apiProvider.provider.description,
     createdAt: apiProvider.provider.created_at,
-    providerId: apiProvider.provider.d_tag,
+    providerId: apiProvider.provider.id,
     pubkey: apiProvider.provider.pubkey,
     endpoints: {
       http: httpEndpoints,

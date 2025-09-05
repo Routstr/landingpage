@@ -7,6 +7,8 @@ export interface PerRequestLimits {
   readonly [key: string]: number | undefined;
 }
 
+import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter';
+
 export interface Model {
   id: string;
   name: string;
@@ -51,7 +53,6 @@ export interface Provider {
   pubkey: string;
   created_at: number;
   kind: number;
-  d_tag: string;
   endpoint_url: string;
   endpoint_urls: readonly string[];
   name: string;
@@ -106,13 +107,20 @@ export async function fetchModels(): Promise<void> {
 
     const data: ProvidersResponse = await response.json();
 
-    // Filter out providers that don't have models available in their health response
-    const activeProviders = data.providers.filter(
-      ({ health }) =>
+    // Filter out providers that don't have models in health.json
+    // and exclude any providers with staging endpoints
+    const activeProviders = data.providers
+      .filter(({ health }) =>
         health.status_code === 200 &&
-        health.json?.models &&
+        Array.isArray(health.json?.models) &&
         health.json.models.length > 0
-    );
+      )
+      .filter(({ provider }) => {
+        const endpoints = provider.endpoint_urls || [];
+        const nameOrTag = `${provider.name || ''}`.toLowerCase();
+        const looksLikeStaging = nameOrTag.includes('staging');
+        return !shouldHideProvider(endpoints) && !looksLikeStaging;
+      });
 
     // Extract all models from all providers and map them to providers
     const allModels: Model[] = [];
@@ -131,8 +139,14 @@ export async function fetchModels(): Promise<void> {
       const singleMintUrlFromProvider = (provider as unknown as { mint_url?: string | null }).mint_url ?? null;
       const normalizedMintUrl = singleMintUrlFromProvider ?? (normalizedMintUrls.length > 0 ? normalizedMintUrls[0] : null);
 
+      // Filter out staging endpoints from provider
+      const nonStagingEndpoints = filterStagingEndpoints(provider.endpoint_urls || []);
+      const primaryEndpoint = nonStagingEndpoints[0] || provider.endpoint_url || '';
+
       const providerAugmented: Provider = {
         ...provider,
+        endpoint_urls: nonStagingEndpoints,
+        endpoint_url: primaryEndpoint,
         mint_urls: normalizedMintUrls,
         mint_url: normalizedMintUrl,
       } as Provider;
@@ -183,7 +197,7 @@ export async function fetchModels(): Promise<void> {
 
           modelMap.set(model.id, model);
           const existingProviders = newModelProvidersMap.get(model.id) || [];
-          newModelProvidersMap.set(model.id, [...existingProviders, provider]);
+          newModelProvidersMap.set(model.id, [...existingProviders, providerAugmented]);
         });
 
         // Map models to this provider
@@ -191,7 +205,6 @@ export async function fetchModels(): Promise<void> {
           (rawModel) => modelMap.get(rawModel.id)!
         );
         newProviderModelMap.set(provider.id, providerModels);
-        newProviderModelMap.set(provider.d_tag, providerModels);
       }
     });
 
@@ -324,7 +337,7 @@ export function getExampleModelId(): string {
 // Get provider by ID
 export function getProviderById(id: string): Provider | undefined {
   return providers.find(
-    (provider) => provider.id === id || provider.d_tag === id
+    (provider) => provider.id === id
   );
 }
 

@@ -5,7 +5,7 @@ import { useMotionValue, useSpring } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
-import { filterStagingEndpoints, shouldHideProviderCompletely } from '@/utils/environment';
+import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
 
 // Type definitions
 interface GeoLocationResponse {
@@ -29,7 +29,6 @@ interface ProviderEntry {
     endpoint_urls?: string[];
     pubkey?: string;
     id?: string;
-    d_tag?: string;
   };
 }
 
@@ -203,14 +202,14 @@ export function Globe({
         const data: ProvidersResponse = await res.json();
         const entries = Array.isArray(data.providers) ? data.providers : [];
         
-        // Filter out providers that only have staging endpoints in production
+        // Filter out staging providers
         const filteredEntries = entries.filter((entry: ProviderEntry) => {
           const allEndpoints = entry?.provider?.endpoint_urls || [];
-          return !shouldHideProviderCompletely(allEndpoints);
+          return !shouldHideProvider(allEndpoints);
         });
         
         const markers = await Promise.all(filteredEntries.map(async (entry: ProviderEntry) => {
-          // Filter staging endpoints when selecting endpoint for geolocation
+          // Filter out staging endpoints when selecting endpoint for geolocation
           const filteredEndpoints = filterStagingEndpoints(entry?.provider?.endpoint_urls || []);
           const endpoint = entry?.health?.json?.http_url || entry?.provider?.endpoint_url || filteredEndpoints[0];
           let lat: number | undefined;
@@ -238,7 +237,7 @@ export function Globe({
           }
           
           if (lat === undefined || lng === undefined) {
-            const base = entry?.provider?.pubkey || entry?.provider?.id || entry?.provider?.d_tag || entry?.health?.json?.http_url || Math.random().toString(36).slice(2);
+            const base = entry?.provider?.pubkey || entry?.provider?.id || entry?.health?.json?.http_url || Math.random().toString(36).slice(2);
             const h = (() => { let x = 5381; for (let i = 0; i < base.length; i++) x = (x * 33) ^ base.charCodeAt(i); return x >>> 0; })();
             lat = ((h % 12000) / 100) - 60;
             lng = (((Math.floor(h / 12000)) % 36000) / 100) - 180;
