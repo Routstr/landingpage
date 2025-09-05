@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp as ArrowUpIcon } from "lucide-react";
 import { useNostr } from "@/context/NostrContext";
 import { type Event } from "nostr-tools";
-import { getDefaultRelays } from "@/lib/nostr";
+import { getDefaultRelays, validateNsec } from "@/lib/nostr";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronsUpDown as ChevronsUpDownIcon, Check as CheckIcon } from "lucide-react";
@@ -42,13 +42,16 @@ function formatTimeAgo(createdAtSeconds: number): string {
 }
 
 export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) {
-  const { isAuthenticated, publicKey, publishEvent, pool, logout } = useNostr();
+  const { isAuthenticated, publicKey, publishEvent, pool, logout, login, loginWithNsec, isNostrAvailable } = useNostr();
   const [selectedProviderId, setSelectedProviderId] = useState<string>(providersForModel[0]?.pubkey || "");
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [reviewText, setReviewText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [nsecInput, setNsecInput] = useState("");
+  const [nsecError, setNsecError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState<null | { id: string; pubkey: string }>(null);
   const [isUpvotingById, setIsUpvotingById] = useState<Record<string, boolean>>({});
@@ -56,6 +59,14 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>({});
   const reactionByReviewerRef = useRef<Record<string, Map<string, 'up' | 'none'>>>({});
   const [sortMode, setSortMode] = useState<'top' | 'new'>('top');
+
+  useEffect(() => {
+    if (!loginOpen) {
+      setError(null);
+      setNsecError(null);
+      setNsecInput("");
+    }
+  }, [loginOpen]);
 
   useEffect(() => {
     let active = true;
@@ -190,7 +201,7 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
 
   async function handleUpvote(reviewId: string, reviewPubkey: string) {
     if (!isAuthenticated) {
-      setError("Log in to upvote");
+      setLoginOpen(true);
       return;
     }
     if (!publishEvent) return;
@@ -325,7 +336,93 @@ export function ModelReviews({ modelId, providersForModel }: ModelReviewsProps) 
           </div>
         </div>
       ) : (
-        <div className="mb-6 text-sm text-gray-400">Log in from the provider page reviews to post.</div>
+        <>
+          <button
+            type="button"
+            onClick={() => setLoginOpen(true)}
+            className="inline-flex items-center rounded-md bg-white text-black px-4 py-2 text-sm font-medium mb-4"
+          >
+            Login with Nostr
+          </button>
+          <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
+            <DialogContent className="bg-black text-white border-white/10">
+              <DialogHeader>
+                <DialogTitle>Login to post a review</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Use a NIP-07 browser extension or paste your nsec. We&apos;ll use your key to sign review events.
+                </DialogDescription>
+              </DialogHeader>
+
+              {error ? <p className="text-sm text-red-400">{error}</p> : null}
+
+              <div className="space-y-2 mt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = await login();
+                    if (!ok) setError("Failed to connect to Nostr extension");
+                    if (ok) setLoginOpen(false);
+                  }}
+                  className="inline-flex items-center rounded-md bg-white text-black px-4 py-2 text-sm font-medium"
+                >
+                  Connect Nostr extension
+                </button>
+                {!isNostrAvailable ? (
+                  <p className="text-xs text-gray-500">
+                    No Nostr extension detected. Install a NIP-07 wallet (e.g., nos2x or Alby) and try again.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="pt-4">
+                <label className="block text-xs text-gray-400 mb-1">Or login with nsec (advanced)</label>
+                <input
+                  value={nsecInput}
+                  onChange={(e) => {
+                    setNsecInput(e.target.value.trim());
+                    setNsecError(null);
+                  }}
+                  placeholder="nsec1..."
+                  type="password"
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  aria-label="nsec private key"
+                  className="w-full rounded-md bg-white/5 border border-white/10 p-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+                {nsecError ? (
+                  <p className="text-xs text-red-400 mt-1">{nsecError}</p>
+                ) : (
+                  <p className="text-[11px] text-gray-500 mt-1">Warning: this stores your nsec in localStorage to enable signing.</p>
+                )}
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!nsecInput) {
+                        setNsecError("Enter your nsec");
+                        return;
+                      }
+                      if (!validateNsec(nsecInput)) {
+                        setNsecError("Invalid nsec format");
+                        return;
+                      }
+                      const ok = loginWithNsec(nsecInput);
+                      if (!ok) setNsecError("Failed to login with nsec");
+                      if (ok) setLoginOpen(false);
+                    }}
+                    className="inline-flex items-center rounded-md bg-white text-black px-3 py-1.5 text-xs font-medium"
+                  >
+                    Login with nsec
+                  </button>
+                </div>
+              </div>
+
+              <DialogFooter />
+            </DialogContent>
+          </Dialog>
+        </>
       )}
 
       <div className="mb-2 flex items-center justify-end">
