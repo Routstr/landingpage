@@ -89,7 +89,7 @@ export default function ProvidersPage() {
                   {items.map((provider) => (
                     <li key={provider.id}>
                       <Link
-                        href={`/providers/${provider.id}`}
+                        href={`/providers/${encodeURIComponent(provider.id)}`}
                         className="block p-4 sm:p-6 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                         aria-label={`View ${provider.name}`}
                       >

@@ -45,7 +45,7 @@ type ProviderPoint = {
   endpointsHttp: string[];
   endpointsTor: string[];
   models: string[];
-  mint?: string;
+  mints: string[];
   city?: string;
   country?: string;
 };
@@ -268,7 +268,7 @@ async function mapProvidersToPoints(providers: Provider[]): Promise<ProviderPoin
         endpointsHttp: filterStagingEndpoints([p.endpoint_url]),
         endpointsTor: filterStagingEndpoints(p.endpoint_urls ?? []).filter((u) => u.includes('.onion')),
         models: [],
-        mint: p.mint_urls?.[0],
+        mints: Array.isArray(p.mint_urls) ? p.mint_urls.filter((u): u is string => typeof u === 'string' && u.length > 0) : [],
         city: coords.city,
         country: coords.country,
       } satisfies ProviderPoint;
@@ -487,7 +487,7 @@ export default function FullScreenGlobe() {
           pubkey: selectedProvider.pubkey ?? '',
           endpoints: { http: selectedProvider.endpointsHttp, tor: selectedProvider.endpointsTor },
           models: selectedProvider.models,
-          mint: selectedProvider.mint,
+          mints: selectedProvider.mints ?? [],
           version: selectedProvider.version ?? '',
         } : null}
         position={selectedPos}

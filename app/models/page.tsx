@@ -266,13 +266,13 @@ export default function ModelsPage() {
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
-                                      router.push(`/providers/${primaryProvider.id}`);
+                                      router.push(`/providers/${encodeURIComponent(primaryProvider.id)}`);
                                     }}
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        router.push(`/providers/${primaryProvider.id}`);
+                                        router.push(`/providers/${encodeURIComponent(primaryProvider.id)}`);
                                       }
                                     }}
                                     className="text-sm text-gray-300 hover:text-white underline-offset-2 hover:underline cursor-pointer"

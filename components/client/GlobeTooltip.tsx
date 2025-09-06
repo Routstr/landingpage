@@ -18,7 +18,7 @@ interface ProviderLocation {
   pubkey: string;
   endpoints: { http: string[]; tor: string[] };
   models: string[];
-  mint?: string;
+  mints: string[];
   version: string;
 }
 
@@ -187,13 +187,22 @@ export default function GlobeTooltip({ provider, position }: GlobeTooltipProps) 
               </div>
             ) : null}
 
-            {provider.mint && (
+            {provider.mints && provider.mints.length > 0 && (
               <div className="mt-2 text-[11px]">
-                <div className="text-gray-400/80 mb-1">Mint</div>
-                <div className="inline-flex items-center gap-1 bg-emerald-400/10 ring-1 ring-emerald-400/20 px-2 py-1 rounded">
-                  <span className="font-mono text-[10px] text-emerald-200" title={provider.mint}>
-                    {truncateMiddle(provider.mint, 40)}
-                  </span>
+                <div className="text-gray-400/80 mb-1">Mints</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {provider.mints.slice(0, 6).map((mint, i) => (
+                    <div key={`mint-${i}`} className="inline-flex items-center gap-1 bg-emerald-400/10 ring-1 ring-emerald-400/20 px-2 py-1 rounded">
+                      <span className="font-mono text-[10px] text-emerald-200" title={mint}>
+                        {truncateMiddle(mint, 40)}
+                      </span>
+                    </div>
+                  ))}
+                  {provider.mints.length > 6 ? (
+                    <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-gray-300 text-[10px] ring-1 ring-white/10">
+                      +{provider.mints.length - 6} more
+                    </span>
+                  ) : null}
                 </div>
               </div>
             )}

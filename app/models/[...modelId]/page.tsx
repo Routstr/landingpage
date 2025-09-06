@@ -395,7 +395,7 @@ print(completion.choices[0].message.content)`
                   {providersForModel.map((p) => (
                     <Link
                       key={p.id}
-                      href={`/providers/${p.id}`}
+                      href={`/providers/${encodeURIComponent(p.id)}`}
                       className="flex items-center justify-between bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all"
                     >
                       <div>

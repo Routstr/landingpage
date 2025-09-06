@@ -21,7 +21,14 @@ import { formatPublicKey } from "@/lib/nostr";
 
 export default function ProviderPage() {
   const params = useParams();
-  const providerId = (params?.id as string) || "";
+  const providerId = (() => {
+    const raw = (params?.id as string) || "";
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  })();
 
   const [isLoading, setIsLoading] = useState(true);
   const [provider, setProvider] = useState<ProviderType | null>(null);
