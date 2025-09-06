@@ -160,13 +160,10 @@ function hashToCoords(input: string): { lat: number; lng: number } {
   // Simple deterministic hash-based lat/lng for fallback visibility
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
-    // eslint-disable-next-line no-bitwise
     hash = (hash << 5) - hash + input.charCodeAt(i);
-    // eslint-disable-next-line no-bitwise
     hash |= 0;
   }
   const rng = (n: number) => {
-    // eslint-disable-next-line no-bitwise
     return ((hash ^ (n * 2654435761)) >>> 0) / 2 ** 32;
   };
   const lat = -60 + rng(1) * 120; // avoid extreme poles for visibility
@@ -235,10 +232,9 @@ async function mapProvidersToPoints(providers: Provider[]): Promise<ProviderPoin
     providers.map(async (p) => {
       const host = extractHost(p.endpoint_url);
       console.log("[Globe] Extracted host:", host, "for provider:", p.id, p.name);
-      let coords: { lat: number; lng: number } | null = null;
+      let coords: { lat: number; lng: number; city?: string; country?: string } | null = null;
       if (host) {
         console.log("[Globe] Attempt geolocate host:", host, "for provider:", p.id, p.name);
-        // eslint-disable-next-line no-await-in-loop
         const result = await geolocateHost(host);
         console.log("[Globe] Geolocated host:", result, "for provider:", p.id, p.name);
         if (result) coords = result;
@@ -256,16 +252,16 @@ async function mapProvidersToPoints(providers: Provider[]): Promise<ProviderPoin
         lat: coords.lat,
         lng: coords.lng,
         providerId: p.id,
-        createdAt: (p as any).created_at,
-        pubkey: (p as any).pubkey,
+        createdAt: p.created_at,
+        pubkey: p.pubkey,
         description: p.description,
-        version: (p as any).version,
+        version: p.version,
         endpointsHttp: [p.endpoint_url],
         endpointsTor: (p.endpoint_urls ?? []).filter((u) => u.includes('.onion')),
         models: [],
-        mint: (p as any).mint_urls?.[0],
-        city: (coords as any).city,
-        country: (coords as any).country,
+        mint: p.mint_urls?.[0],
+        city: coords.city,
+        country: coords.country,
       } satisfies ProviderPoint;
       console.log("[Globe] Mapped provider point:", point);
       return point;

@@ -34,13 +34,10 @@ type ProviderPoint = {
 function hashToCoords(input: string): { lat: number; lng: number } {
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
-    // eslint-disable-next-line no-bitwise
     hash = (hash << 5) - hash + input.charCodeAt(i);
-    // eslint-disable-next-line no-bitwise
     hash |= 0;
   }
   const rng = (n: number) => {
-    // eslint-disable-next-line no-bitwise
     return ((hash ^ (n * 2654435761)) >>> 0) / 2 ** 32;
   };
   const lat = -60 + rng(1) * 120; // visible band, avoid poles
@@ -211,7 +208,6 @@ export function Globe({
   };
 
   useEffect(() => {
-    let cancelled = false;
     const onResize = () => {
       if (canvasRef.current) {
         widthRef.current = canvasRef.current.offsetWidth;
@@ -249,7 +245,6 @@ export function Globe({
         globe.destroy();
       }
       window.removeEventListener("resize", onResize);
-      cancelled = true;
     };
   }, [rs, config]);
 
@@ -268,7 +263,6 @@ export function Globe({
           const host = extractHost(p.endpoint_url);
           let latlng: { lat: number; lng: number } | null = null;
           if (host) {
-            // eslint-disable-next-line no-await-in-loop
             const geo = await geolocateHost(host);
             if (geo) latlng = { lat: geo.lat, lng: geo.lng };
           }
@@ -283,7 +277,7 @@ export function Globe({
         if (!aborted) {
           markersRef.current = markers;
         }
-      } catch (e) {
+      } catch {
         // Silent fail on homepage; keep globe responsive without markers
       }
     })();
