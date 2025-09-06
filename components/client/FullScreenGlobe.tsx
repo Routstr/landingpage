@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import * as THREE from "three";
 import GlobeTooltip from "./GlobeTooltip";
+import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
  
 
 async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
@@ -57,8 +58,16 @@ async function fetchProviders(): Promise<Provider[]> {
   if (!res.ok) throw new Error("Failed to fetch providers");
   const data = (await res.json()) as { providers: Provider[] };
   const providers = data.providers ?? [];
+  // Hide providers that have any staging endpoints
+  const filtered = providers.filter((p) => {
+    const endpoints = Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
+      ? p.endpoint_urls
+      : [p.endpoint_url].filter(Boolean);
+    return !shouldHideProvider(endpoints);
+  });
   console.log("[Globe] Fetched providers:", providers.length, providers);
-  return providers;
+  console.log("[Globe] Providers after staging filter:", filtered.length);
+  return filtered;
 }
 
 function extractHost(urlOrHost: string): string | null {
@@ -256,8 +265,8 @@ async function mapProvidersToPoints(providers: Provider[]): Promise<ProviderPoin
         pubkey: p.pubkey,
         description: p.description,
         version: p.version,
-        endpointsHttp: [p.endpoint_url],
-        endpointsTor: (p.endpoint_urls ?? []).filter((u) => u.includes('.onion')),
+        endpointsHttp: filterStagingEndpoints([p.endpoint_url]),
+        endpointsTor: filterStagingEndpoints(p.endpoint_urls ?? []).filter((u) => u.includes('.onion')),
         models: [],
         mint: p.mint_urls?.[0],
         city: coords.city,

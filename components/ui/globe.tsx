@@ -5,6 +5,7 @@ import { useMotionValue, useSpring } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
 
 // Type definitions
 interface COBEState {
@@ -256,7 +257,14 @@ export function Globe({
         const res = await fetch("https://api.routstr.com/v1/providers/");
         if (!res.ok) return;
         const data = (await res.json()) as { providers?: Provider[] };
-        const providers = data.providers ?? [];
+        const providersRaw = data.providers ?? [];
+        // Filter out providers with staging endpoints
+        const providers = providersRaw.filter((p) => {
+          const endpoints = Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
+            ? p.endpoint_urls
+            : [p.endpoint_url].filter(Boolean);
+          return !shouldHideProvider(endpoints);
+        });
         // Map providers to points using geolocation with fallback to hashed coords
         const points: ProviderPoint[] = [];
         for (const p of providers) {
@@ -270,7 +278,10 @@ export function Globe({
             const key = host ?? p.id;
             latlng = hashToCoords(key);
           }
-          points.push({ id: p.id, name: p.name, endpoint: p.endpoint_url, lat: latlng.lat, lng: latlng.lng });
+          const httpEndpoints = filterStagingEndpoints([p.endpoint_url]);
+          // Only plot if at least one non-staging endpoint exists
+          if (httpEndpoints.length === 0) continue;
+          points.push({ id: p.id, name: p.name, endpoint: httpEndpoints[0], lat: latlng.lat, lng: latlng.lng });
         }
         const adjusted = disambiguateOverlappingPoints(points);
         const markers = adjusted.map((pt) => ({ location: [pt.lat, pt.lng] as [number, number], size: 0.06 }));
