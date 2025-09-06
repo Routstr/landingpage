@@ -69,6 +69,7 @@ export default function GlobeTooltip({ provider, position }: GlobeTooltipProps) 
       <div className={`max-w-md transition-all duration-200 ease-out ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
         <div
           className="bg-gradient-to-br from-cyan-400/30 via-purple-500/20 to-fuchsia-400/30 p-px rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.6)] pointer-events-auto"
+          data-globe-tooltip="true"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >

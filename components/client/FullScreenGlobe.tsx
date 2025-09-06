@@ -1,7 +1,6 @@
 "use client";
 
 import React, {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -9,176 +8,7 @@ import React, {
 } from "react";
 import * as THREE from "three";
 import GlobeTooltip from "./GlobeTooltip";
-import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
-
-type ApiProvider = {
-  provider: {
-    id: string;
-    pubkey: string;
-    created_at: number;
-    kind: number;
-    endpoint_url: string;
-    endpoint_urls: string[];
-    name: string;
-    description: string;
-    contact: string | null;
-    pricing_url: string | null;
-    mint_url: string;
-    version: string;
-    supported_models: string[];
-    content: string;
-  };
-  health?: {
-    status_code?: number;
-    endpoint?: string;
-    json?: Record<string, unknown>;
-  };
-};
-
-type ProviderLocation = {
-  id: string;
-  name: string;
-  city?: string;
-  country?: string;
-  lat?: number;
-  lng?: number;
-  type: "Routstr Node";
-  status: "online" | "offline" | "maintenance";
-  description: string;
-  createdAt: number;
-  providerId: string;
-  pubkey: string;
-  endpoints: { http: string[]; tor: string[] };
-  models: string[];
-  mint?: string;
-  version: string;
-};
-
-const geoCache = new Map<string, { lat: number; lng: number }>();
-
-function djb2Hash(input: string): number {
-  let hash = 5381;
-  for (let i = 0; i < input.length; i++)
-    hash = (hash * 33) ^ input.charCodeAt(i);
-  return hash >>> 0;
-}
-
-function hashToLatLng(input: string): { lat: number; lng: number } {
-  const h = djb2Hash(input);
-  const lat = (h % 12000) / 100 - 60; // -60..60 to avoid poles
-  const lng = (Math.floor(h / 12000) % 36000) / 100 - 180; // -180..180
-  return { lat, lng };
-}
-
-function extractHostname(input: string): string | null {
-  try {
-    return new URL(input).hostname;
-  } catch {
-    // If it's already a hostname without scheme
-    const match = input.match(/^[a-z0-9.-]+$/i);
-    return match ? match[0] : null;
-  }
-}
-
-async function geolocateEndpoint(
-  endpoint: string
-): Promise<{ lat: number; lng: number } | null> {
-  const host = extractHostname(endpoint);
-  if (!host) return null;
-
-  // Skip localhost, private IPs, and .onion domains
-  if (
-    host === "localhost" ||
-    host.startsWith("127.") ||
-    host.startsWith("192.168.") ||
-    host.startsWith("10.") ||
-    host.endsWith(".onion") ||
-    host.startsWith("172.")
-  ) {
-    return null;
-  }
-
-  const cached = geoCache.get(host);
-  if (cached) return cached;
-
-  try {
-    // Use multiple fallback services for 100% accuracy
-    const services = [
-      {
-        url: `https://ip-api.com/json/${encodeURIComponent(
-          host
-        )}?fields=status,lat,lon`,
-        parser: (data: Record<string, unknown>) =>
-          data.status === "success" ? { lat: data.lat as number, lng: data.lon as number } : null,
-      },
-      {
-        url: `https://ipapi.co/${encodeURIComponent(host)}/json/`,
-        parser: (data: Record<string, unknown>) =>
-          data.latitude && data.longitude
-            ? {
-                lat: parseFloat(data.latitude as string),
-                lng: parseFloat(data.longitude as string),
-              }
-            : null,
-      },
-      {
-        url: `https://ipwho.is/${encodeURIComponent(host)}`,
-        parser: (data: Record<string, unknown>) =>
-          data.success && data.latitude && data.longitude
-            ? {
-                lat: parseFloat(data.latitude as string),
-                lng: parseFloat(data.longitude as string),
-              }
-            : null,
-      },
-    ];
-
-    for (const service of services) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-        const resp = await fetch(service.url, {
-          signal: controller.signal,
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "routstr-globe/1.0",
-          },
-          mode: "cors",
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!resp.ok) continue;
-
-        const data = await resp.json();
-        const coords = service.parser(data);
-
-        if (
-          coords &&
-          typeof coords.lat === "number" &&
-          typeof coords.lng === "number" &&
-          !isNaN(coords.lat) &&
-          !isNaN(coords.lng) &&
-          coords.lat >= -90 &&
-          coords.lat <= 90 &&
-          coords.lng >= -180 &&
-          coords.lng <= 180
-        ) {
-          geoCache.set(host, coords);
-          return coords;
-        }
-      } catch {
-        // Service failed, try next one
-        continue;
-      }
-    }
-  } catch {
-    // All services failed
-  }
-
-  return null;
-}
+ 
 
 async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
   const res = await fetch(
@@ -187,99 +17,266 @@ async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unkno
   return res.json();
 }
 
-async function fetchProviders(): Promise<ApiProvider[]> {
+type Provider = {
+  id: string;
+  name: string;
+  endpoint_url: string;
+  endpoint_urls?: string[];
+  description?: string;
+  created_at?: number;
+  pubkey?: string;
+  mint_urls?: string[];
+  version?: string;
+};
+
+type ProviderPoint = {
+  id: string;
+  name: string;
+  endpoint: string;
+  lat: number;
+  lng: number;
+  altitude?: number;
+  providerId: string;
+  createdAt?: number;
+  pubkey?: string;
+  description?: string;
+  version?: string;
+  endpointsHttp: string[];
+  endpointsTor: string[];
+  models: string[];
+  mint?: string;
+  city?: string;
+  country?: string;
+};
+
+// Cache successful geolocations by host to reduce network calls and improve consistency
+const geolocationCache = new Map<string, { lat: number; lng: number; city?: string; country?: string }>();
+
+async function fetchProviders(): Promise<Provider[]> {
+  const res = await fetch("https://api.routstr.com/v1/providers/");
+  if (!res.ok) throw new Error("Failed to fetch providers");
+  const data = (await res.json()) as { providers: Provider[] };
+  const providers = data.providers ?? [];
+  console.log("[Globe] Fetched providers:", providers.length, providers);
+  return providers;
+}
+
+function extractHost(urlOrHost: string): string | null {
   try {
-    const res = await fetch(
-      "https://api.routstr.com/v1/providers/?include_json=true"
-    );
-    const data = await res.json();
-    const list: ApiProvider[] = data.providers || [];
-    
-    // Filter out providers that only have staging endpoints
-    const filteredProviders = list.filter((provider) => {
-      const allEndpoints = provider.provider.endpoint_urls || [];
-      return !shouldHideProvider(allEndpoints);
-    });
-    
-    return filteredProviders;
-  } catch (error) {
-    console.error("Failed to fetch providers:", error);
-    return [];
+    // Ensure we have a protocol for URL parsing
+    const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
+    const u = new URL(hasProtocol ? urlOrHost : `https://${urlOrHost}`);
+    return u.hostname;
+  } catch {
+    // Fallback: treat as raw host if looks like a domain
+    if (/^[a-z0-9.-]+$/i.test(urlOrHost)) return urlOrHost;
+    return null;
   }
 }
 
-function transformApiProvider(
-  apiProvider: ApiProvider
-): ProviderLocation | null {
-  // Parse endpoint URLs to separate HTTP and Tor, filtering out staging endpoints
-  const httpEndpoints: string[] = [];
-  const torEndpoints: string[] = [];
+async function geolocateHost(host: string): Promise<{ lat: number; lng: number; city?: string; country?: string } | null> {
+  // Skip onion addresses
+  if (host.endsWith(".onion")) return null;
+  if (geolocationCache.has(host)) {
+    const cached = geolocationCache.get(host)!;
+    console.log("[Globe] Geolocation cache hit:", host, cached);
+    return cached;
+  }
+  try {
+    // 1) Resolve hostname to IPv4 using Google DNS over HTTPS
+    const dnsRes = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`
+    );
+    if (!dnsRes.ok) {
+      console.warn("[Globe] DNS resolve failed status:", host, dnsRes.status);
+      return null;
+    }
+    const dnsData = await dnsRes.json();
+    const ip = Array.isArray(dnsData?.Answer)
+      ? (
+          dnsData.Answer.find(
+            (a: { type: number }) => a.type === 1 // A record
+          )?.data ?? null
+        )
+      : null;
+    console.log("[Globe] DNS A record:", host, ip, dnsData?.Answer);
+    if (!ip) return null;
 
-  const filteredEndpoints = filterStagingEndpoints(apiProvider.provider.endpoint_urls || []);
-  
-  filteredEndpoints.forEach((url) => {
-    if (typeof url !== "string") return;
-    if (url.includes(".onion")) torEndpoints.push(url);
-    else httpEndpoints.push(url);
-  });
+    // 2) Try ipwho.is (IP only)
+    try {
+      const resIpwho = await fetch(`https://ipwho.is/${ip}`);
+      if (resIpwho.ok) {
+        const dataIpwho = await resIpwho.json();
+        if (
+          dataIpwho?.success &&
+          typeof dataIpwho.latitude === "number" &&
+          typeof dataIpwho.longitude === "number"
+        ) {
+          const value = { lat: dataIpwho.latitude, lng: dataIpwho.longitude, city: dataIpwho.city, country: dataIpwho.country };
+          geolocationCache.set(host, value);
+          console.log("[Globe] Geolocated IP (ipwho.is):", host, ip, value, {
+            country: dataIpwho.country,
+            city: dataIpwho.city,
+          });
+          return value;
+        }
+      }
+    } catch (e) {
+      console.warn("[Globe] ipwho.is lookup failed for IP:", ip, e);
+    }
 
-  // Determine a stable fallback coordinate based on endpoint/pubkey/id
-  const primaryEndpoint =
-    (apiProvider.health?.json as Record<string, unknown>)?.http_url as string ||
-    apiProvider.provider.endpoint_url ||
-    httpEndpoints[0] ||
-    torEndpoints[0];
-  const baseKey =
-    typeof primaryEndpoint === "string" && primaryEndpoint.length > 0
-      ? primaryEndpoint
-      : apiProvider.provider.pubkey || apiProvider.provider.id;
-  const fallback = hashToLatLng(
-    String(baseKey || `${apiProvider.provider.id}-seed`)
-  );
+    // 3) Skip ipapi.co (removed)
 
-  const lat: number = fallback.lat;
-  const lng: number = fallback.lng;
-  let city: string | undefined;
-  let country: string | undefined;
-
-  // Prefer models from health.json if available
-  const modelsFromHealth: string[] = Array.isArray(
-    (apiProvider.health?.json as Record<string, unknown>)?.models
-  )
-    ? (
-        (apiProvider.health?.json as Record<string, unknown>).models as Array<
-          { id?: string } | string
-        >
-      )
-        .map((m: { id?: string } | string) => (typeof m === "string" ? m : m?.id))
-        .filter(Boolean) as string[]
-    : [];
-
-  return {
-    id: apiProvider.provider.id,
-    name: apiProvider.provider.name,
-    city,
-    country,
-    lat,
-    lng,
-    type: "Routstr Node",
-    status: "online",
-    description: apiProvider.provider.description,
-    createdAt: apiProvider.provider.created_at,
-    providerId: apiProvider.provider.id,
-    pubkey: apiProvider.provider.pubkey,
-    endpoints: {
-      http: httpEndpoints,
-      tor: torEndpoints,
-    },
-    models:
-      modelsFromHealth.length > 0
-        ? modelsFromHealth
-        : apiProvider.provider.supported_models || [],
-    mint: apiProvider.provider.mint_url || undefined,
-    version: apiProvider.provider.version,
-  };
+    // 4) Optional: ip-api.com (HTTP-only on free tier). Only try when running over HTTP to avoid mixed content.
+    try {
+      if (typeof window !== "undefined" && window.location.protocol === "http:") {
+        const resIpApi = await fetch(`http://ip-api.com/json/${ip}`);
+        if (resIpApi.ok) {
+          const dataIpApi = await resIpApi.json();
+          if (
+            typeof dataIpApi.lat === "number" &&
+            typeof dataIpApi.lon === "number"
+          ) {
+            const value = { lat: dataIpApi.lat, lng: dataIpApi.lon, city: dataIpApi.city, country: dataIpApi.country };
+            geolocationCache.set(host, value);
+            console.log("[Globe] Geolocated IP (ip-api.com):", host, ip, value, {
+              country: dataIpApi.country,
+              city: dataIpApi.city,
+            });
+            return value;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[Globe] ip-api.com lookup failed for IP:", ip, e);
+    }
+  } catch (e) {
+    console.warn("[Globe] Geolocation flow failed for host:", host, e);
+  }
+  return null;
 }
+
+function hashToCoords(input: string): { lat: number; lng: number } {
+  // Simple deterministic hash-based lat/lng for fallback visibility
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    // eslint-disable-next-line no-bitwise
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    // eslint-disable-next-line no-bitwise
+    hash |= 0;
+  }
+  const rng = (n: number) => {
+    // eslint-disable-next-line no-bitwise
+    return ((hash ^ (n * 2654435761)) >>> 0) / 2 ** 32;
+  };
+  const lat = -60 + rng(1) * 120; // avoid extreme poles for visibility
+  const lng = -180 + rng(2) * 360;
+  return { lat, lng };
+}
+
+function normalizeLng(lng: number): number {
+  let x = lng;
+  while (x > 180) x -= 360;
+  while (x < -180) x += 360;
+  return x;
+}
+
+function clampLat(lat: number): number {
+  return Math.max(-89.999, Math.min(89.999, lat));
+}
+
+function disambiguateOverlappingPoints(points: ProviderPoint[]): ProviderPoint[] {
+  // Group by rounded base position to detect overlaps
+  const groups = new Map<string, ProviderPoint[]>();
+  const keyFor = (p: ProviderPoint) => `${p.lat.toFixed(3)}|${p.lng.toFixed(3)}`; // ~100m bucket
+  for (const p of points) {
+    const k = keyFor(p);
+    const arr = groups.get(k) ?? [];
+    arr.push(p);
+    groups.set(k, arr);
+  }
+
+  const adjusted: ProviderPoint[] = [];
+  for (const arr of Array.from(groups.values())) {
+    if (arr.length === 1) {
+      adjusted.push(arr[0]);
+      continue;
+    }
+
+    // Sort deterministically for stable layout
+    arr.sort((a: ProviderPoint, b: ProviderPoint) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+    const n = arr.length;
+    // Radius in degrees; small circle around the base point
+    const baseRadiusDeg = 0.12; // ~13km at equator
+    const radiusDeg = Math.min(0.25, baseRadiusDeg + Math.min(0.08, n * 0.01));
+
+    arr.forEach((p: ProviderPoint, i: number) => {
+      const angle = (2 * Math.PI * i) / n;
+      const latRad = (p.lat * Math.PI) / 180;
+      const scaleLng = Math.max(0.3, Math.cos(latRad)); // avoid huge shifts at poles
+      const dLat = radiusDeg * Math.cos(angle);
+      const dLng = (radiusDeg * Math.sin(angle)) / scaleLng;
+      const alt = 0.02 + 0.004 * (i % 3); // subtle altitude staggering
+      adjusted.push({
+        ...p,
+        lat: clampLat(p.lat + dLat),
+        lng: normalizeLng(p.lng + dLng),
+        altitude: alt,
+      });
+    });
+  }
+
+  return adjusted;
+}
+
+async function mapProvidersToPoints(providers: Provider[]): Promise<ProviderPoint[]> {
+  const points = await Promise.all(
+    providers.map(async (p) => {
+      const host = extractHost(p.endpoint_url);
+      console.log("[Globe] Extracted host:", host, "for provider:", p.id, p.name);
+      let coords: { lat: number; lng: number } | null = null;
+      if (host) {
+        console.log("[Globe] Attempt geolocate host:", host, "for provider:", p.id, p.name);
+        // eslint-disable-next-line no-await-in-loop
+        const result = await geolocateHost(host);
+        console.log("[Globe] Geolocated host:", result, "for provider:", p.id, p.name);
+        if (result) coords = result;
+      }
+      // Fallback: use deterministic coordinates from primary endpoint host
+      if (!coords) {
+        const fallbackKey = host ?? p.id;
+        coords = hashToCoords(fallbackKey);
+        console.log("[Globe] Fallback coords:", fallbackKey, "provider:", p.id, p.name, coords);
+      }
+      const point = {
+        id: p.id,
+        name: p.name,
+        endpoint: p.endpoint_url,
+        lat: coords.lat,
+        lng: coords.lng,
+        providerId: p.id,
+        createdAt: (p as any).created_at,
+        pubkey: (p as any).pubkey,
+        description: p.description,
+        version: (p as any).version,
+        endpointsHttp: [p.endpoint_url],
+        endpointsTor: (p.endpoint_urls ?? []).filter((u) => u.includes('.onion')),
+        models: [],
+        mint: (p as any).mint_urls?.[0],
+        city: (coords as any).city,
+        country: (coords as any).country,
+      } satisfies ProviderPoint;
+      console.log("[Globe] Mapped provider point:", point);
+      return point;
+    })
+  );
+  const clean = points.filter(Boolean) as ProviderPoint[];
+  const adjusted = disambiguateOverlappingPoints(clean);
+  return adjusted;
+}
+
+ 
 
 export default function FullScreenGlobe() {
   const Globe = useMemo(() => {
@@ -297,16 +294,11 @@ export default function FullScreenGlobe() {
     return dimensions.height; // size globe by viewport height only
   }, [dimensions]);
   const [hexData, setHexData] = useState<Record<string, unknown>[]>([]);
-  const [ringsData, setRingsData] = useState<Array<{ lat: number; lng: number; maxRadius: number; propagationSpeed: number; repeatPeriod: number; provider: ProviderLocation }>>([]);
-  const [, setHoveredProvider] = useState<ProviderLocation | null>(null);
-  const [providers, setProviders] = useState<ProviderLocation[]>([]);
-  const [selectedProvider, setSelectedProvider] =
-    useState<ProviderLocation | null>(null);
-  const [selectedPosition, setSelectedPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const [providerPoints, setProviderPoints] = useState<ProviderPoint[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderPoint | null>(null);
+  const [selectedPos, setSelectedPos] = useState<{ x: number; y: number } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const clickHandledRef = useRef(false);
 
   useEffect(() => {
     const raf: number | null = null;
@@ -318,76 +310,58 @@ export default function FullScreenGlobe() {
 
     // Fetch data
     fetchCountriesGeoJson().then((geo) => setHexData(geo.features));
-    // Fetch providers
-    fetchProviders()
-      .then(async (apiProviders) => {
-        const transformedProviders = apiProviders
-          .map(transformApiProvider)
-          .filter((p): p is ProviderLocation => p !== null);
-
-        // Show immediate fallback positions
-        setProviders(transformedProviders);
-        setRingsData(
-          transformedProviders.map((p) => ({
-            lat: p.lat ?? 0,
-            lng: p.lng ?? 0,
-            maxRadius: 4,
-            propagationSpeed: 4,
-            repeatPeriod: 1400,
-            provider: p,
-          }))
-        );
-
-        // Geolocate endpoints like landing page globe and update positions
-        const geolocated = await Promise.all(
-          transformedProviders.map(async (p) => {
-            const endpoint =
-              (apiProviders.find((ap) => ap.provider.id === p.id)?.health?.json as Record<string, unknown>)
-                ?.http_url as string ||
-              p.endpoints.http[0] ||
-              p.endpoints.tor[0] ||
-              (apiProviders.find((ap) => ap.provider.id === p.id)?.provider
-                .endpoint_url ??
-                null);
-            if (endpoint) {
-              try {
-                const coords = await geolocateEndpoint(endpoint);
-                if (coords) {
-                  return {
-                    ...p,
-                    lat: coords.lat,
-                    lng: coords.lng,
-                  } as ProviderLocation;
-                }
-              } catch {}
-            }
-            return p;
-          })
-        );
-
-        setProviders(geolocated);
-        setRingsData(
-          geolocated.map((p) => ({
-            lat: p.lat ?? 0,
-            lng: p.lng ?? 0,
-            maxRadius: 4,
-            propagationSpeed: 4,
-            repeatPeriod: 1400,
-            provider: p,
-          }))
-        );
-      })
-      .catch((e) => {
-        // fallback to no points if fetch fails
-        setProviders([]);
-        setRingsData([]);
-        console.error("Globe provider fetch failed", e);
-      });
+    // Fetch providers and map to globe points
+    (async () => {
+      try {
+        const providers = await fetchProviders();
+        const points = await mapProvidersToPoints(providers);
+        console.log("[Globe] Final provider points count:", points.length, points);
+        setProviderPoints(points);
+      } catch (e) {
+        console.error("Failed to load providers:", e);
+      }
+    })();
     return () => {
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
     };
   }, []);
+
+  // Dismiss tooltip when clicking anywhere outside the tooltip or selected point
+  useEffect(() => {
+    const handleDocumentClick = (e: Event) => {
+      if (!selectedProvider) return;
+      const target = e.target as HTMLElement | null;
+      // Defer to allow onPointClick/onGlobeClick to run first
+      setTimeout(() => {
+        if (!selectedProvider) return; // may have been cleared already
+        if (clickHandledRef.current) {
+          clickHandledRef.current = false;
+          return;
+        }
+        // Ignore clicks inside tooltip
+        if (target && target.closest('[data-globe-tooltip="true"]')) return;
+        // Any other click (including canvas if not handled) closes the tooltip
+        setSelectedProvider(null);
+        setSelectedPos(null);
+        try {
+          const controls = globeRef.current?.controls?.();
+          if (controls) {
+            controls.autoRotate = true;
+            controls.update?.();
+          }
+        } catch {}
+      }, 0);
+    };
+    document.addEventListener("click", handleDocumentClick, true);
+    document.addEventListener("pointerdown", handleDocumentClick, true);
+    document.addEventListener("touchstart", handleDocumentClick, true);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick, true);
+      document.removeEventListener("pointerdown", handleDocumentClick, true);
+      document.removeEventListener("touchstart", handleDocumentClick, true);
+    };
+  }, [selectedProvider]);
 
   // No from-to animation; keep camera stable and interactive
   useEffect(() => {
@@ -410,63 +384,7 @@ export default function FullScreenGlobe() {
     []
   );
 
-  const handlePointClick = useCallback(
-    (point: ProviderLocation | null, event: MouseEvent) => {
-      if (!point || !globeRef.current) return;
-      try {
-        event.stopPropagation();
-      } catch {}
-      setSelectedProvider(point);
-      setSelectedPosition({ x: event.clientX, y: event.clientY });
-      try {
-        const controls = globeRef.current.controls();
-        controls.autoRotate = false;
-        controls.update();
-      } catch {}
-    },
-    []
-  );
-
-  const handleGlobeClick = useCallback(() => {
-    if (!globeRef.current) return;
-    setSelectedProvider(null);
-    setSelectedPosition(null);
-    try {
-      const controls = globeRef.current.controls();
-      controls.autoRotate = true;
-      controls.update();
-    } catch {}
-  }, []);
-
-  const handlePointHover = useCallback(
-    (point: ProviderLocation | null) => {
-      setHoveredProvider(point);
-      try {
-        const controls = globeRef.current?.controls();
-        if (!controls) return;
-        // Pause rotation on hover; resume only if nothing is selected
-        if (point) {
-          controls.autoRotate = false;
-        } else if (!selectedProvider) {
-          controls.autoRotate = true;
-        }
-        controls.update();
-      } catch {}
-    },
-    [selectedProvider]
-  );
-
-  // Dismiss tooltip when clicking anywhere outside the tooltip element
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!selectedProvider) return;
-      const tip = tooltipRef.current;
-      if (tip && tip.contains(e.target as Node)) return;
-      handleGlobeClick();
-    }
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, [selectedProvider, handleGlobeClick]);
+  // No tooltip handlers or click behavior
 
   if (!Globe) return null;
 
@@ -474,6 +392,14 @@ export default function FullScreenGlobe() {
     <div
       ref={containerRef}
       className="w-full h-full bg-black flex items-center justify-center"
+      onMouseMove={(e) => {
+        // Track latest mouse position to place tooltip reliably
+        const x = Number(e.clientX);
+        const y = Number(e.clientY);
+        if (!Number.isNaN(x) && !Number.isNaN(y)) {
+          setMousePos({ x, y });
+        }
+      }}
     >
       <Globe
         ref={globeRef}
@@ -485,60 +411,82 @@ export default function FullScreenGlobe() {
         hexPolygonMargin={0.3}
         hexPolygonUseDots
         hexPolygonColor={() => "rgba(128, 128, 128, 0.2)"}
-        // Provider points
-        pointsData={providers}
+        pointsData={providerPoints}
+        pointLat={(d: ProviderPoint) => d.lat}
+        pointLng={(d: ProviderPoint) => d.lng}
+        pointAltitude={(d: ProviderPoint) => d.altitude ?? 0.02}
+        pointRadius={() => 0.6}
+        pointColor={() => "#FB6415"}
         pointLabel={() => ""}
-        pointLat="lat"
-        pointLng="lng"
-        pointColor={(point: ProviderLocation) => {
-          switch (point.status) {
-            case "online":
-              return "#10b981";
-            case "offline":
-              return "#ef4444";
-            case "maintenance":
-              return "#f59e0b";
-            default:
-              return "#6b7280";
+        onPointHover={(p: ProviderPoint | null) => {
+          try {
+            const controls = globeRef.current?.controls?.();
+            if (!controls) return;
+            if (p) {
+              controls.autoRotate = false;
+              controls.update?.();
+            } else if (!selectedProvider) {
+              controls.autoRotate = true;
+              controls.update?.();
+            }
+          } catch {}
+        }}
+        onPointClick={(p: ProviderPoint | null) => {
+          if (!containerRef.current) return;
+          if (p) {
+            clickHandledRef.current = true;
+            setSelectedProvider(p);
+            const { x, y } = mousePos;
+            if (!Number.isNaN(x) && !Number.isNaN(y)) {
+              setSelectedPos({ x, y });
+            }
+            try {
+              const controls = globeRef.current?.controls?.();
+              if (controls) {
+                controls.autoRotate = false;
+                controls.update?.();
+              }
+            } catch {}
           }
         }}
-        pointAltitude={0.02}
-        pointRadius={0.5}
-        onPointClick={handlePointClick}
-        onPointHover={handlePointHover}
-        onGlobeClick={handleGlobeClick}
-        // Pulsing rings
-        ringsData={ringsData}
-        ringColor={(ring: { provider?: ProviderLocation }) => {
-          if (!ring.provider) return "rgba(198, 85, 206, .8)";
-          switch (ring.provider.status) {
-            case "online":
-              return "rgba(16, 185, 129, 0.8)";
-            case "offline":
-              return "rgba(239, 68, 68, 0.8)";
-            case "maintenance":
-              return "rgba(245, 158, 11, 0.8)";
-            default:
-              return "rgba(107, 114, 128, 0.8)";
-          }
+        onGlobeClick={() => {
+          clickHandledRef.current = true;
+          setSelectedProvider(null);
+          setSelectedPos(null);
+          try {
+            const controls = globeRef.current?.controls?.();
+            if (controls) {
+              controls.autoRotate = true;
+              controls.update?.();
+            }
+          } catch {}
         }}
-        ringMaxRadius={() => 3}
-        ringPropagationSpeed={() => 3}
-        ringRepeatPeriod={() => 1600}
+        pointsMerge={false}
         backgroundColor="black"
         showAtmosphere={false}
         showGlobe
       />
-
-      {selectedProvider && selectedPosition ? (
-        <div ref={tooltipRef}>
-          <GlobeTooltip
-            key={selectedProvider.id}
-            provider={selectedProvider}
-            position={selectedPosition}
-          />
-        </div>
-      ) : null}
+      <GlobeTooltip
+        provider={selectedProvider ? {
+          id: selectedProvider.id,
+          name: selectedProvider.name,
+          city: selectedProvider.city,
+          country: selectedProvider.country,
+          lat: selectedProvider.lat,
+          lng: selectedProvider.lng,
+          type: 'Routstr Node',
+          status: 'online',
+          description: selectedProvider.description ?? '',
+          createdAt: selectedProvider.createdAt ?? 0,
+          providerId: selectedProvider.providerId,
+          pubkey: selectedProvider.pubkey ?? '',
+          endpoints: { http: selectedProvider.endpointsHttp, tor: selectedProvider.endpointsTor },
+          models: selectedProvider.models,
+          mint: selectedProvider.mint,
+          version: selectedProvider.version ?? '',
+        } : null}
+        position={selectedPos}
+      />
     </div>
   );
 }

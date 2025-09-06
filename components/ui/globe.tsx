@@ -5,42 +5,153 @@ import { useMotionValue, useSpring } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
-import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
 
 // Type definitions
-interface GeoLocationResponse {
-  lat?: number;
-  lng?: number;
-  latitude?: string | number;
-  longitude?: string | number;
-  lon?: string | number;
-  status?: string;
-  success?: boolean;
-}
-
-interface ProviderEntry {
-  health?: {
-    json?: {
-      http_url?: string;
-    };
-  };
-  provider?: {
-    endpoint_url?: string;
-    endpoint_urls?: string[];
-    pubkey?: string;
-    id?: string;
-  };
-}
-
-interface ProvidersResponse {
-  providers?: ProviderEntry[];
-}
-
 interface COBEState {
   phi: number;
   width: number;
   height: number;
   markers: { location: [number, number]; size: number }[];
+}
+
+// Lightweight provider typing for marker plotting
+type Provider = {
+  id: string;
+  name: string;
+  endpoint_url: string;
+  endpoint_urls?: string[];
+};
+
+type ProviderPoint = {
+  id: string;
+  name: string;
+  endpoint: string;
+  lat: number;
+  lng: number;
+};
+
+// Deterministic fallback lat/lng generator (fast, no network lookups)
+function hashToCoords(input: string): { lat: number; lng: number } {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    // eslint-disable-next-line no-bitwise
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    // eslint-disable-next-line no-bitwise
+    hash |= 0;
+  }
+  const rng = (n: number) => {
+    // eslint-disable-next-line no-bitwise
+    return ((hash ^ (n * 2654435761)) >>> 0) / 2 ** 32;
+  };
+  const lat = -60 + rng(1) * 120; // visible band, avoid poles
+  const lng = -180 + rng(2) * 360;
+  return { lat, lng };
+}
+
+function extractHost(urlOrHost: string): string | null {
+  try {
+    const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
+    const u = new URL(hasProtocol ? urlOrHost : `https://${urlOrHost}`);
+    return u.hostname;
+  } catch {
+    if (/^[a-z0-9.-]+$/i.test(urlOrHost)) return urlOrHost;
+    return null;
+  }
+}
+
+// Geolocation cache to reduce duplicate lookups
+const geolocationCache = new Map<string, { lat: number; lng: number; city?: string; country?: string }>();
+
+async function geolocateHost(host: string): Promise<{ lat: number; lng: number; city?: string; country?: string } | null> {
+  if (host.endsWith('.onion')) return null;
+  if (geolocationCache.has(host)) return geolocationCache.get(host)!;
+  try {
+    // Resolve hostname to IPv4 via Google DNS-over-HTTPS
+    const dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`);
+    if (!dnsRes.ok) return null;
+    const dnsData = await dnsRes.json();
+    const ip = Array.isArray(dnsData?.Answer)
+      ? (dnsData.Answer.find((a: { type: number }) => a.type === 1)?.data ?? null)
+      : null;
+    if (!ip) return null;
+
+    // Try ipwho.is (HTTPS)
+    try {
+      const resIpwho = await fetch(`https://ipwho.is/${ip}`);
+      if (resIpwho.ok) {
+        const dataIpwho = await resIpwho.json();
+        if (dataIpwho?.success && typeof dataIpwho.latitude === 'number' && typeof dataIpwho.longitude === 'number') {
+          const value = { lat: dataIpwho.latitude, lng: dataIpwho.longitude, city: dataIpwho.city, country: dataIpwho.country };
+          geolocationCache.set(host, value);
+          return value;
+        }
+      }
+    } catch {}
+
+    // Optional ip-api.com over HTTP only when page is HTTP to avoid mixed content
+    try {
+      if (typeof window !== 'undefined' && window.location.protocol === 'http:') {
+        const resIpApi = await fetch(`http://ip-api.com/json/${ip}`);
+        if (resIpApi.ok) {
+          const dataIpApi = await resIpApi.json();
+          if (typeof dataIpApi.lat === 'number' && typeof dataIpApi.lon === 'number') {
+            const value = { lat: dataIpApi.lat, lng: dataIpApi.lon, city: dataIpApi.city, country: dataIpApi.country };
+            geolocationCache.set(host, value);
+            return value;
+          }
+        }
+      }
+    } catch {}
+  } catch {}
+  return null;
+}
+
+function normalizeLng(lng: number): number {
+  let x = lng;
+  while (x > 180) x -= 360;
+  while (x < -180) x += 360;
+  return x;
+}
+
+function clampLat(lat: number): number {
+  return Math.max(-89.999, Math.min(89.999, lat));
+}
+
+function disambiguateOverlappingPoints(points: ProviderPoint[]): ProviderPoint[] {
+  const groups = new Map<string, ProviderPoint[]>();
+  const keyFor = (p: ProviderPoint) => `${p.lat.toFixed(3)}|${p.lng.toFixed(3)}`;
+  for (const p of points) {
+    const k = keyFor(p);
+    const arr = groups.get(k) ?? [];
+    arr.push(p);
+    groups.set(k, arr);
+  }
+
+  const adjusted: ProviderPoint[] = [];
+  for (const arr of Array.from(groups.values())) {
+    if (arr.length === 1) {
+      adjusted.push(arr[0]);
+      continue;
+    }
+    arr.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    const n = arr.length;
+    const baseRadiusDeg = 0.12;
+    const radiusDeg = Math.min(0.25, baseRadiusDeg + Math.min(0.08, n * 0.01));
+
+    arr.forEach((p, i) => {
+      const angle = (2 * Math.PI * i) / n;
+      const latRad = (p.lat * Math.PI) / 180;
+      const scaleLng = Math.max(0.3, Math.cos(latRad));
+      const dLat = radiusDeg * Math.cos(angle);
+      const dLng = (radiusDeg * Math.sin(angle)) / scaleLng;
+      adjusted.push({
+        ...p,
+        lat: clampLat(p.lat + dLat),
+        lng: normalizeLng(p.lng + dLng),
+      });
+    });
+  }
+  return adjusted;
 }
 
 const MOVEMENT_DAMPING = 1400;
@@ -75,7 +186,7 @@ export function Globe({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
-  const geoCache = useRef(new Map<string, { lat: number; lng: number }>());
+  
 
   const r = useMotionValue(0);
   const rs = useSpring(r, {
@@ -121,10 +232,8 @@ export function Globe({
           state.phi = phiRef.current + rs.get();
           state.width = widthRef.current * 2;
           state.height = widthRef.current * 2;
-          // update markers dynamically if set
-          if (markersRef.current && (state as COBEState).markers !== markersRef.current) {
-            (state as COBEState).markers = markersRef.current;
-          }
+          // draw provider markers gathered asynchronously
+          (state as COBEState).markers = markersRef.current;
         },
       });
     } catch (e) {
@@ -135,123 +244,6 @@ export function Globe({
 
     setTimeout(() => (canvasRef.current!.style.opacity = "1"), 0);
 
-    // Fetch providers and set markers with client-side geolocation
-    (async () => {
-      async function geolocateHost(host: string): Promise<{ lat: number; lng: number } | null> {
-        // Skip localhost, private IPs, and .onion domains
-        if (host === 'localhost' || host.startsWith('127.') || host.startsWith('192.168.') || 
-            host.startsWith('10.') || host.endsWith('.onion') || host.startsWith('172.')) {
-          return null;
-        }
-        
-        const cached = geoCache.current.get(host);
-        if (cached) return cached;
-        
-        const services = [
-          {
-            url: `https://ip-api.com/json/${encodeURIComponent(host)}?fields=status,lat,lon`,
-            parser: (data: GeoLocationResponse) =>
-              data.status === 'success' && data.lat !== undefined && data.lon !== undefined
-                ? { lat: Number(data.lat), lng: Number(data.lon) }
-                : null
-          },
-          {
-            url: `https://ipapi.co/${encodeURIComponent(host)}/json/`,
-            parser: (data: GeoLocationResponse) => data.latitude && data.longitude ? { lat: parseFloat(String(data.latitude)), lng: parseFloat(String(data.longitude)) } : null
-          },
-          {
-            url: `https://ipwho.is/${encodeURIComponent(host)}`,
-            parser: (data: GeoLocationResponse) => data.success && data.latitude && data.longitude ? { lat: parseFloat(String(data.latitude)), lng: parseFloat(String(data.longitude)) } : null
-          }
-        ];
-        
-        for (const service of services) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            
-            const resp = await fetch(service.url, { 
-              signal: controller.signal,
-              headers: { 'Accept': 'application/json', 'User-Agent': 'routstr-globe/1.0' },
-              mode: 'cors'
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!resp.ok) continue;
-            
-            const data = await resp.json();
-            const coords = service.parser(data);
-            
-            if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number' && 
-                !isNaN(coords.lat) && !isNaN(coords.lng) && 
-                coords.lat >= -90 && coords.lat <= 90 && coords.lng >= -180 && coords.lng <= 180) {
-              geoCache.current.set(host, coords);
-              return coords;
-            }
-          } catch {
-            continue;
-          }
-        }
-        return null;
-      }
-
-      try {
-        const res = await fetch('https://api.routstr.com/v1/providers/?include_json=true');
-        if (!res.ok) throw new Error(`Failed providers fetch: ${res.status}`);
-        const data: ProvidersResponse = await res.json();
-        const entries = Array.isArray(data.providers) ? data.providers : [];
-        
-        // Filter out staging providers
-        const filteredEntries = entries.filter((entry: ProviderEntry) => {
-          const allEndpoints = entry?.provider?.endpoint_urls || [];
-          return !shouldHideProvider(allEndpoints);
-        });
-        
-        const markers = await Promise.all(filteredEntries.map(async (entry: ProviderEntry) => {
-          // Filter out staging endpoints when selecting endpoint for geolocation
-          const filteredEndpoints = filterStagingEndpoints(entry?.provider?.endpoint_urls || []);
-          const endpoint = entry?.health?.json?.http_url || entry?.provider?.endpoint_url || filteredEndpoints[0];
-          let lat: number | undefined;
-          let lng: number | undefined;
-          
-          if (endpoint) {
-            try {
-              const host = (() => { 
-                try { 
-                  return new URL(endpoint).hostname; 
-                } catch { 
-                  const m = String(endpoint).match(/^[a-z0-9.-]+/i); 
-                  return m ? m[0] : null; 
-                } 
-              })();
-              
-              if (host) {
-                const coords = await geolocateHost(host);
-                if (coords) {
-                  lat = coords.lat;
-                  lng = coords.lng;
-                }
-              }
-            } catch {}
-          }
-          
-          if (lat === undefined || lng === undefined) {
-            const base = entry?.provider?.pubkey || entry?.provider?.id || entry?.health?.json?.http_url || Math.random().toString(36).slice(2);
-            const h = (() => { let x = 5381; for (let i = 0; i < base.length; i++) x = (x * 33) ^ base.charCodeAt(i); return x >>> 0; })();
-            lat = ((h % 12000) / 100) - 60;
-            lng = (((Math.floor(h / 12000)) % 36000) / 100) - 180;
-          }
-          return { location: [lat, lng] as [number, number], size: 0.08 };
-        }));
-        
-        if (!cancelled) {
-          markersRef.current = markers;
-        }
-      } catch {
-        // ignore failure, keep no markers
-      }
-    })();
     return () => {
       if (globe) {
         globe.destroy();
@@ -260,6 +252,45 @@ export function Globe({
       cancelled = true;
     };
   }, [rs, config]);
+
+  // Fetch providers and geolocate to plot accurate markers like the full-screen globe
+  useEffect(() => {
+    let aborted = false;
+    (async () => {
+      try {
+        const res = await fetch("https://api.routstr.com/v1/providers/");
+        if (!res.ok) return;
+        const data = (await res.json()) as { providers?: Provider[] };
+        const providers = data.providers ?? [];
+        // Map providers to points using geolocation with fallback to hashed coords
+        const points: ProviderPoint[] = [];
+        for (const p of providers) {
+          const host = extractHost(p.endpoint_url);
+          let latlng: { lat: number; lng: number } | null = null;
+          if (host) {
+            // eslint-disable-next-line no-await-in-loop
+            const geo = await geolocateHost(host);
+            if (geo) latlng = { lat: geo.lat, lng: geo.lng };
+          }
+          if (!latlng) {
+            const key = host ?? p.id;
+            latlng = hashToCoords(key);
+          }
+          points.push({ id: p.id, name: p.name, endpoint: p.endpoint_url, lat: latlng.lat, lng: latlng.lng });
+        }
+        const adjusted = disambiguateOverlappingPoints(points);
+        const markers = adjusted.map((pt) => ({ location: [pt.lat, pt.lng] as [number, number], size: 0.06 }));
+        if (!aborted) {
+          markersRef.current = markers;
+        }
+      } catch (e) {
+        // Silent fail on homepage; keep globe responsive without markers
+      }
+    })();
+    return () => {
+      aborted = true;
+    };
+  }, []);
 
   return (
     <div
