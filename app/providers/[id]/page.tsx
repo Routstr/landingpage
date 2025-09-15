@@ -304,7 +304,7 @@ export default function ProviderPage() {
                           onClick={() => requestSort("price")}
                           disabled={isLoading}
                         >
-                          Price (per 1K tokens, sats)
+                          Price (tokens per sat)
                           <SortIcon active={sort.key === "price"} direction={sort.direction} />
                         </button>
                       </th>
@@ -383,8 +383,7 @@ export default function ProviderPage() {
                             </Link>
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
-                            {(model.sats_pricing.prompt * 1000).toFixed(2)} /{" "}
-                            {(model.sats_pricing.completion * 1000).toFixed(2)}
+                            {model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} / {model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'}
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
                             {model.context_length.toLocaleString()} tokens

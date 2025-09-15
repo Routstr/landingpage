@@ -51,7 +51,7 @@ export default function ProvidersTable({ endpoints }: ProvidersTableProps) {
                         </svg>
                       </PopoverTrigger>
                       <PopoverContent className="w-33 p-2 text-sm bg-gray-800 text-white" side="top" align="start">
-                        in sats/1M tokens
+                        tokens per sat (input)
                       </PopoverContent>
                     </Popover>
                   </th>
@@ -70,7 +70,7 @@ export default function ProvidersTable({ endpoints }: ProvidersTableProps) {
                         </svg>
                       </PopoverTrigger>
                       <PopoverContent className="w-33 p-2 text-sm bg-gray-800 text-white" side="top" align="start">
-                        in sats/1M tokens
+                        tokens per sat (output)
                       </PopoverContent>
                     </Popover>
                   </th>
@@ -82,8 +82,8 @@ export default function ProvidersTable({ endpoints }: ProvidersTableProps) {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-white">{endpoint.provider}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{endpoint.context}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{endpoint.max_output}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{Number(endpoint.input_cost).toFixed(2)} sats</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{Number(endpoint.output_cost).toFixed(2)} sats</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{Number(endpoint.input_cost) > 0 ? (1 / Number(endpoint.input_cost)).toFixed(2) : '—'} tokens/sat</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{Number(endpoint.output_cost) > 0 ? (1 / Number(endpoint.output_cost)).toFixed(2) : '—'} tokens/sat</td>
                   </tr>
                 ))}
               </tbody>

@@ -78,12 +78,12 @@ export default function Home() {
               ? model.name.split("/")[1]
               : model.name;
 
-          // Format sats price in a more readable way
-          const promptPrice = model.sats_pricing.prompt;
-          const completionPrice = model.sats_pricing.completion;
+          // Convert to tokens per sat for display
+          const promptPrice = model.sats_pricing.prompt > 0 ? 1 / model.sats_pricing.prompt : 0;
+          const completionPrice = model.sats_pricing.completion > 0 ? 1 / model.sats_pricing.completion : 0;
 
           // Format numbers to a simpler format
-          const formatSatsNumber = (num: number) => {
+          const formatTokensPerSat = (num: number) => {
             if (num < 0.0001) {
               // Use scientific notation with fewer digits for very small numbers
               return num.toExponential(2);
@@ -94,8 +94,8 @@ export default function Home() {
             );
           };
 
-          const promptFormatted = formatSatsNumber(promptPrice);
-          const completionFormatted = formatSatsNumber(completionPrice);
+          const promptFormatted = formatTokensPerSat(promptPrice);
+          const completionFormatted = formatTokensPerSat(completionPrice);
 
           return {
             id: model.id,
@@ -767,7 +767,7 @@ export default function Home() {
                             <span className="font-mono text-white">
                               {model.promptPrice}
                             </span>{" "}
-                            <span className="text-gray-500">sats/token</span>
+                            <span className="text-gray-500">tokens/sat</span>
                           </div>
                           <div className="text-xs sm:text-sm">
                             <span className="text-gray-400 font-medium">
@@ -776,7 +776,7 @@ export default function Home() {
                             <span className="font-mono text-white">
                               {model.completionPrice}
                             </span>{" "}
-                            <span className="text-gray-500">sats/token</span>
+                            <span className="text-gray-500">tokens/sat</span>
                           </div>
                         </div>
                       </div>

@@ -467,11 +467,11 @@ print(completion.choices[0].message.content)`
                   <tbody>
                     <tr className="border-b border-white/10">
                       <td className="py-2 text-gray-300">Input cost</td>
-                      <td className="py-2 font-medium text-white text-right">{model.sats_pricing.prompt.toFixed(8)} sats/token</td>
+                      <td className="py-2 font-medium text-white text-right">{model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat</td>
                     </tr>
                     <tr className="border-b border-white/10">
                       <td className="py-2 text-gray-300">Output cost</td>
-                      <td className="py-2 font-medium text-white text-right">{model.sats_pricing.completion.toFixed(8)} sats/token</td>
+                      <td className="py-2 font-medium text-white text-right">{model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat</td>
                     </tr>
                     {model.sats_pricing.request > 0 && (
                       <tr className="border-b border-white/10">
@@ -494,9 +494,9 @@ print(completion.choices[0].message.content)`
                 <p className="text-sm text-gray-200">
                   For a conversation with 100 tokens of input and 500 tokens of output:
                   <br />
-                  Input cost: 100 × {model.sats_pricing.prompt.toFixed(8)} = {(100 * model.sats_pricing.prompt).toFixed(8)} sats
+                  Input cost: 100 ÷ {(model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—')} = {(100 * model.sats_pricing.prompt).toFixed(8)} sats
                   <br />
-                  Output cost: 500 × {model.sats_pricing.completion.toFixed(8)} = {(500 * model.sats_pricing.completion).toFixed(8)} sats
+                  Output cost: 500 ÷ {(model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—')} = {(500 * model.sats_pricing.completion).toFixed(8)} sats
                   <br />
                   Total: {(100 * model.sats_pricing.prompt + 500 * model.sats_pricing.completion).toFixed(8)} sats
                 </p>

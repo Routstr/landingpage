@@ -251,10 +251,10 @@ export function formatPrice(model: Model): string {
 
 // Format sats price as a string
 export function formatSatsPrice(model: Model): string {
-  const promptPrice = model.sats_pricing.prompt.toFixed(8);
-  const completionPrice = model.sats_pricing.completion.toFixed(8);
+  const promptTokensPerSat = model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—';
+  const completionTokensPerSat = model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—';
 
-  return `${promptPrice} sats/token prompt / ${completionPrice} sats/token completion`;
+  return `${promptTokensPerSat} tokens/sat prompt / ${completionTokensPerSat} tokens/sat completion`;
 }
 
 // Get primary provider for a model (first provider in mapping)

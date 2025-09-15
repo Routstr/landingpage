@@ -247,10 +247,10 @@ export default function ModelsPage() {
                               {/* Meta row removed per request (USD prices and duplicate context). */}
                               <div className="flex flex-wrap gap-2 mt-2">
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                  {model.sats_pricing.prompt.toFixed(8)} sats/token input
+                                  {model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat input
                                 </span>
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                  {model.sats_pricing.completion.toFixed(8)} sats/token output
+                                  {model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat output
                                 </span>
                                 <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
                                   {model.context_length.toLocaleString()} tokens
