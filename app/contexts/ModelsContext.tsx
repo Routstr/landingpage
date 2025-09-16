@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
-import { Model, Provider, ProviderWithHealth } from '@/app/data/models';
+import { Model, Provider } from '@/app/data/models';
 import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter';
 
 interface ModelsState {
@@ -69,56 +69,147 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'FETCH_START' });
 
     try {
-      const response = await fetch('https://api.routstr.com/v1/providers/?include_json=true');
+      const response = await fetch('https://api.routstr.com/v1/providers/');
       if (!response.ok) {
         throw new Error(`Failed to fetch providers: ${response.status}`);
       }
       const data = await response.json();
 
-      // Assemble models from provider health responses and deduplicate
+      const list: Array<{
+        id: string;
+        pubkey: string;
+        created_at: number;
+        kind: number;
+        endpoint_url: string;
+        endpoint_urls?: string[];
+        name: string;
+        description: string;
+        mint_url?: string | null;
+        mint_urls?: string[];
+        version: string;
+        content: string;
+      }> = Array.isArray(data.providers) ? data.providers : [];
+
+      const normalizeForFetch = (urlOrHost: string): string => {
+        if (!urlOrHost) return '';
+        const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
+        return hasProtocol ? urlOrHost : `https://${urlOrHost}`;
+      };
+
+      const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response> => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const resp = await fetch(url, { ...options, signal: controller.signal });
+          return resp;
+        } finally {
+          clearTimeout(id);
+        }
+      };
+
+      // Assemble models by querying each provider's /v1/models
       const modelMap = new Map<string, Model>();
       const providerMap = new Map<string, Provider[]>();
-      const providers = Array.isArray(data.providers) ? data.providers : [];
-      providers
-        .filter((entry: ProviderWithHealth) => {
-          // Filter out providers that only have staging endpoints or are tagged as staging
-          const provider = entry?.provider;
-          const allEndpoints = provider?.endpoint_urls || [];
-          const nameOrTag = `${provider?.name || ''}`.toLowerCase();
-          const looksLikeStaging = nameOrTag.includes('staging');
-          return !shouldHideProvider(allEndpoints) && !looksLikeStaging;
-        })
-        .forEach((entry: ProviderWithHealth) => {
-          const health = entry?.health;
-          const providerObj = entry?.provider as Provider | undefined;
-          const models = health?.json?.models as Model[] | undefined;
-          
-          // Filter staging endpoints from provider object
-          if (providerObj) {
-            const filteredEndpoints = filterStagingEndpoints(providerObj.endpoint_urls || []);
-            providerObj.endpoint_urls = filteredEndpoints;
-            providerObj.endpoint_url = filteredEndpoints[0] || providerObj.endpoint_url || '';
-          }
-          
-          if (Array.isArray(models)) {
-            models.forEach((m) => {
-              modelMap.set(m.id, m);
-              if (providerObj) {
+
+      await Promise.all(
+        list
+          .filter((p) => {
+            const endpoints = (Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0)
+              ? p.endpoint_urls!
+              : [p.endpoint_url].filter(Boolean);
+            const nameOrTag = `${p.name || ''}`.toLowerCase();
+            const looksLikeStaging = nameOrTag.includes('staging');
+            return !shouldHideProvider(endpoints) && !looksLikeStaging;
+          })
+          .map(async (p) => {
+            const nonStaging = filterStagingEndpoints(p.endpoint_urls || []);
+            const http = nonStaging.filter((u) => typeof u === 'string' && !u.includes('.onion'));
+            const primary = (http[0] || p.endpoint_url || '').trim();
+
+            const providerObj: Provider = {
+              id: p.id,
+              pubkey: p.pubkey,
+              created_at: p.created_at,
+              kind: p.kind,
+              endpoint_url: primary || p.endpoint_url,
+              endpoint_urls: nonStaging,
+              name: p.name,
+              description: p.description,
+              contact: undefined,
+              pricing_url: undefined,
+              mint_url: (p.mint_url ?? null) || (Array.isArray(p.mint_urls) && p.mint_urls.length > 0 ? p.mint_urls[0] : null),
+              mint_urls: Array.isArray(p.mint_urls) ? p.mint_urls : [],
+              version: p.version,
+              supported_models: [],
+              content: p.content,
+            };
+
+            if (!primary) return; // skip if no usable endpoint
+            try {
+              const base = normalizeForFetch(primary).replace(/\/$/, '');
+              const modelsUrl = `${base}/v1/models`;
+              const r = await fetchWithTimeout(modelsUrl, { headers: { 'accept': 'application/json' } }, 8000);
+              if (!r.ok) return;
+              const payload = await r.json();
+              const arr: Array<any> = Array.isArray(payload?.data) ? payload.data : [];
+              arr.forEach((raw) => {
+                const m: Model = {
+                  id: raw.id,
+                  name: raw.name,
+                  created: raw.created,
+                  description: raw.description ?? '',
+                  context_length: raw.context_length ?? 0,
+                  architecture: {
+                    modality: raw.architecture?.modality ?? '',
+                    input_modalities: raw.architecture?.input_modalities ?? [],
+                    output_modalities: raw.architecture?.output_modalities ?? [],
+                    tokenizer: raw.architecture?.tokenizer ?? '',
+                    instruct_type: raw.architecture?.instruct_type ?? null,
+                  },
+                  pricing: {
+                    prompt: raw.pricing?.prompt ?? 0,
+                    completion: raw.pricing?.completion ?? 0,
+                    request: raw.pricing?.request ?? 0,
+                    image: raw.pricing?.image ?? 0,
+                    web_search: raw.pricing?.web_search ?? 0,
+                    internal_reasoning: raw.pricing?.internal_reasoning ?? 0,
+                    max_cost: raw.pricing?.max_cost ?? 0,
+                  },
+                  sats_pricing: {
+                    prompt: raw.sats_pricing?.prompt ?? 0,
+                    completion: raw.sats_pricing?.completion ?? 0,
+                    request: raw.sats_pricing?.request ?? 0,
+                    image: raw.sats_pricing?.image ?? 0,
+                    web_search: raw.sats_pricing?.web_search ?? 0,
+                    internal_reasoning: raw.sats_pricing?.internal_reasoning ?? 0,
+                    max_cost: raw.sats_pricing?.max_cost ?? 0,
+                  },
+                  per_request_limits: raw.per_request_limits ?? null,
+                  top_provider: {
+                    context_length: raw.context_length ?? 0,
+                    max_completion_tokens: null,
+                    is_moderated: false,
+                  },
+                };
+                // de-duplicate and map to provider
+                if (!modelMap.has(m.id)) modelMap.set(m.id, m);
                 const existing = providerMap.get(m.id) || [];
                 providerMap.set(m.id, [...existing, providerObj]);
-              }
-            });
-          }
-        });
+              });
+            } catch {
+              // ignore per-provider errors
+            }
+          })
+      );
 
       dispatch({
         type: 'FETCH_SUCCESS',
         payload: { models: Array.from(modelMap.values()), providerMap },
       });
     } catch (error) {
-      dispatch({ 
-        type: 'FETCH_ERROR', 
-        payload: error instanceof Error ? error.message : 'Unknown error occurred' 
+      dispatch({
+        type: 'FETCH_ERROR',
+        payload: error instanceof Error ? error.message : 'Unknown error occurred'
       });
     }
   }, [state.loading, state.lastFetched]);

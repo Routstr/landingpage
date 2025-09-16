@@ -11,7 +11,7 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b border-white/10 py-4 bg-black w-full max-w-5xl mx-auto">
+    <header className="py-4 bg-black w-full max-w-5xl mx-auto">
       <div className="flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">
@@ -21,6 +21,7 @@ export default function Header() {
             <ul className="flex space-x-6">
               <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">Models</Link></li>
               <li><Link href="/providers" className="text-sm text-gray-400 hover:text-white transition-colors">Providers</Link></li>
+              <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">Blog</Link></li>
               <li>
                 <a
                   href="https://docs.routstr.com"
@@ -91,6 +92,7 @@ export default function Header() {
             <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Features</Link></li>
             <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Models</Link></li>
             <li><Link href="/providers" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Providers</Link></li>
+            <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Blog</Link></li>
             <li>
               <a
                 href="https://docs.routstr.com"

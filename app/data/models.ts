@@ -57,8 +57,8 @@ export interface Provider {
   endpoint_urls: readonly string[];
   name: string;
   description: string;
-  contact: string | null;
-  pricing_url: string | null;
+  contact?: string | null;
+  pricing_url?: string | null;
   mint_url?: string | null;
   mint_urls?: readonly string[];
   version: string;
@@ -66,27 +66,20 @@ export interface Provider {
   content: string;
 }
 
-export interface ProviderWithHealth {
-  provider: Provider;
-  health: {
-    status_code: number;
-    endpoint: string;
-    json: {
-      name: string;
-      description: string;
-      version: string;
-      npub: string;
-      mints: string[];
-      http_url: string;
-      onion_url: string;
-      models: Model[];
-    };
-  };
-}
-
-export interface ProvidersResponse {
-  providers: ProviderWithHealth[];
-}
+interface ApiProviderListResponse { providers: Array<{
+  id: string;
+  pubkey: string;
+  created_at: number;
+  kind: number;
+  endpoint_url: string;
+  endpoint_urls?: string[];
+  name: string;
+  description: string;
+  mint_url?: string | null;
+  mint_urls?: string[];
+  version: string;
+  content: string;
+}> }
 
 // Initial state with empty data
 export let models: Model[] = [];
@@ -97,121 +90,149 @@ export let modelProvidersMap: Map<string, Provider[]> = new Map();
 // Fetch models and providers from the new API
 export async function fetchModels(): Promise<void> {
   try {
-    const response = await fetch(
-      "https://api.routstr.com/v1/providers/?include_json=true"
-    );
-
+    const response = await fetch("https://api.routstr.com/v1/providers/");
     if (!response.ok) {
       throw new Error(`Failed to fetch providers: ${response.status}`);
     }
+    const data: ApiProviderListResponse = await response.json();
+    const list = Array.isArray(data.providers) ? data.providers : [];
 
-    const data: ProvidersResponse = await response.json();
+    // staging filtering based on endpoints and name
+    const visible = list.filter((p) => {
+      const endpoints = (Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0)
+        ? p.endpoint_urls!
+        : [p.endpoint_url].filter(Boolean);
+      const nameOrTag = `${p.name || ''}`.toLowerCase();
+      const looksLikeStaging = nameOrTag.includes('staging');
+      return !shouldHideProvider(endpoints) && !looksLikeStaging;
+    });
 
-    // Filter out providers that don't have models in health.json
-    // and exclude any providers with staging endpoints
-    const activeProviders = data.providers
-      .filter(({ health }) =>
-        health.status_code === 200 &&
-        Array.isArray(health.json?.models) &&
-        health.json.models.length > 0
-      )
-      .filter(({ provider }) => {
-        const endpoints = provider.endpoint_urls || [];
-        const nameOrTag = `${provider.name || ''}`.toLowerCase();
-        const looksLikeStaging = nameOrTag.includes('staging');
-        return !shouldHideProvider(endpoints) && !looksLikeStaging;
-      });
+    const normalizeForFetch = (urlOrHost: string): string => {
+      if (!urlOrHost) return '';
+      const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
+      return hasProtocol ? urlOrHost : `https://${urlOrHost}`;
+    };
 
-    // Extract all models from all providers and map them to providers
+    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response> => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url, { ...options, signal: controller.signal });
+        return resp;
+      } finally {
+        clearTimeout(id);
+      }
+    };
+
     const allModels: Model[] = [];
     const allProviders: Provider[] = [];
     const newProviderModelMap = new Map<string, Model[]>();
     const newModelProvidersMap = new Map<string, Provider[]>();
-    const modelMap = new Map<string, Model>(); // To deduplicate models
+    const modelMap = new Map<string, Model>();
 
-    activeProviders.forEach(({ provider, health }) => {
-      // Normalize mint fields across API variants
-      const mintUrlsFromProvider = (provider as unknown as { mint_urls?: string[] }).mint_urls || [];
-      const mintUrlsFromHealth = Array.isArray(health?.json?.mints) ? (health!.json!.mints as string[]) : [];
-      const normalizedMintUrls = (mintUrlsFromProvider.length > 0 ? mintUrlsFromProvider : mintUrlsFromHealth).filter(
-        (u) => typeof u === "string" && u.length > 0
-      );
-      const singleMintUrlFromProvider = (provider as unknown as { mint_url?: string | null }).mint_url ?? null;
-      const normalizedMintUrl = singleMintUrlFromProvider ?? (normalizedMintUrls.length > 0 ? normalizedMintUrls[0] : null);
+    await Promise.all(
+      visible.map(async (p) => {
+        const nonStaging = filterStagingEndpoints(p.endpoint_urls || []);
+        const http = nonStaging.filter((u) => typeof u === 'string' && !u.includes('.onion'));
+        const tor = nonStaging.filter((u) => typeof u === 'string' && u.includes('.onion'));
+        const primary = (http[0] || p.endpoint_url || '').trim();
 
-      // Filter out staging endpoints from provider
-      const nonStagingEndpoints = filterStagingEndpoints(provider.endpoint_urls || []);
-      const primaryEndpoint = nonStagingEndpoints[0] || provider.endpoint_url || '';
+        // Normalize mint URLs
+        const mintUrls = Array.isArray(p.mint_urls) ? p.mint_urls.filter((u) => typeof u === 'string' && u.length > 0) : [];
+        const mintUrl = (p.mint_url ?? null) || (mintUrls.length > 0 ? mintUrls[0] : null);
 
-      const providerAugmented: Provider = {
-        ...provider,
-        endpoint_urls: nonStagingEndpoints,
-        endpoint_url: primaryEndpoint,
-        mint_urls: normalizedMintUrls,
-        mint_url: normalizedMintUrl,
-      } as Provider;
+        const providerAugmented: Provider = {
+          id: p.id,
+          pubkey: p.pubkey,
+          created_at: p.created_at,
+          kind: p.kind,
+          endpoint_url: primary || p.endpoint_url,
+          endpoint_urls: nonStaging,
+          name: p.name,
+          description: p.description,
+          contact: undefined,
+          pricing_url: undefined,
+          mint_url: mintUrl,
+          mint_urls: mintUrls,
+          version: p.version,
+          supported_models: [],
+          content: p.content,
+        };
 
-      allProviders.push(providerAugmented);
-      if (health.json?.models) {
-        // Deduplicate models by ID and ensure proper Model structure
-        health.json.models.forEach((rawModel) => {
-          const model: Model = {
-            id: rawModel.id,
-            name: rawModel.name,
-            created: rawModel.created,
-            description: rawModel.description ?? "",
-            context_length: rawModel.context_length ?? 0,
-            architecture: {
-              modality: rawModel.architecture?.modality ?? "",
-              input_modalities: rawModel.architecture?.input_modalities ?? [],
-              output_modalities: rawModel.architecture?.output_modalities ?? [],
-              tokenizer: rawModel.architecture?.tokenizer ?? "",
-              instruct_type: rawModel.architecture?.instruct_type ?? null,
-            },
-            pricing: {
-              prompt: rawModel.pricing?.prompt ?? 0,
-              completion: rawModel.pricing?.completion ?? 0,
-              request: rawModel.pricing?.request ?? 0,
-              image: rawModel.pricing?.image ?? 0,
-              web_search: rawModel.pricing?.web_search ?? 0,
-              internal_reasoning: rawModel.pricing?.internal_reasoning ?? 0,
-              max_cost: rawModel.pricing?.max_cost ?? 0,
-            },
-            sats_pricing: {
-              prompt: rawModel.sats_pricing?.prompt ?? 0,
-              completion: rawModel.sats_pricing?.completion ?? 0,
-              request: rawModel.sats_pricing?.request ?? 0,
-              image: rawModel.sats_pricing?.image ?? 0,
-              web_search: rawModel.sats_pricing?.web_search ?? 0,
-              internal_reasoning:
-                rawModel.sats_pricing?.internal_reasoning ?? 0,
-              max_cost: rawModel.sats_pricing?.max_cost ?? 0,
-            },
-            per_request_limits: rawModel.per_request_limits ?? null,
-            top_provider: {
-              context_length: rawModel.context_length ?? 0,
-              max_completion_tokens: null,
-              is_moderated: false,
-            },
-          };
+        allProviders.push(providerAugmented);
 
-          modelMap.set(model.id, model);
+        let providerModels: Model[] = [];
+        if (primary) {
+          try {
+            const base = normalizeForFetch(primary).replace(/\/$/, '');
+            const modelsUrl = `${base}/v1/models`;
+            const r = await fetchWithTimeout(modelsUrl, { headers: { 'accept': 'application/json' } }, 8000);
+            if (r.ok) {
+              const m = await r.json();
+              const arr: Array<any> = Array.isArray(m?.data) ? m.data : [];
+              providerModels = arr.map((rawModel) => {
+                const model: Model = {
+                  id: rawModel.id,
+                  name: rawModel.name,
+                  created: rawModel.created,
+                  description: rawModel.description ?? "",
+                  context_length: rawModel.context_length ?? 0,
+                  architecture: {
+                    modality: rawModel.architecture?.modality ?? "",
+                    input_modalities: rawModel.architecture?.input_modalities ?? [],
+                    output_modalities: rawModel.architecture?.output_modalities ?? [],
+                    tokenizer: rawModel.architecture?.tokenizer ?? "",
+                    instruct_type: rawModel.architecture?.instruct_type ?? null,
+                  },
+                  pricing: {
+                    prompt: rawModel.pricing?.prompt ?? 0,
+                    completion: rawModel.pricing?.completion ?? 0,
+                    request: rawModel.pricing?.request ?? 0,
+                    image: rawModel.pricing?.image ?? 0,
+                    web_search: rawModel.pricing?.web_search ?? 0,
+                    internal_reasoning: rawModel.pricing?.internal_reasoning ?? 0,
+                    max_cost: rawModel.pricing?.max_cost ?? 0,
+                  },
+                  sats_pricing: {
+                    prompt: rawModel.sats_pricing?.prompt ?? 0,
+                    completion: rawModel.sats_pricing?.completion ?? 0,
+                    request: rawModel.sats_pricing?.request ?? 0,
+                    image: rawModel.sats_pricing?.image ?? 0,
+                    web_search: rawModel.sats_pricing?.web_search ?? 0,
+                    internal_reasoning: rawModel.sats_pricing?.internal_reasoning ?? 0,
+                    max_cost: rawModel.sats_pricing?.max_cost ?? 0,
+                  },
+                  per_request_limits: rawModel.per_request_limits ?? null,
+                  top_provider: {
+                    context_length: rawModel.context_length ?? 0,
+                    max_completion_tokens: null,
+                    is_moderated: false,
+                  },
+                };
+                return model;
+              });
+            }
+          } catch {
+            // ignore per-provider errors
+          }
+        }
+
+        // Deduplicate and map
+        const existingModelsForProvider: Model[] = [];
+        providerModels.forEach((model) => {
+          const existing = modelMap.get(model.id);
+          if (!existing) {
+            modelMap.set(model.id, model);
+          }
+          existingModelsForProvider.push(modelMap.get(model.id)!);
           const existingProviders = newModelProvidersMap.get(model.id) || [];
           newModelProvidersMap.set(model.id, [...existingProviders, providerAugmented]);
         });
+        newProviderModelMap.set(p.id, existingModelsForProvider);
+      })
+    );
 
-        // Map models to this provider
-        const providerModels = health.json.models.map(
-          (rawModel) => modelMap.get(rawModel.id)!
-        );
-        newProviderModelMap.set(provider.id, providerModels);
-      }
-    });
-
-    // Convert deduplicated models map to array
     allModels.push(...Array.from(modelMap.values()));
-
-    // Update the global state
     models = allModels;
     providers = allProviders;
     providerModelMap = newProviderModelMap;
