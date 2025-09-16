@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReactMarkdown from "react-markdown";
@@ -85,20 +86,29 @@ export default function BlogPostPage() {
                       </a>
                     );
                   },
-                  img({ src, alt, ...props }) {
-                    // eslint-disable-next-line @next/next/no-img-element
+                  img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
                     return (
-                      <img src={src || ""} alt={alt || ""} className="rounded-lg border border-white/10" {...props} />
+                      <Image
+                        src={typeof src === 'string' ? src : ""}
+                        alt={typeof alt === 'string' ? alt : ""}
+                        width={typeof props.width === 'number' ? props.width : 800}
+                        height={typeof props.height === 'number' ? props.height : 600}
+                        className="rounded-lg border border-white/10"
+                      />
                     );
                   },
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  code({ inline, className, children, ...props }: any) {
+                  code({ inline, className, children, ...props }: React.HTMLAttributes<HTMLElement> & {
+                    inline?: boolean;
+                    className?: string;
+                    children?: React.ReactNode;
+                  }) {
                     const match = /language-(\w+)/.exec(className || "");
                     const codeText = String(children);
                     const isInline = typeof inline === "boolean" ? inline : !/[\r\n]/.test(codeText);
                     if (!isInline && match) {
                       return (
                         <SyntaxHighlighter
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           style={atomDark as any}
                           language={match ? match[1] : undefined}
                           PreTag="pre"

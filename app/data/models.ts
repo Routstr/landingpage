@@ -134,7 +134,6 @@ export async function fetchModels(): Promise<void> {
       visible.map(async (p) => {
         const nonStaging = filterStagingEndpoints(p.endpoint_urls || []);
         const http = nonStaging.filter((u) => typeof u === 'string' && !u.includes('.onion'));
-        const tor = nonStaging.filter((u) => typeof u === 'string' && u.includes('.onion'));
         const primary = (http[0] || p.endpoint_url || '').trim();
 
         // Normalize mint URLs
@@ -169,7 +168,40 @@ export async function fetchModels(): Promise<void> {
             const r = await fetchWithTimeout(modelsUrl, { headers: { 'accept': 'application/json' } }, 8000);
             if (r.ok) {
               const m = await r.json();
-              const arr: Array<any> = Array.isArray(m?.data) ? m.data : [];
+              const arr: Array<{
+                id: string;
+                name: string;
+                created: number;
+                description?: string;
+                context_length?: number;
+                architecture?: {
+                  modality?: string;
+                  input_modalities?: string[];
+                  output_modalities?: string[];
+                  tokenizer?: string;
+                  instruct_type?: string | null;
+                };
+                pricing?: {
+                  prompt?: number;
+                  completion?: number;
+                  request?: number;
+                  image?: number;
+                  web_search?: number;
+                  internal_reasoning?: number;
+                  max_cost?: number;
+                };
+                sats_pricing?: {
+                  prompt?: number;
+                  completion?: number;
+                  request?: number;
+                  image?: number;
+                  web_search?: number;
+                  internal_reasoning?: number;
+                  max_cost?: number;
+                };
+                per_request_limits?: PerRequestLimits | null;
+                [key: string]: unknown;
+              }> = Array.isArray(m?.data) ? m.data : [];
               providerModels = arr.map((rawModel) => {
                 const model: Model = {
                   id: rawModel.id,

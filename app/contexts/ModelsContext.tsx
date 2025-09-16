@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
-import { Model, Provider } from '@/app/data/models';
+import { Model, Provider, PerRequestLimits } from '@/app/data/models';
 import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter';
 
 interface ModelsState {
@@ -151,7 +151,40 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
               const r = await fetchWithTimeout(modelsUrl, { headers: { 'accept': 'application/json' } }, 8000);
               if (!r.ok) return;
               const payload = await r.json();
-              const arr: Array<any> = Array.isArray(payload?.data) ? payload.data : [];
+              const arr: Array<{
+                id: string;
+                name: string;
+                created: number;
+                description?: string;
+                context_length?: number;
+                architecture?: {
+                  modality?: string;
+                  input_modalities?: string[];
+                  output_modalities?: string[];
+                  tokenizer?: string;
+                  instruct_type?: string | null;
+                };
+                pricing?: {
+                  prompt?: number;
+                  completion?: number;
+                  request?: number;
+                  image?: number;
+                  web_search?: number;
+                  internal_reasoning?: number;
+                  max_cost?: number;
+                };
+                sats_pricing?: {
+                  prompt?: number;
+                  completion?: number;
+                  request?: number;
+                  image?: number;
+                  web_search?: number;
+                  internal_reasoning?: number;
+                  max_cost?: number;
+                };
+                per_request_limits?: unknown;
+                [key: string]: unknown;
+              }> = Array.isArray(payload?.data) ? payload.data : [];
               arr.forEach((raw) => {
                 const m: Model = {
                   id: raw.id,
@@ -184,7 +217,9 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
                     internal_reasoning: raw.sats_pricing?.internal_reasoning ?? 0,
                     max_cost: raw.sats_pricing?.max_cost ?? 0,
                   },
-                  per_request_limits: raw.per_request_limits ?? null,
+                  per_request_limits: (raw.per_request_limits && Object.keys(raw.per_request_limits).length > 0)
+                    ? raw.per_request_limits as PerRequestLimits
+                    : null,
                   top_provider: {
                     context_length: raw.context_length ?? 0,
                     max_completion_tokens: null,
