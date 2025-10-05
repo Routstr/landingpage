@@ -262,7 +262,7 @@ export default function ModelDetailPage() {
   })();
   const doCopy = async () => {
     try {
-      const tokenForCode = tokenInput && tokenInput.startsWith('cashu') ? tokenInput : 'cashu...';
+      const tokenForCode = (tokenInput ?? '').trim();
       let code = '';
       if (activeTab === 'curl') {
         code = `curl -X POST ${providerBaseUrl || 'https://api.routstr.com/v1'}/chat/completions \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${tokenForCode}" \\\n  -d '{\n    "model": "${model?.id}",\n    "messages": [\n      { "role": "user", "content": "Hello Nostr" }\n    ]\n  }'\n`;

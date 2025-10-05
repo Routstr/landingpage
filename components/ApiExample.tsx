@@ -7,7 +7,7 @@ import { getLocalCashuToken, setLocalCashuToken } from '@/utils/storageUtils';
 const exampleModelId = getExampleModelId();
 
 const buildCodeExamples = (token: string) => {
-  const tokenForCode = token && token.startsWith('cashu') ? token : 'cashuBpGFteCJodHRwczovL21p...';
+  const tokenForCode = (token ?? '').trim();
   return {
     curl: `curl -X POST https://api.routstr.com/v1/chat/completions \
   -H "Content-Type: application/json" \
