@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -30,7 +29,6 @@ const sortOptions = [
 ];
 
 export default function ModelsPage() {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'provider' | 'price'>('date');
   const [providers, setProviders] = useState<string[]>([]);
