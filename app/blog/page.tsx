@@ -43,14 +43,14 @@ export default function BlogIndexPage() {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <Header />
 
-      <section className="py-10 sm:py-14 bg-black">
-        <div className="w-full max-w-5xl mx-auto px-4">
+      <section className="pt-6 sm:pt-14 pb-10 sm:pb-14 bg-black">
+        <div className="w-full max-w-5xl mx-auto px-4 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left column: title + subtitle (sticky) */}
             <div className="md:col-span-1">
               <div className="md:sticky md:top-24">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Blog</h1>
-                <p className="text-sm sm:text-base text-gray-400">
+                <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">Blog</h1>
+                <p className="text-base sm:text-xl text-gray-400">
                   Updates, guides, and announcements from the Routstr team
                 </p>
               </div>
@@ -89,7 +89,7 @@ export default function BlogIndexPage() {
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1 min-w-0 flex flex-col gap-2">
-                            <h2 className="text-lg sm:text-xl font-bold text-white">{post.title}</h2>
+                            <h2 className="text-base sm:text-xl font-bold text-white">{post.title}</h2>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                               {post.date && (
                                 <span>{new Date(post.date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>

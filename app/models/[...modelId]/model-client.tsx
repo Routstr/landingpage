@@ -171,7 +171,7 @@ export default function ModelClientPage() {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Model Not Found</h1>
             <p className="text-xl text-gray-300 mb-6">The model you&apos;re looking for doesn&apos;t exist or is not available.</p>
-            <Link href="/models" className="text-white underline">View all available models</Link>
+            <Link href="/models" className="text-white underline">View all models</Link>
             <div className="mt-8 p-4 bg-gray-900 border border-white/10 rounded-md text-left text-xs overflow-auto max-w-xl mx-auto">
               <p>Looking for model with ID: {decodedModelId}</p>
               <p>Path segments: {decodedModelIdParts.join(' → ')}</p>

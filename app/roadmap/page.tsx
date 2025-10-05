@@ -77,11 +77,11 @@ export default function RoadmapPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="py-16 md:py-24 bg-black border-b border-white/5">
-        <div className="px-4 max-w-4xl mx-auto">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">Routstr Roadmap</h1>
-            <p className="text-xl text-gray-300 mb-8">
+      <section className="pt-8 sm:pt-16 md:pt-24 pb-16 md:pb-24 bg-black border-b border-white/5">
+        <div className="px-4 md:px-6 max-w-5xl mx-auto">
+          <div className="max-w-5xl mx-auto text-center">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">Routstr Roadmap</h1>
+            <p className="text-base sm:text-xl text-gray-300 mb-8">
               Our progressive journey to building a decentralized AI ecosystem
             </p>
             <div className="flex justify-center">
@@ -100,11 +100,11 @@ export default function RoadmapPage() {
       </section>
 
       {/* Full Roadmap Timeline */}
-      <section className="py-16 bg-black">
-        <div className="px-4 max-w-5xl mx-auto">
+      <section className="pt-8 sm:pt-16 pb-16 bg-black">
+        <div className="px-4 md:px-6 max-w-5xl mx-auto">
           <div className="max-w-5xl mx-auto">
             <div className="mb-16">
-              <h2 className="text-3xl font-bold text-white mb-8 pb-4 border-b border-white/10">Milestone Roadmap</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8 pb-4 border-b border-white/10">Milestone Roadmap</h2>
               
               <RoadmapTimeline 
                 items={roadmapItems} 

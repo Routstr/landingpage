@@ -248,7 +248,7 @@ export default function Home() {
 
       {/* Globe Visualization */}
       <section className="pb-8 sm:pb-12 bg-black">
-        <div className="container mx-auto px-4 relative group">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 relative group">
           <div className="relative max-w-[600px] mx-auto">
             <button
               type="button"
@@ -284,8 +284,8 @@ export default function Home() {
       {/* Testimonials Section removed temporarily */}
 
       {/* How It Works Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-black">
-        <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
+      <section className="pt-8 sm:pt-16 md:pt-20 pb-12 sm:pb-16 md:pb-20 bg-black">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
           <h2 className="text-xl sm:text-3xl font-bold text-center text-white mb-6 sm:mb-12">
             How It Works
           </h2>
@@ -638,8 +638,8 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-12 sm:py-16 bg-black/50">
-        <div className="container mx-auto px-4">
+      <section className="pt-8 sm:pt-16 pb-12 sm:pb-16 bg-black/50">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <h2
               className="text-xl sm:text-3xl font-bold text-white mb-4"
@@ -676,8 +676,8 @@ export default function Home() {
       </section>
 
       {/* API Example Section */}
-      <section className="py-20 bg-black border-t border-white/5">
-        <div className="container mx-auto px-4 max-w-4xl">
+      <section className="pt-12 sm:pt-20 pb-20 sm:pb-20 bg-black border-t border-white/5">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="mx-auto max-w-3xl text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
               Simple Integration
@@ -695,11 +695,11 @@ export default function Home() {
       </section>
 
       {/* Providers Browse Section */}
-      <section className="py-20 bg-black border-t border-white/5">
-        <div className="container mx-auto px-4 max-w-4xl">
+      <section className="pt-12 sm:pt-20 pb-20 sm:pb-20 bg-black border-t border-white/5">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="mx-auto max-w-3xl text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-              Browse Available Models
+              Browse Models
             </h2>
             <p className="text-sm sm:text-base text-gray-400">
               Access a wide range of AI models through independent providers
@@ -846,8 +846,8 @@ export default function Home() {
       />
 
       {/* Roadmap Section */}
-      <div className="py-20 bg-black border-t border-white/5">
-        <div className="container mx-auto px-4 max-w-4xl">
+      <div className="pt-12 sm:pt-20 pb-20 sm:pb-20 bg-black border-t border-white/5">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="mx-auto max-w-3xl text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
               Roadmap

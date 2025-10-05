@@ -264,20 +264,67 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 
   const findModel = (id: string): Model | undefined => {
     const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
-    const target = normalize(id);
+    const canonicalize = (s: string) => normalize(s).replace(/[\s._-]/g, '');
+    const parseProviderAndModel = (s: string) => {
+      const parts = normalize(s).split('/');
+      const providerSegment = parts.length > 1 ? parts[0] : '';
+      const modelSegment = parts.length > 1 ? parts.slice(1).join('/') : parts[0];
+      return { providerSegment, modelSegment };
+    };
+    const expandProviderAliases = (provider: string): readonly string[] => {
+      const p = canonicalize(provider);
+      if (!p) return [];
+      // Known aliases: "z-ai" often maps to Zhipu providers/IDs (glm family)
+      if (p === 'zai' || p === 'z-ai' || p.includes('zai')) {
+        return ['zai', 'z-ai', 'zhipu', 'zhipuai', 'zhipu-ai'].map(canonicalize);
+      }
+      return [p];
+    };
 
-    // Exact match
-    let foundModel = state.models.find(m => m.id === id);
-    if (foundModel) return foundModel;
+    const targetRaw = id;
+    const targetNormalized = normalize(targetRaw);
+    const targetCanonical = canonicalize(targetRaw);
 
-    // Case-insensitive / decoded match
-    foundModel = state.models.find(m => normalize(m.id) === target);
-    if (foundModel) return foundModel;
+    // 1) Exact match
+    let found = state.models.find((model) => model.id === targetRaw);
+    if (found) return found;
 
-    // Fallback: match last segment if unique
-    const targetLast = target.split('/').pop();
-    const candidates = state.models.filter(m => normalize(m.id).split('/').pop() === targetLast);
-    if (candidates.length === 1) return candidates[0];
+    // 2) Case-insensitive / decoded match
+    found = state.models.find((model) => normalize(model.id) === targetNormalized);
+    if (found) return found;
+
+    // 3) Canonical (punctuation-insensitive) full-ID match
+    found = state.models.find((model) => canonicalize(model.id) === targetCanonical);
+    if (found) return found;
+
+    // 4) Fuzzy match on last segment (handle dots vs dashes, etc.)
+    const { providerSegment: wantedProvider, modelSegment: wantedModel } = parseProviderAndModel(targetRaw);
+    const wantedLast = (wantedModel.split('/').pop() || '').trim();
+    const wantedLastCanonical = canonicalize(wantedLast);
+
+    const lastSegmentCandidates = state.models.filter((model) => {
+      const modelLast = normalize(model.id).split('/').pop() || '';
+      return canonicalize(modelLast) === wantedLastCanonical;
+    });
+    if (lastSegmentCandidates.length === 1) return lastSegmentCandidates[0];
+
+    // 5) If multiple candidates, prefer ones whose provider matches known aliases
+    if (lastSegmentCandidates.length > 1 && wantedProvider) {
+      const aliasSet = new Set(expandProviderAliases(wantedProvider));
+      const aliasMatches = lastSegmentCandidates.filter((model) => {
+        const providerOfModel = normalize(model.id).split('/')[0] || '';
+        return aliasSet.has(canonicalize(providerOfModel));
+      });
+      if (aliasMatches.length === 1) return aliasMatches[0];
+      if (aliasMatches.length > 1) return aliasMatches[0];
+    }
+
+    // 6) As a final fallback, if exactly one model matches by case-insensitive last segment
+    const ciLastMatches = state.models.filter((model) => {
+      const modelLast = normalize(model.id).split('/').pop() || '';
+      return modelLast === normalize(wantedLast);
+    });
+    if (ciLastMatches.length === 1) return ciLastMatches[0];
 
     return undefined;
   };

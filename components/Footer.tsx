@@ -33,10 +33,10 @@ export default function Footer() {
             <div className="lg:col-span-2 mb-2 lg:mb-0">
               <div className="flex items-center gap-2 lg:justify-start">
                 <Link href="/" className="flex items-center">
-                  <span className="text-xl font-bold text-white">Routstr</span>
+                  <span className="text-lg sm:text-xl font-bold text-white">Routstr</span>
                 </Link>
               </div>
-              <p className="mt-4 text-sm text-gray-400">Decentralized LLM routing marketplace</p>
+              <p className="mt-4 text-xs sm:text-sm text-gray-400">Decentralized LLM routing marketplace</p>
             </div>
 
             <div>

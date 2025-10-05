@@ -42,12 +42,12 @@ export default function BlogPostPage() {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <Header />
 
-      <section className="py-10 sm:py-12 bg-black">
-        <div className="w-full max-w-6xl mx-auto px-6">
-          <div className="max-w-3xl mx-auto">
+      <section className="pt-8 sm:pt-12 pb-10 sm:pb-12 bg-black">
+        <div className="w-full max-w-5xl mx-auto px-4 md:px-6">
+            <div className="max-w-3xl mx-auto">
             <button
               onClick={() => router.back()}
-              className="mb-6 text-sm text-gray-400 hover:text-white transition-colors"
+              className="mb-6 text-xs sm:text-sm text-gray-400 hover:text-white transition-colors"
               aria-label="Go back"
             >
               ← Back

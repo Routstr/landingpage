@@ -432,11 +432,11 @@ const TopUpPage = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto px-4 py-8 max-w-[42rem]">
+        <div className="min-h-screen bg-black text-white">
+        <div className="mx-auto px-4 md:px-6 py-8 max-w-5xl">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">Top-Up Your API Key</h1>
-            <p className="text-gray-300 text-lg">
+            <h1 className="text-2xl sm:text-4xl font-bold mb-4">Top-Up Your API Key</h1>
+            <p className="text-gray-300 text-base sm:text-lg">
               Add funds to your Routstr API key using Cashu tokens or Lightning payments
             </p>
           </div>

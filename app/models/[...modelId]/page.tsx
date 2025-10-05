@@ -211,8 +211,8 @@ export default function ModelDetailPage() {
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Error Loading Models</h1>
-            <p className="text-xl text-gray-300 mb-6">{error}</p>
+            <h1 className="text-2xl sm:text-4xl font-bold mb-4">Error Loading Models</h1>
+            <p className="text-base sm:text-xl text-gray-300 mb-6">{error}</p>
             <Link href="/models" className="text-white underline">Back to models</Link>
           </div>
         </div>
@@ -227,9 +227,9 @@ export default function ModelDetailPage() {
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Model Not Found</h1>
-            <p className="text-xl text-gray-300 mb-6">The model you&apos;re looking for doesn&apos;t exist or is not available.</p>
-            <Link href="/models" className="text-white underline">View all available models</Link>
+            <h1 className="text-2xl sm:text-4xl font-bold mb-4">Model Not Found</h1>
+            <p className="text-base sm:text-xl text-gray-300 mb-6">The model you&apos;re looking for doesn&apos;t exist or is not available.</p>
+            <Link href="/models" className="text-white underline">View all models</Link>
 
             <div className="mt-8 p-4 bg-gray-900 border border-white/10 rounded-md text-left text-xs overflow-auto max-w-xl mx-auto">
               <p>Looking for model with ID: {decodedModelId}</p>
@@ -343,8 +343,8 @@ print(completion.choices[0].message.content)`
       <Header />
 
       <section className="py-12 bg-black">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
+          <div className="max-w-5xl mx-auto">
             <Link href="/models" className="text-gray-300 hover:text-white flex items-center gap-2 mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -356,8 +356,8 @@ print(completion.choices[0].message.content)`
             <div className="mb-6 md:mb-10 bg-gradient-to-r from-black to-zinc-900 rounded-xl p-4 md:p-8 border border-zinc-800">
               <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-6 mb-3 md:mb-6">
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold mb-1 md:mb-2 text-white">{displayName}</h1>
-                  <p className="text-lg md:text-xl text-gray-300 mb-2 md:mb-4">by {provider}</p>
+                  <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2 text-white">{displayName}</h1>
+                  <p className="text-base md:text-xl text-gray-300 mb-2 md:mb-4">by {provider}</p>
                 </div>
                 <a
                   href={`https://chat.routstr.com/?model=${encodeURIComponent(model.id)}`}

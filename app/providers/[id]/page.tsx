@@ -170,9 +170,9 @@ export default function ProviderPage() {
     <div className="flex min-h-screen flex-col bg-black text-white">
       <Header />
       <main className="flex-grow">
-        <div className="py-12 border-b border-white/5">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
+        <div className="pt-8 sm:pt-12 pb-12 border-b border-white/5">
+          <div className="max-w-5xl mx-auto px-4 md:px-6">
+            <div className="max-w-5xl mx-auto">
               <div className="flex items-center mb-6">
                 <Link
                   href="/providers"
@@ -203,10 +203,10 @@ export default function ProviderPage() {
                 </>
               ) : (
                 <>
-                  <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
+                  <h1 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">
                     {provider?.name}
                   </h1>
-                  <p className="text-lg sm:text-xl text-gray-300 mb-6 sm:mb-8">
+                  <p className="text-base sm:text-xl text-gray-300 mb-6 sm:mb-8">
                     {provider?.description}
                   </p>
                 </>
@@ -259,10 +259,10 @@ export default function ProviderPage() {
           </div>
         </div>
 
-        <div className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-2xl font-bold mb-6">Available Models</h2>
+        <div className="pt-8 sm:pt-12 pb-12">
+          <div className="max-w-5xl mx-auto px-4 md:px-6">
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-xl sm:text-2xl font-bold mb-6">Models</h2>
 
               <div className="border border-white/10 rounded-lg overflow-x-auto">
                 <table className="w-full min-w-[640px]">

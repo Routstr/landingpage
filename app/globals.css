@@ -140,7 +140,7 @@ body {
 /* Typography tweaks for markdown */
 @layer utilities {
   .prose-custom {
-    @apply prose prose-invert prose-headings:text-white prose-p:text-gray-300 prose-strong:text-white prose-em:text-gray-200 prose-blockquote:border-white/20 prose-hr:border-white/10 prose-a:text-white hover:prose-a:underline prose-a:underline-offset-4 prose-code:text-white prose-pre:bg-black prose-pre:border prose-pre:border-white/10 prose-img:rounded-lg prose-img:border prose-img:border-white/10 max-w-3xl;
+    @apply prose prose-sm sm:prose-base prose-invert prose-headings:text-white prose-p:text-gray-300 prose-strong:text-white prose-em:text-gray-200 prose-blockquote:border-white/20 prose-hr:border-white/10 prose-a:text-white hover:prose-a:underline prose-a:underline-offset-4 prose-code:text-white prose-pre:bg-black prose-pre:border prose-pre:border-white/10 prose-img:rounded-lg prose-img:border prose-img:border-white/10 max-w-3xl;
   }
 
   /* Two-line text clamp with ellipsis */

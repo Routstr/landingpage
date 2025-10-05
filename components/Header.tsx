@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
 export default function Header() {
@@ -12,6 +12,17 @@ export default function Header() {
   };
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  // Prevent background scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = previousOverflow;
+      };
+    }
+  }, [mobileMenuOpen]);
 
   const panelVariants = {
     hidden: { opacity: 0, y: -12 },
@@ -46,7 +57,7 @@ export default function Header() {
       <div className="flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">
-            <span className="text-xl font-bold text-white">Routstr</span>
+            <span className="text-lg sm:text-xl font-bold text-white">Routstr</span>
           </Link>
           <nav className="hidden md:flex">
             <ul className="flex space-x-6">
@@ -142,7 +153,7 @@ export default function Header() {
             animate="show"
             exit="exit"
             variants={panelVariants}
-            className="fixed inset-0 z-50 md:hidden bg-black/95 px-6 py-6"
+            className="fixed inset-0 z-50 md:hidden bg-black px-6 py-6 h-[100dvh] w-screen overflow-y-auto"
             role="dialog"
             aria-modal="true"
           >

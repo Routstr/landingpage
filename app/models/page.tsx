@@ -94,12 +94,12 @@ export default function ModelsPage() {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <Header />
 
-      <section className="py-16 bg-black">
-        <div className="px-4 max-w-4xl mx-auto">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold mb-6">Available Models</h1>
-            <p className="text-xl text-gray-400 mb-10">
-              Browse and compare {models.length} AI models available
+      <section className="pt-8 sm:pt-16 pb-16 bg-black">
+        <div className="px-4 md:px-6 max-w-5xl mx-auto">
+          <div className="max-w-5xl mx-auto">
+            <h1 className="text-2xl sm:text-4xl font-bold mb-6">Models</h1>
+            <p className="text-base sm:text-xl text-gray-400 mb-10">
+              Browse and compare {models.length} AI models
             </p>
 
             {isLoading ? (
@@ -254,51 +254,22 @@ export default function ModelsPage() {
                         >
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                              <h3 className="text-xl font-bold text-white">{modelName}</h3>
-                              {/* Meta row removed per request (USD prices and duplicate context). */}
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                  {model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat input
-                                </span>
-                                <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                  {model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat output
-                                </span>
-                                <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                  {model.context_length.toLocaleString()} tokens
-                                </span>
-                              </div>
-                              {/* Provider shown at the bottom instead */}
-                              <div className="mt-3">
-                                <span className="text-sm text-gray-500">by</span>{' '}
-                                {primaryProvider ? (
-                                  <span
-                                    role="link"
-                                    tabIndex={0}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      router.push(`/providers/${encodeURIComponent(primaryProvider.id)}`);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        router.push(`/providers/${encodeURIComponent(primaryProvider.id)}`);
-                                      }
-                                    }}
-                                    className="text-sm text-gray-300 hover:text-white underline-offset-2 hover:underline cursor-pointer"
-                                    aria-label={`View ${primaryProvider.name} provider`}
-                                  >
-                                    {primaryProvider.name}
-                                  </span>
-                                ) : (
-                                  <span className="text-sm text-gray-500">{provider}</span>
-                                )}
+                              <h3 className="text-xl font-bold text-white">{model.name || modelName}</h3>
+                              {model.description ? (
+                                <p className="mt-1 text-sm text-gray-400 line-clamp-2">{model.description}</p>
+                              ) : null}
+                              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                <span className="whitespace-nowrap">by <span className="text-gray-300">{primaryProvider ? primaryProvider.name : provider}</span></span>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="whitespace-nowrap">{model.context_length >= 1000 ? `${Math.round(model.context_length / 1000)}K` : model.context_length.toLocaleString()} context</span>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="whitespace-nowrap">{model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat input</span>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="whitespace-nowrap">{model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat output</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-400">View details</span>
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-white/70">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                               </svg>
                             </div>
