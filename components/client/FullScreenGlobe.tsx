@@ -304,6 +304,7 @@ export default function FullScreenGlobe() {
   const [selectedPos, setSelectedPos] = useState<{ x: number; y: number } | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const clickHandledRef = useRef(false);
+  const isPointerInsideRef = useRef(false);
 
   useEffect(() => {
     const raf: number | null = null;
@@ -384,6 +385,50 @@ export default function FullScreenGlobe() {
     controls.update();
   }, [Globe]);
 
+  // Pause rotation only when cursor is over the actual globe (spherical area), resume otherwise
+  useEffect(() => {
+    if (!globeRef.current) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const renderer: any = globeRef.current.renderer?.();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const controls: any = globeRef.current.controls?.();
+    const canvasEl: HTMLCanvasElement | undefined = renderer?.domElement as HTMLCanvasElement | undefined;
+    if (!canvasEl || !controls) return;
+
+    const handleMove = (e: MouseEvent) => {
+      const rect = canvasEl.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const r = Math.min(rect.width, rect.height) / 2;
+      const inside = dx * dx + dy * dy <= r * r;
+      if (inside !== isPointerInsideRef.current) {
+        isPointerInsideRef.current = inside;
+        try {
+          // Pause when inside the globe circle; resume when outside (unless a provider is selected)
+          controls.autoRotate = inside ? false : !selectedProvider;
+          // Do NOT call controls.update() on every mousemove to avoid visible acceleration
+        } catch {}
+      }
+    };
+    const handleLeave = () => {
+      try {
+        // Resume when leaving the canvas entirely (unless a provider is selected)
+        isPointerInsideRef.current = false;
+        controls.autoRotate = !selectedProvider;
+        // Single update is unnecessary; render loop will handle it. Avoid extra updates to prevent jitter.
+      } catch {}
+    };
+
+    canvasEl.addEventListener("mousemove", handleMove);
+    canvasEl.addEventListener("mouseleave", handleLeave);
+    return () => {
+      canvasEl.removeEventListener("mousemove", handleMove);
+      canvasEl.removeEventListener("mouseleave", handleLeave);
+    };
+  }, [Globe, selectedProvider]);
+
   const globeMaterial = useMemo(
     () => new THREE.MeshBasicMaterial({ color: 0xffffff }),
     []
@@ -430,7 +475,7 @@ export default function FullScreenGlobe() {
             if (p) {
               controls.autoRotate = false;
               controls.update?.();
-            } else if (!selectedProvider) {
+            } else if (!selectedProvider && !isPointerInsideRef.current) {
               controls.autoRotate = true;
               controls.update?.();
             }
@@ -461,7 +506,7 @@ export default function FullScreenGlobe() {
           try {
             const controls = globeRef.current?.controls?.();
             if (controls) {
-              controls.autoRotate = true;
+              controls.autoRotate = !isPointerInsideRef.current;
               controls.update?.();
             }
           } catch {}
