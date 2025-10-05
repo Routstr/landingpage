@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ChevronsUpDown as ChevronsUpDownIcon, Check as CheckIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ModelReviews } from '@/components/ModelReviews';
+import { getLocalCashuToken, setLocalCashuToken } from '@/utils/storageUtils';
 // import ProviderPage from '@/app/providers/[id]/page';
 // ProvidersTable removed
 // import { UnfoldHorizontal } from 'lucide-react';
@@ -46,8 +47,26 @@ export default function ModelDetailPage() {
   const [activeTab, setActiveTab] = useState<CodeLanguage>('curl');
   const [model, setModel] = useState<Model | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [tokenInput, setTokenInput] = useState<string>('');
+  const [copied, setCopied] = useState<boolean>(false);
 
-  // Removed endpoints table preparation
+  // Compute storage base URL from current provider selection (fallback to default)
+  const storageBaseUrl = (() => {
+    const selected = providersForModel.find((p) => p.id === selectedProviderId) || providersForModel[0];
+    const base = selected?.endpoint_url || '';
+    if (!base) return 'https://api.routstr.com';
+    return base.replace(/\/v1$/, '');
+  })();
+
+  // Always call this hook (no conditional returns before), but no-op if base is empty
+  useEffect(() => {
+    try {
+      const existing = getLocalCashuToken(storageBaseUrl) || '';
+      setTokenInput(existing);
+    } catch (e) {
+      // no-op
+    }
+  }, [storageBaseUrl]);
 
   useEffect(() => {
     async function loadModelData() {
@@ -242,6 +261,22 @@ export default function ModelDetailPage() {
     if (!base) return '';
     return base.endsWith('/v1') ? base : `${base.replace(/\/$/, '')}/v1`;
   })();
+  const doCopy = async () => {
+    try {
+      const tokenForCode = tokenInput && tokenInput.startsWith('cashu') ? tokenInput : 'cashu...';
+      let code = '';
+      if (activeTab === 'curl') {
+        code = `curl -X POST ${providerBaseUrl || 'https://api.routstr.com/v1'}/chat/completions \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${tokenForCode}" \\\n  -d '{\n    "model": "${model?.id}",\n    "messages": [\n      { "role": "user", "content": "Hello Nostr" }\n    ]\n  }'\n`;
+      } else if (activeTab === 'javascript') {
+        code = `import OpenAI from 'openai';\n\nconst openai = new OpenAI({\n  baseURL: '${providerBaseUrl || 'https://api.routstr.com/v1'}',\n  apiKey: '${tokenForCode}'\n});\n\nasync function main() {\n  const completion = await openai.chat.completions.create({\n    model: '${model?.id}',\n    messages: [\n      { role: 'user', content: 'Hello Nostr' }\n    ]\n  });\n  console.log(completion.choices[0].message);\n}\n\nmain();\n`;
+      } else {
+        code = `from openai import OpenAI\n\nclient = OpenAI(\n    base_url="${providerBaseUrl || 'https://api.routstr.com/v1'}",\n    api_key="${tokenForCode}"\n)\n\ncompletion = client.chat.completions.create(\n    model="${model?.id}",\n    messages=[\n        {"role": "user", "content": "Hello Nostr"}\n    ]\n)\nprint(completion.choices[0].message.content)\n`;
+      }
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {}
+  };
   const displayName = getModelNameWithoutProvider(model.name);
 
   // API code examples for this specific model
@@ -465,8 +500,7 @@ print(completion.choices[0].message.content)`
               </table>
             </Card>
 
-            {/* Pricing Section */
-            }
+            {/* Pricing Section */}
             <Card className="bg-black/50 border border-white/10 p-6 mb-10">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h2 className="text-xl font-bold text-white">Pricing Information</h2>
@@ -612,22 +646,110 @@ print(completion.choices[0].message.content)`
                 ))}
               </div>
 
-              {/* Code example with syntax highlighting */}
-              <div className="bg-black/70 rounded-lg p-3 sm:p-4 border border-white/10 overflow-x-auto">
-                <SyntaxHighlighter
-                  language={syntaxMap[activeTab]}
-                  style={customTheme}
-                  customStyle={{
-                    background: 'transparent',
-                    lineHeight: '1.5',
-                    margin: 0
-                  }}
-                  showLineNumbers={false}
-                  wrapLines={true}
-                  wrapLongLines={true}
+              {/* Code example with inline token inputs and copy */}
+              <div className="bg-black/70 rounded-lg p-3 sm:p-4 border border-white/10 overflow-x-auto relative group" onClick={doCopy}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); doCopy(); }}
+                  className="absolute top-2 right-2 inline-flex items-center gap-1 rounded bg-white/10 border border-white/10 px-2 py-1 text-[10px] sm:text-xs text-white hover:bg-white/20"
+                  aria-label="Copy code"
                 >
-                  {codeExamples[activeTab]}
-                </SyntaxHighlighter>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+
+                {activeTab === 'curl' ? (
+                  <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
+                    <code>
+                      <span className="text-[#61afef]">curl</span>{' -X POST '}
+                      <span className="text-[#61afef]">{providerBaseUrl || 'https://api.routstr.com/v1'}/chat/completions</span>{' \\\n'}
+                      <span className="text-[#abb2bf]">{'  -H '}</span>
+                      <span className="text-[#98c379]">{'"Content-Type: application/json"'}</span>{' \\\n'}
+                      <span className="text-[#abb2bf]">{'  -H '}</span>
+                      <span className="text-[#98c379]">{'"Authorization: Bearer '}</span>
+                      <input
+                        value={tokenInput}
+                        onChange={(e) => setTokenInput(e.target.value)}
+                        onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || '')}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        placeholder="cashu..."
+                        className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      />
+                      <span className="text-[#98c379]">{'"'}</span>{' \\\n'}
+                      {'  -d '}<span className="text-[#98c379]">{'\''}</span>{'{' }<span className="text-[#98c379]">{''}</span>{'}'}{'\n'}
+                      {'    "model": "'}<span className="text-[#98c379]">{model.id}</span>{'",'}{'\n'}
+                      {'    "messages": ['}{'\n'}
+                      {'      { "role": "user", "content": "'}<span className="text-[#98c379]">{'Hello Nostr'}</span>{'" }'}{'\n'}
+                      {'    ]'}{'\n'}
+                      {'  }'}<span className="text-[#98c379]">{'\''}</span>{'\n'}
+                    </code>
+                  </pre>
+                ) : activeTab === 'javascript' ? (
+                  <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
+                    <code>
+                      <span className="text-[#61afef]">import</span>{' '}<span className="text-white">OpenAI</span>{' '}<span className="text-[#61afef]">from</span>{' '}<span className="text-[#98c379]">{'\'openai\''}</span><span className="text-[#abb2bf]">;</span>{'\n\n'}
+
+                      <span className="text-[#61afef]">const</span>{' '}<span className="text-white">openai</span>{' '}<span className="text-[#abb2bf]">=</span>{' '}<span className="text-[#61afef]">new</span>{' '}<span className="text-white">OpenAI</span><span className="text-[#abb2bf]">({'\n'}</span>
+                      {'  '}<span className="text-[#e5c07b]">baseURL</span><span className="text-[#abb2bf]">: </span><span className="text-[#98c379]">{'\''}{providerBaseUrl || 'https://api.routstr.com/v1'}{'\''}</span><span className="text-[#abb2bf]">,{"\n"}</span>
+                      {'  '}<span className="text-[#e5c07b]">apiKey</span><span className="text-[#abb2bf]">: </span><span className="text-[#98c379]">{'\''}</span>
+                      <input
+                        value={tokenInput}
+                        onChange={(e) => setTokenInput(e.target.value)}
+                        onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || '')}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        placeholder="cashu..."
+                        className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      />
+                      <span className="text-[#98c379]">{'\''}</span>{'\n'}
+                      <span className="text-[#abb2bf]">{'});\n\n'}</span>
+
+                      <span className="text-[#61afef]">async</span>{' '}<span className="text-[#61afef]">function</span>{' '}<span className="text-white">main</span><span className="text-[#abb2bf]">(){'\n'}</span>
+                      {'  '}<span className="text-[#61afef]">const</span>{' '}<span className="text-white">completion</span>{' '}<span className="text-[#abb2bf]">=</span>{' '}<span className="text-[#61afef]">await</span>{' '}<span className="text-white">openai</span><span className="text-[#abb2bf]">.chat.completions.create(</span><span className="text-[#abb2bf]">{'{'}</span>{'\n'}
+                      {'    '}<span className="text-[#e5c07b]">model</span><span className="text-[#abb2bf]">: </span><span className="text-[#98c379]">{'\''}</span><span className="text-[#98c379]">{model.id}</span><span className="text-[#98c379]">{'\''}</span><span className="text-[#abb2bf]">,{'\n'}</span>
+                      {'    '}<span className="text-[#e5c07b]">messages</span><span className="text-[#abb2bf]">: [</span>{'\n'}
+                      {'      '}<span className="text-[#abb2bf]">{'{ '}</span><span className="text-[#e5c07b]">role</span><span className="text-[#abb2bf]">: </span><span className="text-[#98c379]">{'\'user\''}</span><span className="text-[#abb2bf]">, </span><span className="text-[#e5c07b]">content</span><span className="text-[#abb2bf]">: </span><span className="text-[#98c379]">{'\'Hello Nostr\''}</span><span className="text-[#abb2bf]">{' }\n'}</span>
+                      {'    '}<span className="text-[#abb2bf]">]</span>{'\n'}
+                      <span className="text-[#abb2bf]">  {'});\n'}</span>
+                      {'  '}<span className="text-white">console</span><span className="text-[#abb2bf]">.log(</span><span className="text-white">completion</span><span className="text-[#abb2bf]">.choices[</span><span className="text-[#c678dd]">0</span><span className="text-[#abb2bf]">].message);</span>{'\n'}
+                      <span className="text-[#abb2bf]">{'}\n\n'}</span>
+                      <span className="text-white">main</span><span className="text-[#abb2bf]">();</span>
+                    </code>
+                  </pre>
+                ) : (
+                  <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
+                    <code>
+                      <span className="text-[#61afef]">from</span>{' '}<span className="text-white">openai</span>{' '}<span className="text-[#61afef]">import</span>{' '}<span className="text-white">OpenAI</span>{'\n\n'}
+
+                      <span className="text-white">client</span>{' '}<span className="text-[#abb2bf]">=</span>{' '}<span className="text-white">OpenAI</span><span className="text-[#abb2bf]">(</span>{'\n'}
+                      {'    '}<span className="text-[#e5c07b]">base_url</span><span className="text-[#abb2bf]">=</span><span className="text-[#98c379]">{'"'}{providerBaseUrl || 'https://api.routstr.com/v1'}{'"'}</span><span className="text-[#abb2bf]">,{'\n'}</span>
+                      {'    '}<span className="text-[#e5c07b]">api_key</span><span className="text-[#abb2bf]">=</span><span className="text-[#98c379]">{'"'}</span>
+                      <input
+                        value={tokenInput}
+                        onChange={(e) => setTokenInput(e.target.value)}
+                        onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || '')}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        placeholder="cashu..."
+                        className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      />
+                      <span className="text-[#98c379]">{'"'}</span>{'\n'}
+                      <span className="text-[#abb2bf]">){'\n\n'}</span>
+
+                      <span className="text-white">completion</span>{' '}<span className="text-[#abb2bf]">=</span>{' '}<span className="text-white">client</span><span className="text-[#abb2bf]">.chat.completions.create(</span>{'\n'}
+                      {'    '}<span className="text-[#e5c07b]">model</span><span className="text-[#abb2bf]">=</span><span className="text-[#98c379]">{'"'}</span><span className="text-[#98c079]">{model.id}</span><span className="text-[#98c379]">{'"'}</span><span className="text-[#abb2bf]">,{'\n'}</span>
+                      {'    '}<span className="text-[#e5c07b]">messages</span><span className="text-[#abb2bf]">=[</span>{'\n'}
+                      {'        '}<span className="text-[#abb2bf]">{'{ '}</span><span className="text-[#98c379]">{"role"}</span><span className="text-[#abb2bf]">: </span><span className="text-[#98c379]">{"user"}</span><span className="text-[#abb2bf]">, </span><span className="text-[#98c379]">{"content"}</span><span className="text-[#abb2bf]">: </span><span className="text-[#98c379]">{"Hello Nostr"}</span><span className="text-[#abb2bf]">{' }\n'}</span>
+                      {'    '}<span className="text-[#abb2bf]">]</span>{'\n'}
+                      <span className="text-[#abb2bf]">){'\n'}</span>
+                      <span className="text-[#61afef]">print</span><span className="text-[#abb2bf]">(</span><span className="text-white">completion</span><span className="text-[#abb2bf]">.choices[</span><span className="text-[#c678dd]">0</span><span className="text-[#abb2bf]">].message.content)</span>
+                    </code>
+                  </pre>
+                )}
               </div>
 
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
