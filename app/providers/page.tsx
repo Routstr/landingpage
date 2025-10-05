@@ -35,11 +35,11 @@ export default function ProvidersPage() {
 
   const sortedItems = useMemo(() => {
     if (!items || items.length === 0) return [] as ProviderSummary[];
-    const getMinPromptSats = (providerId: string) => {
+    const getModelCount = (providerId: string) => {
       const models = getModelsByProvider(providerId);
-      return models.length > 0 ? (models[0].sats_pricing?.prompt ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+      return models.length;
     };
-    return [...items].sort((a, b) => getMinPromptSats(a.id) - getMinPromptSats(b.id));
+    return [...items].sort((a, b) => getModelCount(b.id) - getModelCount(a.id));
   }, [items]);
 
   return (
