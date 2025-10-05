@@ -86,6 +86,8 @@ export let models: Model[] = [];
 export let providers: Provider[] = [];
 export let providerModelMap: Map<string, Model[]> = new Map();
 export let modelProvidersMap: Map<string, Provider[]> = new Map();
+// Keep provider-specific model entries to compute cheapest providers per model
+export let modelProviderEntries: Map<string, Array<{ provider: Provider; model: Model }>> = new Map();
 
 // Fetch models and providers from the new API
 export async function fetchModels(): Promise<void> {
@@ -128,6 +130,7 @@ export async function fetchModels(): Promise<void> {
     const allProviders: Provider[] = [];
     const newProviderModelMap = new Map<string, Model[]>();
     const newModelProvidersMap = new Map<string, Provider[]>();
+    const newModelProviderEntries = new Map<string, Array<{ provider: Provider; model: Model }>>();
     const modelMap = new Map<string, Model>();
 
     await Promise.all(
@@ -259,6 +262,8 @@ export async function fetchModels(): Promise<void> {
           existingModelsForProvider.push(modelMap.get(model.id)!);
           const existingProviders = newModelProvidersMap.get(model.id) || [];
           newModelProvidersMap.set(model.id, [...existingProviders, providerAugmented]);
+          const existingEntries = newModelProviderEntries.get(model.id) || [];
+          newModelProviderEntries.set(model.id, [...existingEntries, { provider: providerAugmented, model }]);
         });
         newProviderModelMap.set(p.id, existingModelsForProvider);
       })
@@ -269,6 +274,7 @@ export async function fetchModels(): Promise<void> {
     providers = allProviders;
     providerModelMap = newProviderModelMap;
     modelProvidersMap = newModelProvidersMap;
+    modelProviderEntries = newModelProviderEntries;
     return;
   } catch (error) {
     console.error("Error fetching models and providers:", error);
@@ -314,6 +320,16 @@ export function formatSatsPrice(model: Model): string {
 export function getPrimaryProviderForModel(
   modelId: string
 ): Provider | undefined {
+  // Choose cheapest provider (by sats_pricing.prompt) if available
+  const entries = modelProviderEntries.get(modelId);
+  if (entries && entries.length > 0) {
+    const cheapest = [...entries].sort((a, b) => {
+      const aPrice = a.model.sats_pricing?.prompt ?? 0;
+      const bPrice = b.model.sats_pricing?.prompt ?? 0;
+      return aPrice - bPrice;
+    })[0];
+    return cheapest?.provider;
+  }
   const providersForModel = modelProvidersMap.get(modelId);
   return providersForModel && providersForModel.length > 0
     ? providersForModel[0]
@@ -418,5 +434,7 @@ export function getProviderFeatures(provider: Provider): string[] {
 // Get models for a specific provider
 export function getModelsByProvider(providerId: string): Model[] {
   // Use the provider-model mapping we built during fetch
-  return providerModelMap.get(providerId) || [];
+  // Sort cheapest first (by sats_pricing.prompt)
+  const models = providerModelMap.get(providerId) || [];
+  return [...models].sort((a, b) => (a.sats_pricing?.prompt ?? 0) - (b.sats_pricing?.prompt ?? 0));
 }

@@ -24,7 +24,9 @@ export default function ProvidersTable({ endpoints }: ProvidersTableProps) {
     input: false,
     output: false
   });
-  const visibleEndpoints = isExpanded ? endpoints : endpoints.slice(0, 6);
+  // Sort cheapest first by input_cost (lower sats per token means higher tokens/sat, but input_cost is in sats/token equivalent; keep consistent with other parts: lower cost is cheaper)
+  const sorted = [...endpoints].sort((a, b) => Number(a.input_cost) - Number(b.input_cost));
+  const visibleEndpoints = isExpanded ? sorted : sorted.slice(0, 6);
 
   return (
       <div className="flex flex-col bg-black text-white">

@@ -36,7 +36,7 @@ export default function ProviderPage() {
   const [sort, setSort] = useState<{
     key: "name" | "price" | "context" | "created";
     direction: "asc" | "desc";
-  }>({ key: "name", direction: "asc" });
+  }>({ key: "price", direction: "asc" });
 
   function requestSort(nextKey: "name" | "price" | "context" | "created") {
     setSort((prev) => {

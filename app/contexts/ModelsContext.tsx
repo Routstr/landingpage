@@ -7,6 +7,8 @@ import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter
 interface ModelsState {
   models: Model[];
   providerMap: Map<string, Provider[]>;
+  // For each model id, keep provider-specific model entries so we can access provider-specific pricing
+  modelProviderEntries: Map<string, Array<{ provider: Provider; model: Model }>>;
   loading: boolean;
   error: string | null;
   lastFetched: number | null;
@@ -14,13 +16,14 @@ interface ModelsState {
 
 type ModelsAction =
   | { type: 'FETCH_START' }
-  | { type: 'FETCH_SUCCESS'; payload: { models: Model[]; providerMap: Map<string, Provider[]> } }
+  | { type: 'FETCH_SUCCESS'; payload: { models: Model[]; providerMap: Map<string, Provider[]>; modelProviderEntries: Map<string, Array<{ provider: Provider; model: Model }>> } }
   | { type: 'FETCH_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' };
 
 const initialState: ModelsState = {
   models: [],
   providerMap: new Map<string, Provider[]>(),
+  modelProviderEntries: new Map<string, Array<{ provider: Provider; model: Model }>>(),
   loading: false,
   error: null,
   lastFetched: null,
@@ -36,6 +39,7 @@ function modelsReducer(state: ModelsState, action: ModelsAction): ModelsState {
         loading: false,
         models: action.payload.models,
         providerMap: action.payload.providerMap,
+        modelProviderEntries: action.payload.modelProviderEntries,
         lastFetched: Date.now(),
         error: null,
       };
@@ -53,6 +57,8 @@ interface ModelsContextType extends ModelsState {
   clearError: () => void;
   findModel: (id: string) => Model | undefined;
   getProvidersForModel: (id: string) => Provider[];
+  // Returns providers sorted by cheapest pricing for a given model
+  getProvidersForModelCheapestFirst: (id: string) => Provider[];
 }
 
 const ModelsContext = createContext<ModelsContextType | undefined>(undefined);
@@ -110,6 +116,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       // Assemble models by querying each provider's /v1/models
       const modelMap = new Map<string, Model>();
       const providerMap = new Map<string, Provider[]>();
+  const modelProviderEntries = new Map<string, Array<{ provider: Provider; model: Model }>>();
 
       await Promise.all(
         list
@@ -230,6 +237,8 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
                 if (!modelMap.has(m.id)) modelMap.set(m.id, m);
                 const existing = providerMap.get(m.id) || [];
                 providerMap.set(m.id, [...existing, providerObj]);
+                const existingEntries = modelProviderEntries.get(m.id) || [];
+                modelProviderEntries.set(m.id, [...existingEntries, { provider: providerObj, model: m }]);
               });
             } catch {
               // ignore per-provider errors
@@ -239,7 +248,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 
       dispatch({
         type: 'FETCH_SUCCESS',
-        payload: { models: Array.from(modelMap.values()), providerMap },
+    payload: { models: Array.from(modelMap.values()), providerMap, modelProviderEntries },
       });
     } catch (error) {
       dispatch({
@@ -284,6 +293,21 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     return [];
   };
 
+  // Cheapest-first providers by comparing provider-specific model sats pricing
+  const getProvidersForModelCheapestFirst = (id: string): Provider[] => {
+    const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
+    const entries = state.modelProviderEntries.get(id)
+      ?? Array.from(state.modelProviderEntries.entries()).find(([key]) => normalize(key) === normalize(id))?.[1]
+      ?? [];
+    if (entries.length === 0) return getProvidersForModel(id);
+    const sorted = [...entries].sort((a, b) => {
+      const aPrice = a.model.sats_pricing?.prompt ?? 0;
+      const bPrice = b.model.sats_pricing?.prompt ?? 0;
+      return aPrice - bPrice; // cheaper first
+    });
+    return sorted.map((e) => e.provider);
+  };
+
   // Auto-fetch on mount if no data
   useEffect(() => {
     if (state.models.length === 0 && !state.loading && !state.error) {
@@ -297,6 +321,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     clearError,
     findModel,
     getProvidersForModel,
+    getProvidersForModelCheapestFirst,
   };
 
   return (
