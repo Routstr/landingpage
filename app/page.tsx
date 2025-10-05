@@ -243,7 +243,7 @@ export default function Home() {
       {/* Hero Section */}
       <HeroSection
         title="A Decentralised LLM Routing Marketplace"
-        description="Permissionless, censorship‑resistant AI routing powered by Nostr and Cashu"
+        description="Permissionless, censorship‑resistant AI routing powered by Nostr and Bitcoin"
       />
 
       {/* Globe Visualization */}
