@@ -1,7 +1,5 @@
 "use client"
 import React, { useEffect, useMemo, useState } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { getExampleModelId } from '../app/data/models';
 import { getLocalCashuToken, setLocalCashuToken } from '@/utils/storageUtils';
 
@@ -11,9 +9,9 @@ const exampleModelId = getExampleModelId();
 const buildCodeExamples = (token: string) => {
   const tokenForCode = token && token.startsWith('cashu') ? token : 'cashuBpGFteCJodHRwczovL21p...';
   return {
-    curl: `curl -X POST https://api.routstr.com/v1/chat/completions \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${tokenForCode}" \\
+    curl: `curl -X POST https://api.routstr.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${tokenForCode}" \
   -d '{
     "model": "${exampleModelId}",
     "messages": [
@@ -62,48 +60,6 @@ print(completion.choices[0].message.content)`
 
 type CodeLanguage = 'curl' | 'javascript' | 'python';
 
-// Mapping for syntax highlighter language
-const syntaxMap: Record<CodeLanguage, string> = {
-  curl: 'bash',
-  javascript: 'javascript',
-  python: 'python'
-};
-
-// Custom theme based on atomDark but more minimal
-const customTheme = {
-  ...atomDark,
-  'pre[class*="language-"]': {
-    ...atomDark['pre[class*="language-"]'],
-    background: 'transparent',
-    margin: 0,
-    padding: 0,
-    overflow: 'visible',
-  },
-  'code[class*="language-"]': {
-    ...atomDark['code[class*="language-"]'],
-    background: 'transparent',
-    textShadow: 'none',
-    fontSize: '0.75rem',
-    '@media (minWidth: 640px)': {
-      fontSize: '0.875rem',
-    },
-  },
-  // Remove underscores from identifiers
-  '.token.class-name': {
-    textDecoration: 'none'
-  },
-  '.token.namespace': {
-    textDecoration: 'none',
-    opacity: 1
-  },
-  '.token.entity': {
-    textDecoration: 'none'
-  },
-  '.token.console': {
-    textDecoration: 'none'
-  }
-};
-
 export default function ApiExample() {
   const [activeTab, setActiveTab] = useState<CodeLanguage>('curl');
   const [tokenInput, setTokenInput] = useState<string>('');
@@ -116,9 +72,7 @@ export default function ApiExample() {
     try {
       const existing = getLocalCashuToken(STORAGE_BASE_URL) || '';
       setTokenInput(existing);
-    } catch (e) {
-      // no-op
-    }
+    } catch {}
   }, []);
 
   const codeExamples = useMemo(() => buildCodeExamples(tokenInput), [tokenInput]);
@@ -128,9 +82,7 @@ export default function ApiExample() {
       await navigator.clipboard.writeText(codeExamples[activeTab]);
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
-    } catch (e) {
-      // ignore
-    }
+    } catch {}
   };
 
   return (
@@ -157,11 +109,11 @@ export default function ApiExample() {
       </div>
 
       {/* Code example with inline token input after Bearer for curl */}
-      <div className="bg-black/70 rounded-lg p-3 sm:p-4 border border-white/10 overflow-x-auto relative group" onClick={doCopy}>
+      <div className="relative group bg-black/70 rounded-lg border border-white/10">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); doCopy(); }}
-          className="absolute top-2 right-2 inline-flex items-center gap-1 rounded bg-white/10 border border-white/10 px-2 py-1 text-[10px] sm:text-xs text-white hover:bg-white/20"
+          className="absolute top-1.5 sm:top-2 right-2 inline-flex items-center gap-1 rounded bg-black/80 border border-white/20 px-2 py-1 text-[10px] sm:text-xs text-white shadow-md hover:bg-black/90 sm:bg-white/10 sm:border-white/10 sm:hover:bg-white/20"
           aria-label="Copy code"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
@@ -170,6 +122,7 @@ export default function ApiExample() {
           </svg>
           {copied ? 'Copied' : 'Copy'}
         </button>
+        <div className="p-3 sm:p-4 pr-10 overflow-x-auto" onClick={doCopy}>
         {activeTab === 'curl' ? (
           <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
             <code>
@@ -185,8 +138,9 @@ export default function ApiExample() {
                 onBlur={() => setLocalCashuToken(STORAGE_BASE_URL, tokenInput || '')}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
                 placeholder="cashu..."
-                className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
               />
               <span className="text-[#98c379]">{'"'}</span>{' \\\n'}
               {'  -d '}<span className="text-[#98c379]">{'\''}</span>{'{' }<span className="text-[#98c379]">{''}</span>{'}'}{'\n'}
@@ -211,8 +165,9 @@ export default function ApiExample() {
                 onBlur={() => setLocalCashuToken(STORAGE_BASE_URL, tokenInput || '')}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
                 placeholder="cashu..."
-                className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
               />
               <span className="text-[#98c379]">{'\''}</span>{'\n'}
               <span className="text-[#abb2bf]">{'});\n\n'}</span>
@@ -243,8 +198,9 @@ export default function ApiExample() {
                 onBlur={() => setLocalCashuToken(STORAGE_BASE_URL, tokenInput || '')}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
                 placeholder="cashu..."
-                className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
               />
               <span className="text-[#98c379]">{'"'}</span>{'\n'}
               <span className="text-[#abb2bf]">){'\n\n'}</span>
@@ -259,6 +215,7 @@ export default function ApiExample() {
             </code>
           </pre>
         ) : null}
+        </div>
       </div>
 
       <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">

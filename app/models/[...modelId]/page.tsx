@@ -7,8 +7,6 @@ import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 import { Model, Provider, getProviderFromModelName, getModelNameWithoutProvider } from '@/app/data/models';
 import { useModels } from '@/app/contexts/ModelsContext';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Card } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChevronsUpDown as ChevronsUpDownIcon, Check as CheckIcon } from 'lucide-react';
@@ -49,6 +47,7 @@ export default function ModelDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [tokenInput, setTokenInput] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  const [descExpanded, setDescExpanded] = useState<boolean>(false);
 
   // Compute storage base URL from current provider selection (fallback to default)
   const storageBaseUrl = (() => {
@@ -63,7 +62,7 @@ export default function ModelDetailPage() {
     try {
       const existing = getLocalCashuToken(storageBaseUrl) || '';
       setTokenInput(existing);
-    } catch (e) {
+    } catch {
       // no-op
     }
   }, [storageBaseUrl]);
@@ -329,48 +328,6 @@ completion = client.chat.completions.create(
 print(completion.choices[0].message.content)`
   };
 
-  // Mapping for syntax highlighter language
-  const syntaxMap: Record<CodeLanguage, string> = {
-    curl: 'bash',
-    javascript: 'javascript',
-    python: 'python'
-  };
-
-  // Custom theme for code highlighting
-  const customTheme = {
-    ...atomDark,
-    'pre[class*="language-"]': {
-      ...atomDark['pre[class*="language-"]'],
-      background: 'transparent',
-      margin: 0,
-      padding: 0,
-      overflow: 'visible',
-    },
-    'code[class*="language-"]': {
-      ...atomDark['code[class*="language-"]'],
-      background: 'transparent',
-      textShadow: 'none',
-      fontSize: '0.75rem',
-      '@media (minWidth: 640px)': {
-        fontSize: '0.875rem',
-      },
-    },
-    // Remove underscores from identifiers
-    '.token.class-name': {
-      textDecoration: 'none'
-    },
-    '.token.namespace': {
-      textDecoration: 'none',
-      opacity: 1
-    },
-    '.token.entity': {
-      textDecoration: 'none'
-    },
-    '.token.console': {
-      textDecoration: 'none'
-    }
-  };
-
   // Format date from timestamp
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -412,7 +369,16 @@ print(completion.choices[0].message.content)`
                 </a>
               </div>
 
-              <div className="prose prose-invert max-w-none">
+              <div
+                id="model-description"
+                className="prose prose-invert max-w-none relative transition-all"
+                style={{
+                  maxHeight: descExpanded ? ('none' as const) : '10.5rem',
+                  overflow: descExpanded ? 'visible' : 'hidden',
+                  WebkitMaskImage: descExpanded ? undefined : 'linear-gradient(to bottom, black 65%, transparent 100%)',
+                  maskImage: descExpanded ? undefined : 'linear-gradient(to bottom, black 65%, transparent 100%)'
+                }}
+              >
                 <ReactMarkdown
                   components={{
                     a: (props) => (
@@ -428,6 +394,22 @@ print(completion.choices[0].message.content)`
                   {model.description}
                 </ReactMarkdown>
               </div>
+              {model.description && model.description.length > 240 && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setDescExpanded((v) => !v)}
+                    className="inline-flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white hover:bg-white/10"
+                    aria-expanded={descExpanded}
+                    aria-controls="model-description"
+                  >
+                    {descExpanded ? 'Show less' : 'Show more'}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3.5 w-3.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={descExpanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
             {/* Providers offering this model */}
             {providersForModel.length > 0 && (
@@ -511,15 +493,15 @@ print(completion.choices[0].message.content)`
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-left text-sm text-white hover:bg-white/10"
+                          className="inline-flex w-full sm:w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 sm:py-1.5 text-left text-sm text-white hover:bg-white/10"
                           aria-label="Select provider for pricing"
                         >
                           <span className="truncate">{selectedProvider?.name || 'Select provider'}</span>
                           <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-56 p-1 bg-black text-white border-white/10">
-                        <div role="listbox" aria-label="Select provider" className="max-h-64 overflow-y-auto">
+                      <PopoverContent className="w-[90vw] sm:w-56 p-2 sm:p-1 bg-black text-white border-white/10">
+                        <div role="listbox" aria-label="Select provider" className="max-h-[60vh] sm:max-h-64 overflow-y-auto">
                           {providersForModel.map((p) => {
                             const isActive = p.id === selectedProviderId;
                             return (
@@ -529,7 +511,7 @@ print(completion.choices[0].message.content)`
                                 role="option"
                                 aria-selected={isActive}
                                 onClick={() => { setSelectedProviderId(p.id); setPricingSelectorOpen(false); }}
-                                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
+                                className={`flex w-full items-center gap-2 rounded px-3 py-3 sm:py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
                               >
                                 <CheckIcon className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
                                 <span className="truncate">{p.name}</span>
@@ -595,15 +577,15 @@ print(completion.choices[0].message.content)`
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-left text-sm text-white hover:bg-white/10"
+                          className="inline-flex w-full sm:w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 sm:py-1.5 text-left text-sm text-white hover:bg-white/10"
                           aria-label="Select provider for API base URL"
                         >
                           <span className="truncate">{selectedProvider?.name || 'Select provider'}</span>
                           <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-56 p-1 bg-black text-white border-white/10">
-                        <div role="listbox" aria-label="Select provider" className="max-h-64 overflow-y-auto">
+                      <PopoverContent className="w-[90vw] sm:w-56 p-2 sm:p-1 bg-black text-white border-white/10">
+                        <div role="listbox" aria-label="Select provider" className="max-h-[60vh] sm:max-h-64 overflow-y-auto">
                           {providersForModel.map((p) => {
                             const isActive = p.id === selectedProviderId;
                             return (
@@ -613,7 +595,7 @@ print(completion.choices[0].message.content)`
                                 role="option"
                                 aria-selected={isActive}
                                 onClick={() => { setSelectedProviderId(p.id); setApiSelectorOpen(false); }}
-                                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
+                                className={`flex w-full items-center gap-2 rounded px-3 py-3 sm:py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
                               >
                                 <CheckIcon className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
                                 <span className="truncate">{p.name}</span>
@@ -647,11 +629,11 @@ print(completion.choices[0].message.content)`
               </div>
 
               {/* Code example with inline token inputs and copy */}
-              <div className="bg-black/70 rounded-lg p-3 sm:p-4 border border-white/10 overflow-x-auto relative group" onClick={doCopy}>
+              <div className="relative group bg-black/70 rounded-lg border border-white/10">
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); doCopy(); }}
-                  className="absolute top-2 right-2 inline-flex items-center gap-1 rounded bg-white/10 border border-white/10 px-2 py-1 text-[10px] sm:text-xs text-white hover:bg-white/20"
+                  className="absolute top-1.5 sm:top-2 right-2 inline-flex items-center gap-1 rounded bg-black/80 border border-white/20 px-2 py-1 text-[10px] sm:text-xs text-white shadow-md hover:bg-black/90 sm:bg-white/10 sm:border-white/10 sm:hover:bg-white/20"
                   aria-label="Copy code"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
@@ -661,6 +643,7 @@ print(completion.choices[0].message.content)`
                   {copied ? 'Copied' : 'Copy'}
                 </button>
 
+                <div className="p-3 sm:p-4 pr-10 overflow-x-auto" onClick={doCopy}>
                 {activeTab === 'curl' ? (
                   <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
                     <code>
@@ -676,8 +659,9 @@ print(completion.choices[0].message.content)`
                         onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || '')}
                         onClick={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                         placeholder="cashu..."
-                        className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                        className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
                       />
                       <span className="text-[#98c379]">{'"'}</span>{' \\\n'}
                       {'  -d '}<span className="text-[#98c379]">{'\''}</span>{'{' }<span className="text-[#98c379]">{''}</span>{'}'}{'\n'}
@@ -702,8 +686,9 @@ print(completion.choices[0].message.content)`
                         onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || '')}
                         onClick={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                         placeholder="cashu..."
-                        className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                        className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
                       />
                       <span className="text-[#98c379]">{'\''}</span>{'\n'}
                       <span className="text-[#abb2bf]">{'});\n\n'}</span>
@@ -734,8 +719,9 @@ print(completion.choices[0].message.content)`
                         onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || '')}
                         onClick={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                         placeholder="cashu..."
-                        className="inline-block align-baseline min-w-[12ch] max-w-full bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+                        className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
                       />
                       <span className="text-[#98c379]">{'"'}</span>{'\n'}
                       <span className="text-[#abb2bf]">){'\n\n'}</span>
@@ -750,6 +736,7 @@ print(completion.choices[0].message.content)`
                     </code>
                   </pre>
                 )}
+                </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
