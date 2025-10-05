@@ -24,6 +24,20 @@ export default function Header() {
               <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">Blog</Link></li>
               <li>
                 <a
+                  href="https://chat.routstr.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                >
+                  Chat
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
+                  </svg>
+                  <span className="sr-only">(opens in a new tab)</span>
+                </a>
+              </li>
+              <li>
+                <a
                   href="https://docs.routstr.com"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -93,6 +107,20 @@ export default function Header() {
             <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Models</Link></li>
             <li><Link href="/providers" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Providers</Link></li>
             <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors block py-1">Blog</Link></li>
+            <li>
+              <a
+                href="https://chat.routstr.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1 py-1"
+              >
+                Chat
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 7L7 17M17 7h-6m6 0v6" />
+                </svg>
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            </li>
             <li>
               <a
                 href="https://docs.routstr.com"
