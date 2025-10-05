@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import { fetchProviders, providers as providersState, ProviderSummary } from "@/app/data/providers";
+import { fetchModels, getModelsByProvider } from "@/app/data/models";
 
 function Skeleton({ className }: { className: string }) {
   return (
@@ -19,7 +20,10 @@ export default function ProvidersPage() {
     let active = true;
     (async () => {
       setIsLoading(true);
-      await fetchProviders();
+      await Promise.all([
+        fetchProviders(),
+        fetchModels(),
+      ]);
       if (!active) return;
       setItems(providersState);
       setIsLoading(false);
@@ -28,6 +32,15 @@ export default function ProvidersPage() {
       active = false;
     };
   }, []);
+
+  const sortedItems = useMemo(() => {
+    if (!items || items.length === 0) return [] as ProviderSummary[];
+    const getMinPromptSats = (providerId: string) => {
+      const models = getModelsByProvider(providerId);
+      return models.length > 0 ? (models[0].sats_pricing?.prompt ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+    };
+    return [...items].sort((a, b) => getMinPromptSats(a.id) - getMinPromptSats(b.id));
+  }, [items]);
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-white">
@@ -86,7 +99,7 @@ export default function ProvidersPage() {
             ) : (
               <div className="max-w-4xl mx-auto border border-white/10 rounded-lg overflow-hidden">
                 <ul className="divide-y divide-white/10">
-                  {items.map((provider) => (
+                  {sortedItems.map((provider) => (
                     <li key={provider.id}>
                       <Link
                         href={`/providers/${encodeURIComponent(provider.id)}`}

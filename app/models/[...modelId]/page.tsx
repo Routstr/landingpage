@@ -30,9 +30,11 @@ function decodeSegments(segments: string[]): string[] {
 
 export default function ModelDetailPage() {
   const params = useParams();
-  const { models, loading, error, fetchModels, findModel, getProvidersForModelCheapestFirst } = useModels();
+  const { models, loading, error, fetchModels, findModel, getProvidersForModelCheapestFirst, modelProviderEntries } = useModels();
   const [providersForModel, setProvidersForModel] = useState<Provider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
+  const [pricingSelectorOpen, setPricingSelectorOpen] = useState(false);
+  const [apiSelectorOpen, setApiSelectorOpen] = useState(false);
   
   // Handle the catch-all route by joining the path segments
   const modelIdParts = params.modelId as string[];
@@ -230,6 +232,11 @@ export default function ModelDetailPage() {
 
   const provider = getProviderFromModelName(model.name);
   const selectedProvider = providersForModel.find((p) => p.id === selectedProviderId) || providersForModel[0];
+  const activeProviderEntry = (() => {
+    const entries = modelProviderEntries.get(model.id) || [];
+    return entries.find((e) => e.provider.id === selectedProviderId) || null;
+  })();
+  const activePricingModel = activeProviderEntry?.model || model;
   const providerBaseUrl = (() => {
     const base = selectedProvider?.endpoint_url || '';
     if (!base) return '';
@@ -458,31 +465,71 @@ print(completion.choices[0].message.content)`
               </table>
             </Card>
 
-            {/* Pricing Section */}
+            {/* Pricing Section */
+            }
             <Card className="bg-black/50 border border-white/10 p-6 mb-10">
-              <h2 className="text-xl font-bold mb-4 text-white">Pricing Information</h2>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-xl font-bold text-white">Pricing Information</h2>
+                {providersForModel.length > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Provider</span>
+                    <Popover open={pricingSelectorOpen} onOpenChange={setPricingSelectorOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-left text-sm text-white hover:bg-white/10"
+                          aria-label="Select provider for pricing"
+                        >
+                          <span className="truncate">{selectedProvider?.name || 'Select provider'}</span>
+                          <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-1 bg-black text-white border-white/10">
+                        <div role="listbox" aria-label="Select provider" className="max-h-64 overflow-y-auto">
+                          {providersForModel.map((p) => {
+                            const isActive = p.id === selectedProviderId;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                role="option"
+                                aria-selected={isActive}
+                                onClick={() => { setSelectedProviderId(p.id); setPricingSelectorOpen(false); }}
+                                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
+                              >
+                                <CheckIcon className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
+                                <span className="truncate">{p.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ) : null}
+              </div>
 
               <div className="bg-black/30 border border-white/10 rounded-lg p-5 mb-6">
                 <table className="w-full">
                   <tbody>
                     <tr className="border-b border-white/10">
                       <td className="py-2 text-gray-300">Input cost</td>
-                      <td className="py-2 font-medium text-white text-right">{model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat</td>
+                      <td className="py-2 font-medium text-white text-right">{activePricingModel.sats_pricing.prompt > 0 ? (1 / activePricingModel.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat</td>
                     </tr>
                     <tr className="border-b border-white/10">
                       <td className="py-2 text-gray-300">Output cost</td>
-                      <td className="py-2 font-medium text-white text-right">{model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat</td>
+                      <td className="py-2 font-medium text-white text-right">{activePricingModel.sats_pricing.completion > 0 ? (1 / activePricingModel.sats_pricing.completion).toFixed(2) : '—'} tokens/sat</td>
                     </tr>
-                    {model.sats_pricing.request > 0 && (
+                    {activePricingModel.sats_pricing.request > 0 && (
                       <tr className="border-b border-white/10">
                         <td className="py-2 text-gray-300">Request fee</td>
-                        <td className="py-2 font-medium text-white text-right">{model.sats_pricing.request.toFixed(8)} sats/request</td>
+                        <td className="py-2 font-medium text-white text-right">{activePricingModel.sats_pricing.request.toFixed(8)} sats/request</td>
                       </tr>
                     )}
-                    {model.sats_pricing.image > 0 && (
+                    {activePricingModel.sats_pricing.image > 0 && (
                       <tr className="border-b border-white/10">
                         <td className="py-2 text-gray-300">Image fee</td>
-                        <td className="py-2 font-medium text-white text-right">{model.sats_pricing.image.toFixed(8)} sats/image</td>
+                        <td className="py-2 font-medium text-white text-right">{activePricingModel.sats_pricing.image.toFixed(8)} sats/image</td>
                       </tr>
                     )}
                   </tbody>
@@ -494,11 +541,11 @@ print(completion.choices[0].message.content)`
                 <p className="text-sm text-gray-200">
                   For a conversation with 100 tokens of input and 500 tokens of output:
                   <br />
-                  Input cost: 100 ÷ {(model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—')} = {(100 * model.sats_pricing.prompt).toFixed(8)} sats
+                  Input cost: 100 ÷ {(activePricingModel.sats_pricing.prompt > 0 ? (1 / activePricingModel.sats_pricing.prompt).toFixed(2) : '—')} = {(100 * activePricingModel.sats_pricing.prompt).toFixed(8)} sats
                   <br />
-                  Output cost: 500 ÷ {(model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—')} = {(500 * model.sats_pricing.completion).toFixed(8)} sats
+                  Output cost: 500 ÷ {(activePricingModel.sats_pricing.completion > 0 ? (1 / activePricingModel.sats_pricing.completion).toFixed(2) : '—')} = {(500 * activePricingModel.sats_pricing.completion).toFixed(8)} sats
                   <br />
-                  Total: {(100 * model.sats_pricing.prompt + 500 * model.sats_pricing.completion).toFixed(8)} sats
+                  Total: {(100 * activePricingModel.sats_pricing.prompt + 500 * activePricingModel.sats_pricing.completion).toFixed(8)} sats
                 </p>
               </div>
             </Card>
@@ -510,7 +557,7 @@ print(completion.choices[0].message.content)`
                 {providersForModel.length > 0 ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">Provider</span>
-                    <Popover>
+                    <Popover open={apiSelectorOpen} onOpenChange={setApiSelectorOpen}>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
@@ -531,7 +578,7 @@ print(completion.choices[0].message.content)`
                                 type="button"
                                 role="option"
                                 aria-selected={isActive}
-                                onClick={() => setSelectedProviderId(p.id)}
+                                onClick={() => { setSelectedProviderId(p.id); setApiSelectorOpen(false); }}
                                 className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
                               >
                                 <CheckIcon className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
