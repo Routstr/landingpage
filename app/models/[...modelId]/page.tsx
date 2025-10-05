@@ -30,7 +30,7 @@ function decodeSegments(segments: string[]): string[] {
 
 export default function ModelDetailPage() {
   const params = useParams();
-  const { models, loading, error, fetchModels, findModel, getProvidersForModel, getProvidersForModelCheapestFirst } = useModels();
+  const { models, loading, error, fetchModels, findModel, getProvidersForModelCheapestFirst } = useModels();
   const [providersForModel, setProvidersForModel] = useState<Provider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   
@@ -81,7 +81,7 @@ export default function ModelDetailPage() {
     }
 
     loadModelData()
-  }, [decodedModelId, models, findModel, fetchModels, getProvidersForModel]);
+  }, [decodedModelId, models, findModel, fetchModels, getProvidersForModelCheapestFirst]);
 
   if (loading) {
     return (

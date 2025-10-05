@@ -23,7 +23,7 @@ function decodeSegments(segments: string[]): string[] {
 
 export default function ModelClientPage() {
   const params = useParams();
-  const { models, loading, error, fetchModels, findModel, getProvidersForModel, getProvidersForModelCheapestFirst } = useModels();
+  const { models, loading, error, fetchModels, findModel, getProvidersForModelCheapestFirst } = useModels();
   const [providersForModel, setProvidersForModel] = useState<Provider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const modelIdParts = params.modelId as string[];
@@ -58,7 +58,7 @@ export default function ModelClientPage() {
       }
     }
     loadModelData()
-  }, [decodedModelId, models, findModel, fetchModels, getProvidersForModel]);
+  }, [decodedModelId, models, findModel, fetchModels, getProvidersForModelCheapestFirst]);
 
   if (loading) {
     return (
@@ -188,14 +188,12 @@ export default function ModelClientPage() {
     return null;
   }
 
-  const provider = getProviderFromModelName(model.name);
   const selectedProvider = providersForModel.find((p) => p.id === selectedProviderId) || providersForModel[0];
   const providerBaseUrl = (() => {
     const base = selectedProvider?.endpoint_url || '';
     if (!base) return '';
     return base.endsWith('/v1') ? base : `${base.replace(/\/$/, '')}/v1`;
   })();
-  const displayName = getModelNameWithoutProvider(model.name);
 
   const codeExamples = {
     curl: `curl -X POST ${providerBaseUrl || 'https://api.routstr.com/v1'}/chat/completions \\\n+  -H "Content-Type: application/json" \\\n+  -H "Authorization: Bearer cashuBpGFteCJodHRwczovL21p..." \\\n+  -d '{\n    "model": "${model.id}",\n    "messages": [\n      {\n        "role": "user", \n        "content": "Hello Nostr"\n      }\n    ]\n  }'`,
@@ -385,7 +383,7 @@ export default function ModelClientPage() {
                 ))}
               </div>
               <div className="bg-black/70 rounded-lg p-3 sm:p-4 border border-white/10 overflow-x-auto">
-                <SyntaxHighlighter language={syntaxMap[activeTab]} style={customTheme as unknown as any} customStyle={{ background: 'transparent', lineHeight: '1.5', margin: 0 }} showLineNumbers={false} wrapLines wrapLongLines>
+                <SyntaxHighlighter language={syntaxMap[activeTab]} style={customTheme} customStyle={{ background: 'transparent', lineHeight: '1.5', margin: 0 }} showLineNumbers={false} wrapLines wrapLongLines>
                   {codeExamples[activeTab]}
                 </SyntaxHighlighter>
               </div>
