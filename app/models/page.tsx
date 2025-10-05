@@ -37,6 +37,7 @@ export default function ModelsPage() {
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [providersExpanded, setProvidersExpanded] = useState(false);
 
   useEffect(() => {
     async function loadModels() {
@@ -212,7 +213,7 @@ export default function ModelsPage() {
                 <div className="mb-8">
                   <h2 className="text-lg font-medium mb-3">Providers</h2>
                   <div className="flex flex-wrap gap-3">
-                    {providers.map(provider => (
+                    {(providersExpanded ? providers : providers.slice(0, 12)).map(provider => (
                       <button
                         key={provider}
                         className={`px-3 py-1 rounded-full text-sm ${selectedProviders.includes(provider)
@@ -224,6 +225,16 @@ export default function ModelsPage() {
                         {provider}
                       </button>
                     ))}
+                    {providers.length > 12 && (
+                      <button
+                        type="button"
+                        onClick={() => setProvidersExpanded(v => !v)}
+                        className="px-3 py-1 rounded-full text-sm bg-white/10 text-white border border-white/20 hover:bg-white/15"
+                        aria-expanded={providersExpanded}
+                      >
+                        {providersExpanded ? 'Show less' : `Show more (${providers.length - 12})`}
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -122,7 +122,7 @@ export default function ApiExample() {
           </svg>
           {copied ? 'Copied' : 'Copy'}
         </button>
-        <div className="p-3 sm:p-4 pr-10 overflow-x-auto" onClick={doCopy}>
+        <div className="p-3 sm:p-4 pr-10 overflow-x-auto">
         {activeTab === 'curl' ? (
           <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
             <code>
