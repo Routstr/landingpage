@@ -320,12 +320,12 @@ export function formatSatsPrice(model: Model): string {
 export function getPrimaryProviderForModel(
   modelId: string
 ): Provider | undefined {
-  // Choose cheapest provider (by sats_pricing.prompt) if available
+  // Choose cheapest provider (by sats_pricing.completion) if available
   const entries = modelProviderEntries.get(modelId);
   if (entries && entries.length > 0) {
     const cheapest = [...entries].sort((a, b) => {
-      const aPrice = a.model.sats_pricing?.prompt ?? 0;
-      const bPrice = b.model.sats_pricing?.prompt ?? 0;
+      const aPrice = a.model.sats_pricing?.completion ?? 0;
+      const bPrice = b.model.sats_pricing?.completion ?? 0;
       return aPrice - bPrice;
     })[0];
     return cheapest?.provider;
@@ -434,7 +434,7 @@ export function getProviderFeatures(provider: Provider): string[] {
 // Get models for a specific provider
 export function getModelsByProvider(providerId: string): Model[] {
   // Use the provider-model mapping we built during fetch
-  // Sort cheapest first (by sats_pricing.prompt)
+  // Sort cheapest first (by sats_pricing.completion)
   const models = providerModelMap.get(providerId) || [];
-  return [...models].sort((a, b) => (a.sats_pricing?.prompt ?? 0) - (b.sats_pricing?.prompt ?? 0));
+  return [...models].sort((a, b) => (a.sats_pricing?.completion ?? 0) - (b.sats_pricing?.completion ?? 0));
 }

@@ -62,8 +62,8 @@ export default function ProviderPage() {
         return a.name.localeCompare(b.name) * direction;
       }
       if (sort.key === "price") {
-        const aVal = currency === 'sats' ? (a.sats_pricing?.prompt ?? 0) : (a.pricing?.prompt ?? 0);
-        const bVal = currency === 'sats' ? (b.sats_pricing?.prompt ?? 0) : (b.pricing?.prompt ?? 0);
+        const aVal = currency === 'sats' ? (a.sats_pricing?.completion ?? 0) : (a.pricing?.completion ?? 0);
+        const bVal = currency === 'sats' ? (b.sats_pricing?.completion ?? 0) : (b.pricing?.completion ?? 0);
         return (aVal - bVal) * direction;
       }
       if (sort.key === "context") {

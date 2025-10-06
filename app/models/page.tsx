@@ -78,8 +78,8 @@ export default function ModelsPage() {
         return getProviderFromModelName(a.name).localeCompare(getProviderFromModelName(b.name));
       case 'price':
         return currency === 'sats' 
-          ? a.sats_pricing.prompt - b.sats_pricing.prompt
-          : a.pricing.prompt - b.pricing.prompt;
+          ? a.sats_pricing.completion - b.sats_pricing.completion
+          : a.pricing.completion - b.pricing.completion;
       default:
         return 0;
     }

@@ -340,7 +340,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     return [];
   };
 
-  // Cheapest-first providers by comparing provider-specific model sats pricing
+  // Cheapest-first providers by comparing provider-specific model sats completion pricing
   const getProvidersForModelCheapestFirst = (id: string): Provider[] => {
     const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
     const entries = state.modelProviderEntries.get(id)
@@ -348,8 +348,8 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       ?? [];
     if (entries.length === 0) return getProvidersForModel(id);
     const sorted = [...entries].sort((a, b) => {
-      const aPrice = a.model.sats_pricing?.prompt ?? 0;
-      const bPrice = b.model.sats_pricing?.prompt ?? 0;
+      const aPrice = a.model.sats_pricing?.completion ?? 0;
+      const bPrice = b.model.sats_pricing?.completion ?? 0;
       return aPrice - bPrice; // cheaper first
     });
     return sorted.map((e) => e.provider);
