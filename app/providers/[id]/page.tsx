@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { InfoPill } from "@/components/client/InfoPill";
@@ -177,9 +178,10 @@ export default function ProviderPage() {
           <div className="max-w-5xl mx-auto px-4 md:px-6">
             <div className="max-w-5xl mx-auto">
               <div className="flex items-center mb-6">
-                <Link
-                  href="/providers"
+                <BackButton
+                  fallbackHref="/providers"
                   className="text-gray-400 hover:text-white mr-4 flex items-center"
+                  ariaLabel="Go back"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -195,8 +197,8 @@ export default function ProviderPage() {
                       d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
                     />
                   </svg>
-                  Back to providers
-                </Link>
+                  Back
+                </BackButton>
               </div>
 
               {isLoading ? (

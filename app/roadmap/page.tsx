@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RoadmapTimeline, { RoadmapItem } from "@/components/RoadmapTimeline";
@@ -85,15 +86,12 @@ export default function RoadmapPage() {
               Our progressive journey to building a decentralized AI ecosystem
             </p>
             <div className="flex justify-center">
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center gap-2 text-white hover:text-gray-300"
-              >
+              <BackButton fallbackHref="/" className="inline-flex items-center justify-center gap-2 text-white hover:text-gray-300">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                 </svg>
-                Back to home
-              </Link>
+                Back
+              </BackButton>
             </div>
           </div>
         </div>
@@ -115,12 +113,12 @@ export default function RoadmapPage() {
 
             <div className="text-center mt-16 pt-8 border-t border-white/10">
               <p className="text-gray-400 mb-4">This roadmap is subject to change as we adapt to community feedback and industry developments.</p>
-              <Link
-                href="/"
+              <BackButton
+                fallbackHref="/"
                 className="inline-flex items-center justify-center rounded-md bg-white text-black px-8 py-3 text-sm font-medium transition-colors hover:bg-gray-200"
               >
-                Back to home
-              </Link>
+                Back
+              </BackButton>
             </div>
           </div>
         </div>

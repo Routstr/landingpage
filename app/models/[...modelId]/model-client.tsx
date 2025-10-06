@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import BackButton from '@/components/BackButton';
 import Link from 'next/link';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
@@ -249,12 +250,12 @@ export default function ModelClientPage() {
       <section className="py-12 bg-black">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <Link href="/models" className="text-gray-300 hover:text-white flex items-center gap-2 mb-6">
+            <BackButton fallbackHref="/models" className="text-gray-300 hover:text-white flex items-center gap-2 mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
               </svg>
-              Back to all models
-            </Link>
+              Back
+            </BackButton>
             <div className="mb-6 md:mb-10 bg-gradient-to-r from-black to-zinc-900 rounded-xl p-4 md:p-8 border border-zinc-800">
               <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-6 mb-3 md:mb-6">
                 <div>

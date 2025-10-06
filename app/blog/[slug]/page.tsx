@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
+import BackButton from "@/components/BackButton";
 import Footer from "@/components/Footer";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -45,13 +46,13 @@ export default function BlogPostPage() {
       <section className="pt-8 sm:pt-12 pb-10 sm:pb-12 bg-black">
         <div className="w-full max-w-5xl mx-auto px-4 md:px-6">
             <div className="max-w-3xl mx-auto">
-            <button
-              onClick={() => router.back()}
+            <BackButton
+              fallbackHref="/blog"
               className="mb-6 text-xs sm:text-sm text-gray-400 hover:text-white transition-colors"
-              aria-label="Go back"
+              ariaLabel="Go back"
             >
               ← Back
-            </button>
+            </BackButton>
           </div>
 
           {markdown === null && !errorMessage && (
