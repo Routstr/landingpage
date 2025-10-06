@@ -7,6 +7,8 @@ import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 import { Model, Provider, getProviderFromModelName, getModelNameWithoutProvider } from '@/app/data/models';
 import { useModels } from '@/app/contexts/ModelsContext';
+import { usePricingView } from '@/app/contexts/PricingContext';
+import { CurrencyTabs } from '@/components/ui/currency-tabs';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Card } from '@/components/ui/card';
@@ -23,6 +25,7 @@ function decodeSegments(segments: string[]): string[] {
 
 export default function ModelClientPage() {
   const params = useParams();
+  const { currency } = usePricingView();
   const { models, loading, error, fetchModels, findModel, getProvidersForModelCheapestFirst } = useModels();
   const [providersForModel, setProvidersForModel] = useState<Provider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
@@ -316,17 +319,42 @@ export default function ModelClientPage() {
               </table>
             </Card>
             <Card className="bg-black/50 border border-white/10 p-6 mb-10">
-              <h2 className="text-xl font-bold mb-4 text-white">Pricing Information</h2>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-xl font-bold text-white">Pricing Information</h2>
+                <CurrencyTabs />
+              </div>
               <div className="bg-black/30 border border-white/10 rounded-lg p-5 mb-6">
                 <table className="w-full">
                   <tbody>
-                    <tr className="border-b border-white/10"><td className="py-2 text-gray-300">Input cost</td><td className="py-2 font-medium text-white text-right">{model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat</td></tr>
-                    <tr className="border-b border-white/10"><td className="py-2 text-gray-300">Output cost</td><td className="py-2 font-medium text-white text-right">{model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat</td></tr>
-                    {model.sats_pricing.request > 0 && (
-                      <tr className="border-b border-white/10"><td className="py-2 text-gray-300">Request fee</td><td className="py-2 font-medium text-white text-right">{model.sats_pricing.request.toFixed(8)} sats/request</td></tr>
+                    <tr className="border-b border-white/10">
+                      <td className="py-2 text-gray-300">Input cost</td>
+                      <td className="py-2 font-medium text-white text-right">
+                        {currency === 'sats' 
+                          ? `${model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat`
+                          : `$${(model.pricing.prompt * 1_000_000).toFixed(2)}/M tokens`
+                        }
+                      </td>
+                    </tr>
+                    <tr className="border-b border-white/10">
+                      <td className="py-2 text-gray-300">Output cost</td>
+                      <td className="py-2 font-medium text-white text-right">
+                        {currency === 'sats' 
+                          ? `${model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat`
+                          : `$${(model.pricing.completion * 1_000_000).toFixed(2)}/M tokens`
+                        }
+                      </td>
+                    </tr>
+                    {currency === 'sats' && model.sats_pricing.request > 0 && (
+                      <tr className="border-b border-white/10">
+                        <td className="py-2 text-gray-300">Request fee</td>
+                        <td className="py-2 font-medium text-white text-right">{model.sats_pricing.request.toFixed(8)} sats/request</td>
+                      </tr>
                     )}
-                    {model.sats_pricing.image > 0 && (
-                      <tr className="border-b border-white/10"><td className="py-2 text-gray-300">Image fee</td><td className="py-2 font-medium text-white text-right">{model.sats_pricing.image.toFixed(8)} sats/image</td></tr>
+                    {currency === 'sats' && model.sats_pricing.image > 0 && (
+                      <tr className="border-b border-white/10">
+                        <td className="py-2 text-gray-300">Image fee</td>
+                        <td className="py-2 font-medium text-white text-right">{model.sats_pricing.image.toFixed(8)} sats/image</td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -336,11 +364,23 @@ export default function ModelClientPage() {
                 <p className="text-sm text-gray-200">
                   For a conversation with 100 tokens of input and 500 tokens of output:
                   <br />
-                  Input cost: 100 ÷ {(model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—')} = {(100 * model.sats_pricing.prompt).toFixed(8)} sats
-                  <br />
-                  Output cost: 500 ÷ {(model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—')} = {(500 * model.sats_pricing.completion).toFixed(8)} sats
-                  <br />
-                  Total: {(100 * model.sats_pricing.prompt + 500 * model.sats_pricing.completion).toFixed(8)} sats
+                  {currency === 'sats' ? (
+                    <>
+                      Input cost: 100 ÷ {(model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—')} = {(100 * model.sats_pricing.prompt).toFixed(8)} sats
+                      <br />
+                      Output cost: 500 ÷ {(model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—')} = {(500 * model.sats_pricing.completion).toFixed(8)} sats
+                      <br />
+                      Total: {(100 * model.sats_pricing.prompt + 500 * model.sats_pricing.completion).toFixed(8)} sats
+                    </>
+                  ) : (
+                    <>
+                      Input cost: 100 × ${model.pricing.prompt.toFixed(6)} = ${(100 * model.pricing.prompt).toFixed(6)}
+                      <br />
+                      Output cost: 500 × ${model.pricing.completion.toFixed(6)} = ${(500 * model.pricing.completion).toFixed(6)}
+                      <br />
+                      Total: ${(100 * model.pricing.prompt + 500 * model.pricing.completion).toFixed(6)}
+                    </>
+                  )}
                 </p>
               </div>
             </Card>

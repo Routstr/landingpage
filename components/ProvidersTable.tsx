@@ -8,6 +8,7 @@ interface Endpoint {
 
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+// Pricing view not used here because endpoint data lacks USD pricing.
 
 type TooltipState = {
   input: boolean;

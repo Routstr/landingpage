@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { models, getProviderFromModelName, fetchModels, getModelNameWithoutProvider, getModelDisplayName, getPrimaryProviderForModel } from '@/app/data/models';
+import { usePricingView } from '@/app/contexts/PricingContext';
+import { CurrencyTabs } from '@/components/ui/currency-tabs';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -29,6 +31,7 @@ const sortOptions = [
 ];
 
 export default function ModelsPage() {
+  const { currency } = usePricingView();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'provider' | 'price'>('date');
   const [providers, setProviders] = useState<string[]>([]);
@@ -74,7 +77,9 @@ export default function ModelsPage() {
       case 'provider':
         return getProviderFromModelName(a.name).localeCompare(getProviderFromModelName(b.name));
       case 'price':
-        return a.pricing.prompt - b.pricing.prompt;
+        return currency === 'sats' 
+          ? a.sats_pricing.prompt - b.sats_pricing.prompt
+          : a.pricing.prompt - b.pricing.prompt;
       default:
         return 0;
     }
@@ -95,10 +100,15 @@ export default function ModelsPage() {
       <section className="pt-8 sm:pt-16 pb-16 bg-black">
         <div className="px-4 md:px-6 max-w-5xl mx-auto">
           <div className="max-w-5xl mx-auto">
-            <h1 className="text-2xl sm:text-4xl font-bold mb-6">Models</h1>
-            <p className="text-base sm:text-xl text-gray-400 mb-10">
-              Browse and compare {models.length} AI models
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h1 className="text-2xl sm:text-4xl font-bold">Models</h1>
+                <p className="text-base sm:text-xl text-gray-400 mt-2">
+                  Browse and compare {models.length} AI models
+                </p>
+              </div>
+              <CurrencyTabs />
+            </div>
 
             {isLoading ? (
               <>
@@ -261,9 +271,19 @@ export default function ModelsPage() {
                                 <span className="hidden sm:inline">•</span>
                                 <span className="whitespace-nowrap">{model.context_length >= 1000 ? `${Math.round(model.context_length / 1000)}K` : model.context_length.toLocaleString()} context</span>
                                 <span className="hidden sm:inline">•</span>
-                                <span className="whitespace-nowrap">{model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat input</span>
-                                <span className="hidden sm:inline">•</span>
-                                <span className="whitespace-nowrap">{model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat output</span>
+                                {currency === 'sats' ? (
+                                  <>
+                                    <span className="whitespace-nowrap">{model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat input</span>
+                                    <span className="hidden sm:inline">•</span>
+                                    <span className="whitespace-nowrap">{model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat output</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="whitespace-nowrap">${(model.pricing.prompt * 1_000_000).toFixed(2)}/M input</span>
+                                    <span className="hidden sm:inline">•</span>
+                                    <span className="whitespace-nowrap">${(model.pricing.completion * 1_000_000).toFixed(2)}/M output</span>
+                                  </>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

@@ -7,6 +7,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { InfoPill } from "@/components/client/InfoPill";
 import { MintsPill } from "@/components/client/MintsPill";
+import { usePricingView } from "@/app/contexts/PricingContext";
+import { CurrencyTabs } from "@/components/ui/currency-tabs";
 import {
   fetchModels,
   getProviderById,
@@ -20,6 +22,7 @@ import { ProviderReviews } from "@/components/ProviderReviews";
 import { formatPublicKey } from "@/lib/nostr";
 
 export default function ProviderPage() {
+  const { currency } = usePricingView();
   const params = useParams();
   const providerId = (() => {
     const raw = (params?.id as string) || "";
@@ -59,8 +62,8 @@ export default function ProviderPage() {
         return a.name.localeCompare(b.name) * direction;
       }
       if (sort.key === "price") {
-        const aVal = a.sats_pricing?.prompt ?? 0;
-        const bVal = b.sats_pricing?.prompt ?? 0;
+        const aVal = currency === 'sats' ? (a.sats_pricing?.prompt ?? 0) : (a.pricing?.prompt ?? 0);
+        const bVal = currency === 'sats' ? (b.sats_pricing?.prompt ?? 0) : (b.pricing?.prompt ?? 0);
         return (aVal - bVal) * direction;
       }
       if (sort.key === "context") {
@@ -70,7 +73,7 @@ export default function ProviderPage() {
       return (a.created - b.created) * direction;
     });
     return copy;
-  }, [providerModels, sort]);
+  }, [providerModels, sort, currency]);
 
   function SortIcon({
     active,
@@ -262,7 +265,10 @@ export default function ProviderPage() {
         <div className="pt-8 sm:pt-12 pb-12">
           <div className="max-w-5xl mx-auto px-4 md:px-6">
             <div className="max-w-5xl mx-auto">
-              <h2 className="text-xl sm:text-2xl font-bold mb-6">Models</h2>
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold">Models</h2>
+                <CurrencyTabs />
+              </div>
 
               <div className="border border-white/10 rounded-lg overflow-x-auto">
                 <table className="w-full min-w-[640px]">
@@ -304,7 +310,7 @@ export default function ProviderPage() {
                           onClick={() => requestSort("price")}
                           disabled={isLoading}
                         >
-                          Price (tokens per sat)
+                          Price ({currency === 'sats' ? 'tokens per sat' : 'USD per M tokens'})
                           <SortIcon active={sort.key === "price"} direction={sort.direction} />
                         </button>
                       </th>
@@ -383,7 +389,11 @@ export default function ProviderPage() {
                             </Link>
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
-                            {model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} / {model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'}
+                            {currency === 'sats' ? (
+                              `${model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} / ${model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'}`
+                            ) : (
+                              `$${(model.pricing.prompt * 1_000_000).toFixed(2)} / $${(model.pricing.completion * 1_000_000).toFixed(2)}`
+                            )}
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
                             {model.context_length.toLocaleString()} tokens

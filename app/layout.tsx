@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ModelsProvider } from "./contexts/ModelsContext";
 import { NostrProvider } from "@/context/NostrContext";
+import { PricingProvider } from "./contexts/PricingContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,7 +39,9 @@ export default function RootLayout({
       >
         <ModelsProvider>
           <NostrProvider>
-            {children}
+            <PricingProvider>
+              {children}
+            </PricingProvider>
           </NostrProvider>
         </ModelsProvider>
       </body>

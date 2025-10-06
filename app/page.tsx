@@ -6,6 +6,8 @@ import CtaSection from "@/components/CtaSection";
 import AnalyticsSection from "@/components/AnalyticsSection";
 import HeroSection from "../components/HeroSection";
 import ApiExample from "../components/ApiExample";
+import { usePricingView } from "@/app/contexts/PricingContext";
+import { CurrencyTabs } from "@/components/ui/currency-tabs";
 import {
   getPopularModels,
   getProviderFromModelName,
@@ -51,6 +53,7 @@ const customTheme = {
 };
 
 export default function Home() {
+  const { currency } = usePricingView();
   const [activeTab, setActiveTab] = useState("users");
   const [globeOpen, setGlobeOpen] = useState(false);
   const [displayModels, setDisplayModels] = useState<
@@ -66,11 +69,13 @@ export default function Home() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch once on mount
   useEffect(() => {
     async function loadModels() {
       setIsLoading(true);
       try {
         await fetchModels();
+        // Build initial list using current currency
         const models = getPopularModels(5).map((model) => {
           const provider = getProviderFromModelName(model.name);
           const modelName =
@@ -78,24 +83,29 @@ export default function Home() {
               ? model.name.split("/")[1]
               : model.name;
 
-          // Convert to tokens per sat for display
-          const promptPrice = model.sats_pricing.prompt > 0 ? 1 / model.sats_pricing.prompt : 0;
-          const completionPrice = model.sats_pricing.completion > 0 ? 1 / model.sats_pricing.completion : 0;
+        // Convert to display format based on currency
+          const promptPrice = currency === 'sats' 
+            ? (model.sats_pricing.prompt > 0 ? 1 / model.sats_pricing.prompt : 0)
+            : (model.pricing.prompt * 1_000_000);
+          const completionPrice = currency === 'sats' 
+            ? (model.sats_pricing.completion > 0 ? 1 / model.sats_pricing.completion : 0)
+            : (model.pricing.completion * 1_000_000);
 
-          // Format numbers to a simpler format
-          const formatTokensPerSat = (num: number) => {
-            if (num < 0.0001) {
-              // Use scientific notation with fewer digits for very small numbers
-              return num.toExponential(2);
+          const formatPrice = (num: number) => {
+            if (currency === 'sats') {
+              if (num < 0.0001) {
+                return num.toExponential(2);
+              }
+              return num.toFixed(
+                Math.min(4, Math.max(1, 6 - Math.floor(Math.log10(num) + 1)))
+              );
+            } else {
+              return num.toFixed(2);
             }
-            // Use fewer decimal places for better readability
-            return num.toFixed(
-              Math.min(4, Math.max(1, 6 - Math.floor(Math.log10(num) + 1)))
-            );
           };
 
-          const promptFormatted = formatTokensPerSat(promptPrice);
-          const completionFormatted = formatTokensPerSat(completionPrice);
+          const promptFormatted = formatPrice(promptPrice);
+          const completionFormatted = formatPrice(completionPrice);
 
           return {
             id: model.id,
@@ -116,7 +126,49 @@ export default function Home() {
     }
 
     loadModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Recompute prices on currency switch without refetching or toggling loaders
+  useEffect(() => {
+    const current = getPopularModels(5);
+    if (!current || current.length === 0) return;
+    const models = current.map((model) => {
+      const provider = getProviderFromModelName(model.name);
+      const modelName =
+        model.name.split("/").length > 1
+          ? model.name.split("/")[1]
+          : model.name;
+
+      const promptPrice = currency === 'sats' 
+        ? (model.sats_pricing.prompt > 0 ? 1 / model.sats_pricing.prompt : 0)
+        : (model.pricing.prompt * 1_000_000);
+      const completionPrice = currency === 'sats' 
+        ? (model.sats_pricing.completion > 0 ? 1 / model.sats_pricing.completion : 0)
+        : (model.pricing.completion * 1_000_000);
+
+      const formatPrice = (num: number) => {
+        if (currency === 'sats') {
+          if (num < 0.0001) return num.toExponential(2);
+          return num.toFixed(
+            Math.min(4, Math.max(1, 6 - Math.floor(Math.log10(num) + 1)))
+          );
+        }
+        return num.toFixed(2);
+      };
+
+      return {
+        id: model.id,
+        name: modelName,
+        provider: provider,
+        promptPrice: formatPrice(promptPrice),
+        completionPrice: formatPrice(completionPrice),
+        context: "128K tokens",
+        created: model.created,
+      };
+    });
+    setDisplayModels(models);
+  }, [currency]);
 
   const features = [
     {
@@ -698,13 +750,20 @@ export default function Home() {
       <section className="pt-12 sm:pt-20 pb-20 sm:pb-20 bg-black border-t border-white/5">
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="mx-auto max-w-3xl text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-              Browse Models
-            </h2>
-            <p className="text-sm sm:text-base text-gray-400">
-              Access a wide range of AI models through independent providers
-              with transparent pricing and performance metrics
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div className="text-center sm:text-left">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                  Browse Models
+                </h2>
+                <p className="text-sm sm:text-base text-gray-400">
+                  Access a wide range of AI models through independent providers
+                  with transparent pricing and performance metrics
+                </p>
+              </div>
+              <div className="flex justify-center sm:justify-end">
+                <CurrencyTabs />
+              </div>
+            </div>
           </div>
 
           <div className="relative">
@@ -765,18 +824,18 @@ export default function Home() {
                               Input:
                             </span>{" "}
                             <span className="font-mono text-white">
-                              {model.promptPrice}
+                              {currency === 'sats' ? model.promptPrice : `$${model.promptPrice}`}
                             </span>{" "}
-                            <span className="text-gray-500">tokens/sat</span>
+                            <span className="text-gray-500">{currency === 'sats' ? 'tokens/sat' : '/M tokens'}</span>
                           </div>
                           <div className="text-xs sm:text-sm">
                             <span className="text-gray-400 font-medium">
                               Output:
                             </span>{" "}
                             <span className="font-mono text-white">
-                              {model.completionPrice}
+                              {currency === 'sats' ? model.completionPrice : `$${model.completionPrice}`}
                             </span>{" "}
-                            <span className="text-gray-500">tokens/sat</span>
+                            <span className="text-gray-500">{currency === 'sats' ? 'tokens/sat' : '/M tokens'}</span>
                           </div>
                         </div>
                       </div>
