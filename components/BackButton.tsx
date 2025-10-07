@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface BackButtonProps {
   fallbackHref?: string;
@@ -18,19 +18,12 @@ export default function BackButton({
   ariaLabel = "Go back",
 }: BackButtonProps) {
   const router = useRouter();
-  const [canGoBack, setCanGoBack] = useState(false);
   const hasCheckedRef = useRef(false);
 
   useEffect(() => {
     if (hasCheckedRef.current) return;
     hasCheckedRef.current = true;
-    try {
-      // Heuristic: if there's any history length, prefer back. In SPA, length may be 1 on first page.
-      // We'll attempt back, but also maintain a canGoBack hint for semantics.
-      setCanGoBack(typeof window !== "undefined" && window.history.length > 1);
-    } catch {
-      setCanGoBack(false);
-    }
+    // Note: We removed canGoBack state as it wasn't being used
   }, []);
 
   const onBack = useCallback(() => {

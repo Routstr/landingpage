@@ -1,4 +1,3 @@
-import Link from "next/link";
 import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";

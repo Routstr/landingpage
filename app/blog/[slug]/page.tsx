@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
 import BackButton from "@/components/BackButton";
@@ -12,7 +12,6 @@ import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 export default function BlogPostPage() {
   const params = useParams<{ slug: string }>();
-  const router = useRouter();
   const slug = useMemo(() => (params?.slug as string) || "", [params]);
 
   const [markdown, setMarkdown] = useState<string | null>(null);
