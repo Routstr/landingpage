@@ -488,46 +488,48 @@ print(completion.choices[0].message.content)`
 
             {/* Pricing Section */}
             <Card className="bg-black/50 border border-white/10 p-6 mb-10">
-              <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
                 <h2 className="text-xl font-bold text-white">Pricing Information</h2>
-                <CurrencyTabs />
-                {providersForModel.length > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Provider</span>
-                    <Popover open={pricingSelectorOpen} onOpenChange={setPricingSelectorOpen}>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="inline-flex w-full sm:w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 sm:py-1.5 text-left text-sm text-white hover:bg-white/10"
-                          aria-label="Select provider for pricing"
-                        >
-                          <span className="truncate">{selectedProvider?.name || 'Select provider'}</span>
-                          <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[90vw] sm:w-56 p-2 sm:p-1 bg-black text-white border-white/10">
-                        <div role="listbox" aria-label="Select provider" className="max-h-[60vh] sm:max-h-64 overflow-y-auto">
-                          {providersForModel.map((p) => {
-                            const isActive = p.id === selectedProviderId;
-                            return (
-                              <button
-                                key={p.id}
-                                type="button"
-                                role="option"
-                                aria-selected={isActive}
-                                onClick={() => { setSelectedProviderId(p.id); setPricingSelectorOpen(false); }}
-                                className={`flex w-full items-center gap-2 rounded px-3 py-3 sm:py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
-                              >
-                                <CheckIcon className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
-                                <span className="truncate">{p.name}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                ) : null}
+                <div className="flex items-center gap-2 sm:gap-3 sm:ml-auto">
+                  <CurrencyTabs />
+                  {providersForModel.length > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">Provider</span>
+                      <Popover open={pricingSelectorOpen} onOpenChange={setPricingSelectorOpen}>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex w-full sm:w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 sm:py-1.5 text-left text-sm text-white hover:bg-white/10"
+                            aria-label="Select provider for pricing"
+                          >
+                            <span className="truncate">{selectedProvider?.name || 'Select provider'}</span>
+                            <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[90vw] sm:w-56 p-2 sm:p-1 bg-black text-white border-white/10">
+                          <div role="listbox" aria-label="Select provider" className="max-h-[60vh] sm:max-h-64 overflow-y-auto">
+                            {providersForModel.map((p) => {
+                              const isActive = p.id === selectedProviderId;
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={isActive}
+                                  onClick={() => { setSelectedProviderId(p.id); setPricingSelectorOpen(false); }}
+                                  className={`flex w-full items-center gap-2 rounded px-3 py-3 sm:py-2 text-left text-sm hover:bg-white/10 ${isActive ? 'bg-white/10' : ''}`}
+                                >
+                                  <CheckIcon className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
+                                  <span className="truncate">{p.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <div className="bg-black/30 border border-white/10 rounded-lg p-5 mb-6">
