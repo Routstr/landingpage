@@ -75,7 +75,14 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'FETCH_START' });
 
     try {
-      const response = await fetch('https://api.routstr.com/v1/providers/');
+      let response;
+      try {
+        response = await fetch('https://api.routstr.com/v1/providers/');
+      } catch {
+        // Fetch blocked (e.g., by browser extension) - silently fail
+        dispatch({ type: 'FETCH_ERROR', payload: 'Network request blocked' });
+        return;
+      }
       if (!response.ok) {
         throw new Error(`Failed to fetch providers: ${response.status}`);
       }
@@ -102,12 +109,15 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
         return hasProtocol ? urlOrHost : `https://${urlOrHost}`;
       };
 
-      const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response> => {
+      const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response | null> => {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeoutMs);
         try {
           const resp = await fetch(url, { ...options, signal: controller.signal });
           return resp;
+        } catch {
+          // Silently fail - could be blocked by browser extension, network error, or timeout
+          return null;
         } finally {
           clearTimeout(id);
         }
@@ -156,7 +166,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
               const base = normalizeForFetch(primary).replace(/\/$/, '');
               const modelsUrl = `${base}/v1/models`;
               const r = await fetchWithTimeout(modelsUrl, { headers: { 'accept': 'application/json' } }, 8000);
-              if (!r.ok) return;
+              if (!r || !r.ok) return;
               const payload = await r.json();
               const arr: Array<{
                 id: string;

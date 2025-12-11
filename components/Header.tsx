@@ -29,7 +29,7 @@ export default function Header() {
     show: {
       opacity: 1,
       y: 0,
-      transition: { type: 'spring', stiffness: 500, damping: 40 }
+      transition: { type: 'spring' as const, stiffness: 500, damping: 40 }
     },
     exit: { opacity: 0, y: -12, transition: { duration: 0.2 } }
   };
@@ -47,7 +47,7 @@ export default function Header() {
     show: {
       opacity: 1,
       y: 0,
-      transition: { type: 'spring', stiffness: 600, damping: 40 }
+      transition: { type: 'spring' as const, stiffness: 600, damping: 40 }
     },
     exit: { opacity: 0, y: -6, transition: { duration: 0.12 } }
   };
@@ -57,19 +57,19 @@ export default function Header() {
       <div className="flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">
-            <span className="text-lg sm:text-xl font-bold text-white">Routstr</span>
+            <span className="text-xl sm:text-2xl font-bold text-white">Routstr</span>
           </Link>
           <nav className="hidden md:flex">
             <ul className="flex space-x-6">
-              <li><Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">Models</Link></li>
-              <li><Link href="/providers" className="text-sm text-gray-400 hover:text-white transition-colors">Providers</Link></li>
-              <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">Blog</Link></li>
+              <li><Link href="/models" className="text-sm md:text-base text-gray-400 hover:text-white transition-colors">Models</Link></li>
+              <li><Link href="/providers" className="text-sm md:text-base text-gray-400 hover:text-white transition-colors">Providers</Link></li>
+              <li><Link href="/blog" className="text-sm md:text-base text-gray-400 hover:text-white transition-colors">Blog</Link></li>
               <li>
                 <a
                   href="https://chat.routstr.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
                 >
                   Chat
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
@@ -83,7 +83,7 @@ export default function Header() {
                   href="https://docs.routstr.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
                 >
                   Docs
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
@@ -97,7 +97,7 @@ export default function Header() {
                   href="/topup"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
+                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
                 >
                   Top-Up
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="w-4 h-4">

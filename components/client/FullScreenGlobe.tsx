@@ -93,9 +93,16 @@ async function geolocateHost(host: string): Promise<{ lat: number; lng: number; 
   }
   try {
     // 1) Resolve hostname to IPv4 using Google DNS over HTTPS
-    const dnsRes = await fetch(
-      `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`
-    );
+    let dnsRes;
+    try {
+      dnsRes = await fetch(
+        `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`
+      );
+    } catch (e) {
+      // Fetch blocked (e.g., by browser extension) - silently fail
+      console.warn("[Globe] DNS fetch blocked for host:", host, e);
+      return null;
+    }
     if (!dnsRes.ok) {
       console.warn("[Globe] DNS resolve failed status:", host, dnsRes.status);
       return null;

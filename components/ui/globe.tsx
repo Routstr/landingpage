@@ -65,7 +65,13 @@ async function geolocateHost(host: string): Promise<{ lat: number; lng: number; 
   if (geolocationCache.has(host)) return geolocationCache.get(host)!;
   try {
     // Resolve hostname to IPv4 via Google DNS-over-HTTPS
-    const dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`);
+    let dnsRes;
+    try {
+      dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`);
+    } catch {
+      // Fetch blocked (e.g., by browser extension) - silently fail
+      return null;
+    }
     if (!dnsRes.ok) return null;
     const dnsData = await dnsRes.json();
     const ip = Array.isArray(dnsData?.Answer)
@@ -84,7 +90,9 @@ async function geolocateHost(host: string): Promise<{ lat: number; lng: number; 
           return value;
         }
       }
-    } catch {}
+    } catch {
+      // Silently fail - fallback to next method or hash coords
+    }
 
     // Optional ip-api.com over HTTP only when page is HTTP to avoid mixed content
     try {
@@ -99,8 +107,12 @@ async function geolocateHost(host: string): Promise<{ lat: number; lng: number; 
           }
         }
       }
-    } catch {}
-  } catch {}
+    } catch {
+      // Silently fail
+    }
+  } catch {
+    // Outer catch for any unexpected errors
+  }
   return null;
 }
 
@@ -158,12 +170,14 @@ const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
   onRender: () => { },
-  devicePixelRatio: 2,
+  // Cap device pixel ratio to prevent heavy rendering on high-DPI displays
+  devicePixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 1.5) : 1,
   phi: 0,
   theta: 0.3,
   dark: 0,
   diffuse: 0.4,
-  mapSamples: 16000,
+  // Reduced from 16000 to 4000 for much better performance
+  mapSamples: 4000,
   mapBrightness: 1.2,
   baseColor: [1, 1, 1],
   markerColor: [251 / 255, 100 / 255, 21 / 255],
@@ -218,17 +232,37 @@ export function Globe({
     window.addEventListener("resize", onResize);
     onResize();
     let globe: ReturnType<typeof createGlobe> | null = null;
+    let isVisible = true;
+
+    // Pause rendering when not visible using Intersection Observer
+    const observer = new IntersectionObserver(
+      (entries) => {
+        isVisible = entries[0]?.isIntersecting ?? true;
+      },
+      { threshold: 0.1 }
+    );
+
+    if (canvasRef.current) {
+      observer.observe(canvasRef.current);
+    }
+
+    // Use capped pixel ratio for rendering
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
     try {
       globe = createGlobe(canvasRef.current!, {
         ...config,
-        width: widthRef.current * 2,
-        height: widthRef.current * 2,
+        devicePixelRatio: dpr,
+        width: widthRef.current * dpr,
+        height: widthRef.current * dpr,
         onRender: (state) => {
+          // Skip expensive updates when not visible
+          if (!isVisible) return;
+          
           if (!pointerInteracting.current) phiRef.current += 0.005;
           state.phi = phiRef.current + rs.get();
-          state.width = widthRef.current * 2;
-          state.height = widthRef.current * 2;
+          state.width = widthRef.current * dpr;
+          state.height = widthRef.current * dpr;
           // draw provider markers gathered asynchronously
           (state as COBEState).markers = markersRef.current;
         },
@@ -242,6 +276,7 @@ export function Globe({
     setTimeout(() => (canvasRef.current!.style.opacity = "1"), 0);
 
     return () => {
+      observer.disconnect();
       if (globe) {
         globe.destroy();
       }
