@@ -198,7 +198,9 @@ export function LandingApiExample() {
                 <h4 className="text-sm md:text-base font-medium text-white mb-1">
                   {feature.title}
                 </h4>
-                <p className="text-xs md:text-sm text-neutral-500">{feature.description}</p>
+                <p className="text-xs md:text-sm text-neutral-500">
+                  {feature.description}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -229,10 +231,12 @@ const CodeBlock = ({
             https://api.routstr.com/v1/chat/completions
           </span>
           {" \\\n"}
-          {'  -H '}
-          <span className="text-green-400">{'"Content-Type: application/json"'}</span>
+          {"  -H "}
+          <span className="text-green-400">
+            {'"Content-Type: application/json"'}
+          </span>
           {" \\\n"}
-          {'  -H '}
+          {"  -H "}
           <span className="text-green-400">{'"Authorization: Bearer '}</span>
           <TokenInput
             value={tokenInput}
@@ -357,10 +361,9 @@ const TokenInput = ({
     onClick={(e) => e.stopPropagation()}
     onMouseDown={(e) => e.stopPropagation()}
     onTouchStart={(e) => e.stopPropagation()}
-    placeholder="cashu..."
+    placeholder="cashuA..."
     className="inline-block align-middle min-w-0 w-[12ch] sm:w-[18ch] max-w-[50vw] bg-neutral-800/50 border border-white/10 rounded px-2 py-0.5 text-xs text-green-400 placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-white/20 font-mono"
   />
 );
 
 export default LandingApiExample;
-
