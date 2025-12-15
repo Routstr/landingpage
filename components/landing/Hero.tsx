@@ -52,12 +52,13 @@ export function LandingHero() {
             initialY: -100,
             translateY: 400,
             duration: 5,
-            repeatDelay: 2,
+            delay: 0,
+            repeatDelay: 3,
           }}
           containerRef={containerRef}
           parentRef={parentRef}
           isMobile={true}
-          mobileOffset="left-[10%]"
+          mobileOffset="left-[15%]"
         />
         <CollisionMechanism
           beamOptions={{
@@ -66,26 +67,13 @@ export function LandingHero() {
             initialY: -120,
             translateY: 450,
             duration: 6,
+            delay: 2,
             repeatDelay: 3,
           }}
           containerRef={containerRef}
           parentRef={parentRef}
           isMobile={true}
-          mobileOffset="left-[30%]"
-        />
-        <CollisionMechanism
-          beamOptions={{
-            initialX: -10,
-            translateX: 80,
-            initialY: -80,
-            translateY: 380,
-            duration: 7,
-            repeatDelay: 1,
-          }}
-          containerRef={containerRef}
-          parentRef={parentRef}
-          isMobile={true}
-          mobileOffset="left-[50%]"
+          mobileOffset="left-[45%]"
         />
         <CollisionMechanism
           beamOptions={{
@@ -94,12 +82,13 @@ export function LandingHero() {
             initialY: -140,
             translateY: 420,
             duration: 5.5,
-            repeatDelay: 4,
+            delay: 4,
+            repeatDelay: 3,
           }}
           containerRef={containerRef}
           parentRef={parentRef}
           isMobile={true}
-          mobileOffset="left-[70%]"
+          mobileOffset="left-[75%]"
         />
       </div>
 
