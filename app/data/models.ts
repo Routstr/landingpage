@@ -374,9 +374,9 @@ export function groupModelsByProvider(): Record<string, Model[]> {
 }
 
 // Get popular models (for showcase)
-export function getPopularModels(count: number = 6): Model[] {
+export function getPopularModels(count: number = 6, sourceModels: Model[] = models): Model[] {
   // Sort by created date (newest first) and return top N
-  return [...models]
+  return [...sourceModels]
     .sort(
       (a, b) =>
         // Prioritize newest models
