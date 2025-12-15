@@ -18,27 +18,90 @@ export function LandingHero() {
       className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-20 md:px-8 md:py-32 bg-black"
     >
       <BackgroundGrids />
-      {/* Reduced from 4 to 2 collision mechanisms for better performance */}
-      <CollisionMechanism
-        beamOptions={{
-          initialX: -200,
-          translateX: 800,
-          duration: 6,
-          repeatDelay: 4,
-        }}
-        containerRef={containerRef}
-        parentRef={parentRef}
-      />
-      <CollisionMechanism
-        beamOptions={{
-          initialX: 200,
-          translateX: 1200,
-          duration: 7,
-          repeatDelay: 5,
-        }}
-        containerRef={containerRef}
-        parentRef={parentRef}
-      />
+
+      {/* Desktop collision mechanisms - hidden on mobile */}
+      <div className="hidden md:block">
+        <CollisionMechanism
+          beamOptions={{
+            initialX: -200,
+            translateX: 800,
+            duration: 6,
+            repeatDelay: 4,
+          }}
+          containerRef={containerRef}
+          parentRef={parentRef}
+        />
+        <CollisionMechanism
+          beamOptions={{
+            initialX: 200,
+            translateX: 1200,
+            duration: 7,
+            repeatDelay: 5,
+          }}
+          containerRef={containerRef}
+          parentRef={parentRef}
+        />
+      </div>
+
+      {/* Mobile collision mechanisms - optimized for smaller screens */}
+      <div className="block md:hidden">
+        <CollisionMechanism
+          beamOptions={{
+            initialX: -30,
+            translateX: 100,
+            initialY: -100,
+            translateY: 400,
+            duration: 5,
+            repeatDelay: 2,
+          }}
+          containerRef={containerRef}
+          parentRef={parentRef}
+          isMobile={true}
+          mobileOffset="left-[10%]"
+        />
+        <CollisionMechanism
+          beamOptions={{
+            initialX: -20,
+            translateX: 90,
+            initialY: -120,
+            translateY: 450,
+            duration: 6,
+            repeatDelay: 3,
+          }}
+          containerRef={containerRef}
+          parentRef={parentRef}
+          isMobile={true}
+          mobileOffset="left-[30%]"
+        />
+        <CollisionMechanism
+          beamOptions={{
+            initialX: -10,
+            translateX: 80,
+            initialY: -80,
+            translateY: 380,
+            duration: 7,
+            repeatDelay: 1,
+          }}
+          containerRef={containerRef}
+          parentRef={parentRef}
+          isMobile={true}
+          mobileOffset="left-[50%]"
+        />
+        <CollisionMechanism
+          beamOptions={{
+            initialX: -15,
+            translateX: 70,
+            initialY: -140,
+            translateY: 420,
+            duration: 5.5,
+            repeatDelay: 4,
+          }}
+          containerRef={containerRef}
+          parentRef={parentRef}
+          isMobile={true}
+          mobileOffset="left-[70%]"
+        />
+      </div>
 
       <h1 className="text-balance relative z-50 mx-auto mb-4 mt-4 max-w-4xl text-center text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
         The Open Protocol for{" "}
@@ -66,29 +129,29 @@ export function LandingHero() {
           Read Docs
         </Link>
       </div>
-      
+
       <div
         ref={containerRef}
         className="relative mx-auto max-w-5xl w-full rounded-[32px] border border-neutral-800 bg-neutral-900/50 p-2 backdrop-blur-lg md:p-4"
       >
-        <div 
+        <div
           className="rounded-[24px] border border-neutral-800 bg-black p-2 h-[400px] md:h-[600px] relative overflow-hidden flex items-center justify-center cursor-pointer group"
           onClick={() => setGlobeOpen(true)}
         >
-            <div className="absolute inset-0 w-full h-full">
-                <Globe />
-            </div>
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black via-transparent to-transparent z-10" />
-            <div className="absolute bottom-8 left-0 right-0 z-20 text-center">
-                <p className="text-sm text-gray-500 font-mono group-hover:text-gray-400 transition-colors">
-                   Click to explore • Live node activity
-                </p>
-            </div>
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity z-5 pointer-events-none rounded-[24px]" />
+          <div className="absolute inset-0 w-full h-full">
+            <Globe />
+          </div>
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black via-transparent to-transparent z-10" />
+          <div className="absolute bottom-8 left-0 right-0 z-20 text-center">
+            <p className="text-sm text-gray-500 font-mono group-hover:text-gray-400 transition-colors">
+              Click to explore • Live node activity
+            </p>
+          </div>
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity z-5 pointer-events-none rounded-[24px]" />
         </div>
       </div>
-      
+
       {/* Fullscreen Globe Dialog */}
       <FullScreenGlobeDialog open={globeOpen} onOpenChange={setGlobeOpen} />
     </div>
@@ -122,9 +185,13 @@ const CollisionMechanism = ({
   parentRef,
   containerRef,
   beamOptions = {},
+  isMobile = false,
+  mobileOffset,
 }: {
   containerRef: React.RefObject<HTMLDivElement | null>;
   parentRef: React.RefObject<HTMLDivElement | null>;
+  isMobile?: boolean;
+  mobileOffset?: string;
   beamOptions?: {
     initialX?: number;
     translateX?: number;
@@ -160,14 +227,14 @@ const CollisionMechanism = ({
   // Track visibility using IntersectionObserver to pause RAF when not visible
   useEffect(() => {
     if (!parentRef.current) return;
-    
+
     const observer = new IntersectionObserver(
       (entries) => {
         setIsVisible(entries[0]?.isIntersecting ?? false);
       },
       { threshold: 0.1 }
     );
-    
+
     observer.observe(parentRef.current);
     return () => observer.disconnect();
   }, [parentRef]);
@@ -175,7 +242,7 @@ const CollisionMechanism = ({
   useEffect(() => {
     // Don't run RAF loop if not visible - this is the main performance fix
     if (!isVisible) return;
-    
+
     let rafId: number;
     let lastCheck = 0;
     const CHECK_INTERVAL = 200; // Check every 200ms instead of 50ms
@@ -266,26 +333,31 @@ const CollisionMechanism = ({
           repeatDelay: beamOptions.repeatDelay || 0,
         }}
         className={cn(
-          "absolute left-96 top-20 m-auto h-10 w-10 z-20",
+          "absolute top-20 m-auto h-10 w-10 z-20",
+          isMobile ? mobileOffset || "left-1/3" : "left-96",
           beamOptions.className
         )}
       >
-        <motion.div 
+        <motion.div
           className="relative size-5"
           initial={{ rotate: 0 }}
-          animate={hasMounted ? { rotate: [randomRotation, randomRotation + 720] } : { rotate: 0 }}
+          animate={
+            hasMounted
+              ? { rotate: [randomRotation, randomRotation + 720] }
+              : { rotate: 0 }
+          }
           transition={{
             duration: (beamOptions.duration || 8) * 2,
             repeat: Infinity,
             ease: "linear",
           }}
         >
-            <Image
-                src="/assets/cashu-token.png"
-                alt="Cashu Token"
-                fill
-                className="object-contain"
-            />
+          <Image
+            src="/assets/cashu-token.png"
+            alt="Cashu Token"
+            fill
+            className="object-contain"
+          />
         </motion.div>
       </motion.div>
       <AnimatePresence>
