@@ -11,6 +11,16 @@ export function LandingHero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const [globeOpen, setGlobeOpen] = useState(false);
+  const heroWords = ["accessing AI", "building on AI", "trading AI"];
+  const [activeWordIndex, setActiveWordIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveWordIndex((prevIndex) => (prevIndex + 1) % heroWords.length);
+    }, 2200);
+
+    return () => clearInterval(interval);
+  }, [heroWords.length]);
 
   return (
     <div
@@ -93,10 +103,22 @@ export function LandingHero() {
       </div>
 
       <h1 className="text-balance relative z-50 mx-auto mb-4 mt-4 max-w-4xl text-center text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
-        The Open Protocol for{" "}
-        <div className="relative mx-auto inline-block w-max [filter:drop-shadow(0px_1px_3px_rgba(27,_37,_80,_0.14))]">
-          <div className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-            <span className="">AI Access</span>
+        The Open Protocol for
+        <span className="sr-only"> {heroWords[activeWordIndex]}</span>
+        <div className="relative mx-auto inline-flex w-max flex-col items-center [filter:drop-shadow(0px_1px_3px_rgba(27,_37,_80,_0.14))]">
+          <div className="flex h-[1.2em] items-center overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={heroWords[activeWordIndex]}
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: "0%", opacity: 1 }}
+                exit={{ y: "-100%", opacity: 0 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"
+              >
+                {heroWords[activeWordIndex]}
+              </motion.span>
+            </AnimatePresence>
           </div>
         </div>
       </h1>
