@@ -93,7 +93,7 @@ export function LandingHero() {
         />
       </div>
 
-      <div className="relative z-50 mx-auto mb-6 mt-10 w-full text-center px-4">
+      <div className="relative z-50 mx-auto mb-6 w-full text-center px-4">
         <span className="mb-4 block font-mono text-xl text-gray-400">
           With Routstr
         </span>
@@ -102,7 +102,7 @@ export function LandingHero() {
         </h1>
         <MorphingText
           texts={["Permissionless", "Decentralized", "Private"]}
-          className="max-w-none"
+          className="max-w-none text-4xl sm:text-5xl md:text-6xl lg:text-7xl h-12 sm:h-14 md:h-18 lg:h-24"
           textClassName="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500"
         />
       </div>
