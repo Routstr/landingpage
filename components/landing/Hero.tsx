@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Globe } from "@/components/ui/globe";
 import FullScreenGlobeDialog from "@/components/client/FullScreenGlobeDialog";
+import { MorphingText } from "@/components/MorphingText";
 
 export function LandingHero() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,15 +93,20 @@ export function LandingHero() {
         />
       </div>
 
-      <h1 className="text-balance relative z-50 mx-auto mb-4 mt-4 max-w-4xl text-center text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
-        The Open Protocol for{" "}
-        <div className="relative mx-auto inline-block w-max [filter:drop-shadow(0px_1px_3px_rgba(27,_37,_80,_0.14))]">
-          <div className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-            <span className="">AI Access</span>
-          </div>
-        </div>
-      </h1>
-      <p className="relative z-50 mx-auto mt-4 max-w-lg px-4 text-center text-base/6 text-gray-400 sm:text-lg md:text-xl">
+      <div className="relative z-50 mx-auto mb-6 mt-10 w-full text-center px-4">
+        <span className="mb-4 block font-mono text-xl text-gray-400">
+          With Routstr
+        </span>
+        <h1 className="text-balance mx-auto mb-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
+          Access to AI is Now
+        </h1>
+        <MorphingText
+          texts={["Permissionless", "Decentralized", "Private"]}
+          className="max-w-none"
+          textClassName="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500"
+        />
+      </div>
+      <p className="relative z-50 mx-auto mt-4 max-w-xl px-4 text-center text-base/6 text-gray-400 sm:text-lg md:text-xl">
         Pay-per-request AI APIs with Bitcoin micropayments. OpenAI-compatible,
         privacy-preserving, no account required.
       </p>
