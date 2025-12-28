@@ -26,7 +26,7 @@ export function LandingBrowseModels() {
 
   useEffect(() => {
     const current = getPopularModels(6, models);
-    
+
     if (!current || current.length === 0) {
       setDisplayModels([]);
       return;
@@ -39,15 +39,21 @@ export function LandingBrowseModels() {
           ? model.name.split("/")[1]
           : model.name;
 
-      const promptPrice = currency === 'sats' 
-        ? (model.sats_pricing.prompt > 0 ? 1 / model.sats_pricing.prompt : 0)
-        : (model.pricing.prompt * 1_000_000);
-      const completionPrice = currency === 'sats' 
-        ? (model.sats_pricing.completion > 0 ? 1 / model.sats_pricing.completion : 0)
-        : (model.pricing.completion * 1_000_000);
+      const promptPrice =
+        currency === "sats"
+          ? model.sats_pricing.prompt > 0
+            ? 1 / model.sats_pricing.prompt
+            : 0
+          : model.pricing.prompt * 1_000_000;
+      const completionPrice =
+        currency === "sats"
+          ? model.sats_pricing.completion > 0
+            ? 1 / model.sats_pricing.completion
+            : 0
+          : model.pricing.completion * 1_000_000;
 
       const formatPrice = (num: number) => {
-        if (currency === 'sats') {
+        if (currency === "sats") {
           if (num < 0.0001) return num.toExponential(2);
           return num.toFixed(
             Math.min(4, Math.max(1, 6 - Math.floor(Math.log10(num) + 1)))
@@ -78,8 +84,8 @@ export function LandingBrowseModels() {
             Browse Models
           </h2>
           <p className="text-base md:text-lg lg:text-xl text-neutral-400 max-w-xl">
-            Access a wide range of AI models through independent providers
-            with transparent pricing and performance metrics
+            Access a wide range of AI models through independent providers with
+            transparent pricing and performance metrics
           </p>
         </div>
         <div className="flex-shrink-0">
@@ -99,7 +105,12 @@ export function LandingBrowseModels() {
               ))
           ) : displayModels.length > 0 ? (
             displayModels.map((model, index) => (
-              <ModelCard key={model.id} model={model} index={index} currency={currency} />
+              <ModelCard
+                key={model.id}
+                model={model}
+                index={index}
+                currency={currency}
+              />
             ))
           ) : (
             <div className="text-center py-16 col-span-full">
@@ -171,11 +182,14 @@ const ModelCard = ({
                 <span className="text-neutral-500">{model.provider}</span>
                 <span className="text-neutral-600">•</span>
                 <span className="text-neutral-600">
-                  {new Date(model.created * 1000).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {new Date(model.created * 1000).toLocaleDateString(
+                    undefined,
+                    {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    }
+                  )}
                 </span>
               </div>
 
@@ -184,19 +198,23 @@ const ModelCard = ({
                 <div className="text-sm">
                   <span className="text-neutral-500">Input: </span>
                   <span className="font-mono text-white">
-                    {currency === 'sats' ? model.promptPrice : `$${model.promptPrice}`}
+                    {currency === "sats"
+                      ? model.promptPrice
+                      : `$${model.promptPrice}`}
                   </span>
                   <span className="text-neutral-600 ml-1">
-                    {currency === 'sats' ? 'tokens/sat' : '/M tokens'}
+                    {currency === "sats" ? "tokens/sat" : "/M tokens"}
                   </span>
                 </div>
                 <div className="text-sm">
                   <span className="text-neutral-500">Output: </span>
                   <span className="font-mono text-white">
-                    {currency === 'sats' ? model.completionPrice : `$${model.completionPrice}`}
+                    {currency === "sats"
+                      ? model.completionPrice
+                      : `$${model.completionPrice}`}
                   </span>
                   <span className="text-neutral-600 ml-1">
-                    {currency === 'sats' ? 'tokens/sat' : '/M tokens'}
+                    {currency === "sats" ? "tokens/sat" : "/M tokens"}
                   </span>
                 </div>
               </div>
@@ -250,4 +268,3 @@ const ModelCardSkeleton = ({ index }: { index: number }) => {
 };
 
 export default LandingBrowseModels;
-
