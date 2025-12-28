@@ -259,6 +259,7 @@ export function LandingTestimonials() {
                     width={500}
                     height={300}
                     className="w-full h-auto"
+                    loading="lazy"
                   />
                 </div>
               )}
@@ -274,7 +275,7 @@ export function LandingTestimonials() {
             href={featuredTestimonial.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block p-8 rounded-2xl border border-white/20 relative bg-neutral-900/70 hover:bg-neutral-900/90 hover:border-white/30 transition-all duration-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.1)_inset] group"
+            className="block p-8 rounded-2xl border border-white/20 relative bg-neutral-900/70 hover:bg-neutral-900/90 hover:border-white/30 transition-colors duration-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.1)_inset] group will-change-auto"
           >
             <h3 className="text-xl md:text-2xl font-medium text-white py-2 text-center">
               {featuredTestimonial.quote}
@@ -286,6 +287,7 @@ export function LandingTestimonials() {
                 width={48}
                 height={48}
                 className="rounded-full ring-2 ring-white/10"
+                loading="lazy"
               />
               <div className="flex flex-col">
                 <span className="font-semibold text-white text-base">
@@ -360,6 +362,7 @@ function TestimonialFooter({ testimonial }: { testimonial: Testimonial }) {
         width={40}
         height={40}
         className="rounded-full"
+        loading="lazy"
         unoptimized={testimonial.src.endsWith(".gif")}
       />
       <div className="flex flex-col">
@@ -409,7 +412,7 @@ const Card = ({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "block p-6 rounded-xl border border-white/10 relative bg-neutral-900/50 hover:bg-neutral-900/80 hover:border-white/20 transition-all duration-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] group",
+        "block p-6 rounded-xl border border-white/10 relative bg-neutral-900/50 hover:bg-neutral-900/80 hover:border-white/20 transition-colors duration-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] group will-change-auto",
         className
       )}
     >

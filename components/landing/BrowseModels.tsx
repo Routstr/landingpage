@@ -172,7 +172,7 @@ const ModelCard = ({
       transition={{ duration: 0.4, delay: index * 0.05 }}
     >
       <Link href={`/models/${model.id}`} className="block group">
-        <div className="relative bg-neutral-900 border border-white/10 rounded-xl p-5 md:p-6 hover:border-white/20 transition-all duration-300 hover:bg-neutral-900/80">
+        <div className="relative bg-neutral-900 border border-white/10 rounded-xl p-5 md:p-6 hover:border-white/20 transition-colors duration-300 hover:bg-neutral-900/80">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h3 className="text-lg md:text-xl font-bold text-white truncate group-hover:text-white/90">

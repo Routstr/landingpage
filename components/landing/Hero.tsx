@@ -125,12 +125,9 @@ export function LandingHero() {
         </Link>
       </div>
 
-      <div
-        ref={containerRef}
-        className="relative mx-auto max-w-5xl w-full rounded-[32px] border border-neutral-800 bg-neutral-900/50 p-2 backdrop-blur-lg md:p-4"
-      >
+      <div ref={containerRef} className="relative mx-auto max-w-5xl w-full">
         <div
-          className="rounded-[24px] border border-neutral-800 bg-black p-2 h-[400px] md:h-[600px] relative overflow-hidden flex items-center justify-center cursor-pointer group"
+          className="h-[400px] md:h-[600px] relative overflow-hidden flex items-center justify-center cursor-pointer"
           onClick={() => setGlobeOpen(true)}
         >
           <div className="absolute inset-0 w-full h-full">
@@ -138,12 +135,10 @@ export function LandingHero() {
           </div>
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black via-transparent to-transparent z-10" />
           <div className="absolute bottom-8 left-0 right-0 z-20 text-center">
-            <p className="text-sm text-gray-500 font-mono group-hover:text-gray-400 transition-colors">
+            <p className="text-sm text-gray-500 font-mono hover:text-gray-400 transition-colors">
               Click to explore • Live node activity
             </p>
           </div>
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity z-5 pointer-events-none rounded-[24px]" />
         </div>
       </div>
 

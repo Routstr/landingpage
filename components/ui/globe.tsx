@@ -5,7 +5,10 @@ import { useMotionValue, useSpring } from "motion/react";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
-import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
+import {
+  filterStagingEndpoints,
+  shouldHideProvider,
+} from "@/lib/staging-filter";
 
 // Type definitions
 interface COBEState {
@@ -58,16 +61,26 @@ function extractHost(urlOrHost: string): string | null {
 }
 
 // Geolocation cache to reduce duplicate lookups
-const geolocationCache = new Map<string, { lat: number; lng: number; city?: string; country?: string }>();
+const geolocationCache = new Map<
+  string,
+  { lat: number; lng: number; city?: string; country?: string }
+>();
 
-async function geolocateHost(host: string): Promise<{ lat: number; lng: number; city?: string; country?: string } | null> {
-  if (host.endsWith('.onion')) return null;
+async function geolocateHost(host: string): Promise<{
+  lat: number;
+  lng: number;
+  city?: string;
+  country?: string;
+} | null> {
+  if (host.endsWith(".onion")) return null;
   if (geolocationCache.has(host)) return geolocationCache.get(host)!;
   try {
     // Resolve hostname to IPv4 via Google DNS-over-HTTPS
     let dnsRes;
     try {
-      dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`);
+      dnsRes = await fetch(
+        `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`
+      );
     } catch {
       // Fetch blocked (e.g., by browser extension) - silently fail
       return null;
@@ -75,7 +88,7 @@ async function geolocateHost(host: string): Promise<{ lat: number; lng: number; 
     if (!dnsRes.ok) return null;
     const dnsData = await dnsRes.json();
     const ip = Array.isArray(dnsData?.Answer)
-      ? (dnsData.Answer.find((a: { type: number }) => a.type === 1)?.data ?? null)
+      ? dnsData.Answer.find((a: { type: number }) => a.type === 1)?.data ?? null
       : null;
     if (!ip) return null;
 
@@ -84,8 +97,17 @@ async function geolocateHost(host: string): Promise<{ lat: number; lng: number; 
       const resIpwho = await fetch(`https://ipwho.is/${ip}`);
       if (resIpwho.ok) {
         const dataIpwho = await resIpwho.json();
-        if (dataIpwho?.success && typeof dataIpwho.latitude === 'number' && typeof dataIpwho.longitude === 'number') {
-          const value = { lat: dataIpwho.latitude, lng: dataIpwho.longitude, city: dataIpwho.city, country: dataIpwho.country };
+        if (
+          dataIpwho?.success &&
+          typeof dataIpwho.latitude === "number" &&
+          typeof dataIpwho.longitude === "number"
+        ) {
+          const value = {
+            lat: dataIpwho.latitude,
+            lng: dataIpwho.longitude,
+            city: dataIpwho.city,
+            country: dataIpwho.country,
+          };
           geolocationCache.set(host, value);
           return value;
         }
@@ -96,12 +118,23 @@ async function geolocateHost(host: string): Promise<{ lat: number; lng: number; 
 
     // Optional ip-api.com over HTTP only when page is HTTP to avoid mixed content
     try {
-      if (typeof window !== 'undefined' && window.location.protocol === 'http:') {
+      if (
+        typeof window !== "undefined" &&
+        window.location.protocol === "http:"
+      ) {
         const resIpApi = await fetch(`http://ip-api.com/json/${ip}`);
         if (resIpApi.ok) {
           const dataIpApi = await resIpApi.json();
-          if (typeof dataIpApi.lat === 'number' && typeof dataIpApi.lon === 'number') {
-            const value = { lat: dataIpApi.lat, lng: dataIpApi.lon, city: dataIpApi.city, country: dataIpApi.country };
+          if (
+            typeof dataIpApi.lat === "number" &&
+            typeof dataIpApi.lon === "number"
+          ) {
+            const value = {
+              lat: dataIpApi.lat,
+              lng: dataIpApi.lon,
+              city: dataIpApi.city,
+              country: dataIpApi.country,
+            };
             geolocationCache.set(host, value);
             return value;
           }
@@ -127,9 +160,12 @@ function clampLat(lat: number): number {
   return Math.max(-89.999, Math.min(89.999, lat));
 }
 
-function disambiguateOverlappingPoints(points: ProviderPoint[]): ProviderPoint[] {
+function disambiguateOverlappingPoints(
+  points: ProviderPoint[]
+): ProviderPoint[] {
   const groups = new Map<string, ProviderPoint[]>();
-  const keyFor = (p: ProviderPoint) => `${p.lat.toFixed(3)}|${p.lng.toFixed(3)}`;
+  const keyFor = (p: ProviderPoint) =>
+    `${p.lat.toFixed(3)}|${p.lng.toFixed(3)}`;
   for (const p of points) {
     const k = keyFor(p);
     const arr = groups.get(k) ?? [];
@@ -169,14 +205,14 @@ const MOVEMENT_DAMPING = 1400;
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
-  onRender: () => { },
-  // Cap device pixel ratio to prevent heavy rendering on high-DPI displays
-  devicePixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 1.5) : 1,
+  onRender: () => {},
+  // Cap device pixel ratio to 1 for much better scroll performance
+  devicePixelRatio: 1,
   phi: 0,
   theta: 0.3,
   dark: 0,
   diffuse: 0.4,
-  // Reduced from 16000 to 4000 for much better performance
+  // 4000 samples for good dot density with scroll optimizations
   mapSamples: 4000,
   mapBrightness: 1.2,
   baseColor: [1, 1, 1],
@@ -198,7 +234,6 @@ export function Globe({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
-  
 
   const r = useMotionValue(0);
   const rs = useSpring(r, {
@@ -246,8 +281,8 @@ export function Globe({
       observer.observe(canvasRef.current);
     }
 
-    // Use capped pixel ratio for rendering
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    // Use fixed DPR of 1 for smooth scrolling performance
+    const dpr = 1;
 
     try {
       globe = createGlobe(canvasRef.current!, {
@@ -256,10 +291,11 @@ export function Globe({
         width: widthRef.current * dpr,
         height: widthRef.current * dpr,
         onRender: (state) => {
-          // Skip expensive updates when not visible
+          // Skip rendering when not visible
           if (!isVisible) return;
-          
-          if (!pointerInteracting.current) phiRef.current += 0.005;
+
+          // Slower rotation (0.002 instead of 0.005) for smoother performance
+          if (!pointerInteracting.current) phiRef.current += 0.002;
           state.phi = phiRef.current + rs.get();
           state.width = widthRef.current * dpr;
           state.height = widthRef.current * dpr;
@@ -269,7 +305,10 @@ export function Globe({
       });
     } catch (e) {
       console.error("Globe Error: createGlobe call failed.", e);
-      console.error("Globe Error Details: Canvas at time of error:", canvasRef.current);
+      console.error(
+        "Globe Error Details: Canvas at time of error:",
+        canvasRef.current
+      );
       return;
     }
 
@@ -295,9 +334,10 @@ export function Globe({
         const providersRaw = data.providers ?? [];
         // Filter out providers with staging endpoints
         const providers = providersRaw.filter((p) => {
-          const endpoints = Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
-            ? p.endpoint_urls
-            : [p.endpoint_url].filter(Boolean);
+          const endpoints =
+            Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
+              ? p.endpoint_urls
+              : [p.endpoint_url].filter(Boolean);
           return !shouldHideProvider(endpoints);
         });
         // Map providers to points using geolocation with fallback to hashed coords
@@ -316,10 +356,19 @@ export function Globe({
           const httpEndpoints = filterStagingEndpoints([p.endpoint_url]);
           // Only plot if at least one non-staging endpoint exists
           if (httpEndpoints.length === 0) continue;
-          points.push({ id: p.id, name: p.name, endpoint: httpEndpoints[0], lat: latlng.lat, lng: latlng.lng });
+          points.push({
+            id: p.id,
+            name: p.name,
+            endpoint: httpEndpoints[0],
+            lat: latlng.lat,
+            lng: latlng.lng,
+          });
         }
         const adjusted = disambiguateOverlappingPoints(points);
-        const markers = adjusted.map((pt) => ({ location: [pt.lat, pt.lng] as [number, number], size: 0.06 }));
+        const markers = adjusted.map((pt) => ({
+          location: [pt.lat, pt.lng] as [number, number],
+          size: 0.06,
+        }));
         if (!aborted) {
           markersRef.current = markers;
         }
@@ -336,12 +385,12 @@ export function Globe({
     <div
       className={cn(
         "relative mx-auto aspect-[1/1] w-full max-w-[700px]",
-        className,
+        className
       )}
     >
       <canvas
         className={cn(
-          "size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]",
+          "size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]"
         )}
         ref={canvasRef}
         onPointerDown={(e) => {
