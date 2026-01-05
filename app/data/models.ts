@@ -7,7 +7,10 @@ export interface PerRequestLimits {
   readonly [key: string]: number | undefined;
 }
 
-import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter';
+import {
+  filterStagingEndpoints,
+  shouldHideProvider,
+} from "@/lib/staging-filter";
 
 export interface Model {
   id: string;
@@ -66,20 +69,22 @@ export interface Provider {
   content: string;
 }
 
-interface ApiProviderListResponse { providers: Array<{
-  id: string;
-  pubkey: string;
-  created_at: number;
-  kind: number;
-  endpoint_url: string;
-  endpoint_urls?: string[];
-  name: string;
-  description: string;
-  mint_url?: string | null;
-  mint_urls?: string[];
-  version: string;
-  content: string;
-}> }
+interface ApiProviderListResponse {
+  providers: Array<{
+    id: string;
+    pubkey: string;
+    created_at: number;
+    kind: number;
+    endpoint_url: string;
+    endpoint_urls?: string[];
+    name: string;
+    description: string;
+    mint_url?: string | null;
+    mint_urls?: string[];
+    version: string;
+    content: string;
+  }>;
+}
 
 // Initial state with empty data
 export let models: Model[] = [];
@@ -87,10 +92,15 @@ export let providers: Provider[] = [];
 export let providerModelMap: Map<string, Model[]> = new Map();
 export let modelProvidersMap: Map<string, Provider[]> = new Map();
 // Keep provider-specific model entries to compute cheapest providers per model
-export let modelProviderEntries: Map<string, Array<{ provider: Provider; model: Model }>> = new Map();
+export let modelProviderEntries: Map<
+  string,
+  Array<{ provider: Provider; model: Model }>
+> = new Map();
 
 // Fetch models and providers from the new API
-export async function fetchModels(): Promise<void> {
+export async function fetchModels(
+  onProgress?: (provider: Provider, models: Model[]) => void
+): Promise<void> {
   try {
     const response = await fetch("https://api.routstr.com/v1/providers/");
     if (!response.ok) {
@@ -101,25 +111,33 @@ export async function fetchModels(): Promise<void> {
 
     // staging filtering based on endpoints and name
     const visible = list.filter((p) => {
-      const endpoints = (Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0)
-        ? p.endpoint_urls!
-        : [p.endpoint_url].filter(Boolean);
-      const nameOrTag = `${p.name || ''}`.toLowerCase();
-      const looksLikeStaging = nameOrTag.includes('staging');
+      const endpoints =
+        Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
+          ? p.endpoint_urls!
+          : [p.endpoint_url].filter(Boolean);
+      const nameOrTag = `${p.name || ""}`.toLowerCase();
+      const looksLikeStaging = nameOrTag.includes("staging");
       return !shouldHideProvider(endpoints) && !looksLikeStaging;
     });
 
     const normalizeForFetch = (urlOrHost: string): string => {
-      if (!urlOrHost) return '';
+      if (!urlOrHost) return "";
       const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
       return hasProtocol ? urlOrHost : `https://${urlOrHost}`;
     };
 
-    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response> => {
+    const fetchWithTimeout = async (
+      url: string,
+      options: RequestInit = {},
+      timeoutMs = 8000
+    ): Promise<Response> => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const resp = await fetch(url, { ...options, signal: controller.signal });
+        const resp = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
         return resp;
       } finally {
         clearTimeout(id);
@@ -130,18 +148,26 @@ export async function fetchModels(): Promise<void> {
     const allProviders: Provider[] = [];
     const newProviderModelMap = new Map<string, Model[]>();
     const newModelProvidersMap = new Map<string, Provider[]>();
-    const newModelProviderEntries = new Map<string, Array<{ provider: Provider; model: Model }>>();
+    const newModelProviderEntries = new Map<
+      string,
+      Array<{ provider: Provider; model: Model }>
+    >();
     const modelMap = new Map<string, Model>();
 
     await Promise.all(
       visible.map(async (p) => {
         const nonStaging = filterStagingEndpoints(p.endpoint_urls || []);
-        const http = nonStaging.filter((u) => typeof u === 'string' && !u.includes('.onion'));
-        const primary = (http[0] || p.endpoint_url || '').trim();
+        const http = nonStaging.filter(
+          (u) => typeof u === "string" && !u.includes(".onion")
+        );
+        const primary = (http[0] || p.endpoint_url || "").trim();
 
         // Normalize mint URLs
-        const mintUrls = Array.isArray(p.mint_urls) ? p.mint_urls.filter((u) => typeof u === 'string' && u.length > 0) : [];
-        const mintUrl = (p.mint_url ?? null) || (mintUrls.length > 0 ? mintUrls[0] : null);
+        const mintUrls = Array.isArray(p.mint_urls)
+          ? p.mint_urls.filter((u) => typeof u === "string" && u.length > 0)
+          : [];
+        const mintUrl =
+          (p.mint_url ?? null) || (mintUrls.length > 0 ? mintUrls[0] : null);
 
         const providerAugmented: Provider = {
           id: p.id,
@@ -157,18 +183,24 @@ export async function fetchModels(): Promise<void> {
           mint_url: mintUrl,
           mint_urls: mintUrls,
           version: p.version,
-          supported_models: [],
+          supported_models: [], // Will be populated below
           content: p.content,
         };
 
-        allProviders.push(providerAugmented);
+        // Note: we don't push to allProviders here immediately if we want to ensure
+        // supported_models is populated first. However, to support progress, we might
+        // want to emit it after we fetch its models.
 
         let providerModels: Model[] = [];
         if (primary) {
           try {
-            const base = normalizeForFetch(primary).replace(/\/$/, '');
+            const base = normalizeForFetch(primary).replace(/\/$/, "");
             const modelsUrl = `${base}/v1/models`;
-            const r = await fetchWithTimeout(modelsUrl, { headers: { 'accept': 'application/json' } }, 8000);
+            const r = await fetchWithTimeout(
+              modelsUrl,
+              { headers: { accept: "application/json" } },
+              8000
+            );
             if (r.ok) {
               const m = await r.json();
               const arr: Array<{
@@ -214,8 +246,10 @@ export async function fetchModels(): Promise<void> {
                   context_length: rawModel.context_length ?? 0,
                   architecture: {
                     modality: rawModel.architecture?.modality ?? "",
-                    input_modalities: rawModel.architecture?.input_modalities ?? [],
-                    output_modalities: rawModel.architecture?.output_modalities ?? [],
+                    input_modalities:
+                      rawModel.architecture?.input_modalities ?? [],
+                    output_modalities:
+                      rawModel.architecture?.output_modalities ?? [],
                     tokenizer: rawModel.architecture?.tokenizer ?? "",
                     instruct_type: rawModel.architecture?.instruct_type ?? null,
                   },
@@ -225,7 +259,8 @@ export async function fetchModels(): Promise<void> {
                     request: rawModel.pricing?.request ?? 0,
                     image: rawModel.pricing?.image ?? 0,
                     web_search: rawModel.pricing?.web_search ?? 0,
-                    internal_reasoning: rawModel.pricing?.internal_reasoning ?? 0,
+                    internal_reasoning:
+                      rawModel.pricing?.internal_reasoning ?? 0,
                     max_cost: rawModel.pricing?.max_cost ?? 0,
                   },
                   sats_pricing: {
@@ -234,7 +269,8 @@ export async function fetchModels(): Promise<void> {
                     request: rawModel.sats_pricing?.request ?? 0,
                     image: rawModel.sats_pricing?.image ?? 0,
                     web_search: rawModel.sats_pricing?.web_search ?? 0,
-                    internal_reasoning: rawModel.sats_pricing?.internal_reasoning ?? 0,
+                    internal_reasoning:
+                      rawModel.sats_pricing?.internal_reasoning ?? 0,
                     max_cost: rawModel.sats_pricing?.max_cost ?? 0,
                   },
                   per_request_limits: rawModel.per_request_limits ?? null,
@@ -261,10 +297,29 @@ export async function fetchModels(): Promise<void> {
           }
           existingModelsForProvider.push(modelMap.get(model.id)!);
           const existingProviders = newModelProvidersMap.get(model.id) || [];
-          newModelProvidersMap.set(model.id, [...existingProviders, providerAugmented]);
+          newModelProvidersMap.set(model.id, [
+            ...existingProviders,
+            providerAugmented,
+          ]);
           const existingEntries = newModelProviderEntries.get(model.id) || [];
-          newModelProviderEntries.set(model.id, [...existingEntries, { provider: providerAugmented, model }]);
+          newModelProviderEntries.set(model.id, [
+            ...existingEntries,
+            { provider: providerAugmented, model },
+          ]);
         });
+
+        // Populate supported_models in the provider object
+        const supportedModelIds = existingModelsForProvider.map((m) => m.id);
+        const fullyLoadedProvider = {
+          ...providerAugmented,
+          supported_models: supportedModelIds,
+        };
+
+        allProviders.push(fullyLoadedProvider);
+        if (onProgress) {
+          onProgress(fullyLoadedProvider, existingModelsForProvider);
+        }
+
         newProviderModelMap.set(p.id, existingModelsForProvider);
       })
     );
@@ -310,8 +365,14 @@ export function formatPrice(model: Model): string {
 
 // Format sats price as a string
 export function formatSatsPrice(model: Model): string {
-  const promptTokensPerSat = model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—';
-  const completionTokensPerSat = model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—';
+  const promptTokensPerSat =
+    model.sats_pricing.prompt > 0
+      ? (1 / model.sats_pricing.prompt).toFixed(2)
+      : "—";
+  const completionTokensPerSat =
+    model.sats_pricing.completion > 0
+      ? (1 / model.sats_pricing.completion).toFixed(2)
+      : "—";
 
   return `${promptTokensPerSat} tokens/sat prompt / ${completionTokensPerSat} tokens/sat completion`;
 }
@@ -374,7 +435,10 @@ export function groupModelsByProvider(): Record<string, Model[]> {
 }
 
 // Get popular models (for showcase)
-export function getPopularModels(count: number = 6, sourceModels: Model[] = models): Model[] {
+export function getPopularModels(
+  count: number = 6,
+  sourceModels: Model[] = models
+): Model[] {
   // Sort by created date (newest first) and return top N
   return [...sourceModels]
     .sort(
@@ -405,9 +469,7 @@ export function getExampleModelId(): string {
 
 // Get provider by ID
 export function getProviderById(id: string): Provider | undefined {
-  return providers.find(
-    (provider) => provider.id === id
-  );
+  return providers.find((provider) => provider.id === id);
 }
 
 // Get provider features (extracted from content or default features)
@@ -436,5 +498,8 @@ export function getModelsByProvider(providerId: string): Model[] {
   // Use the provider-model mapping we built during fetch
   // Sort cheapest first (by sats_pricing.completion)
   const models = providerModelMap.get(providerId) || [];
-  return [...models].sort((a, b) => (a.sats_pricing?.completion ?? 0) - (b.sats_pricing?.completion ?? 0));
+  return [...models].sort(
+    (a, b) =>
+      (a.sats_pricing?.completion ?? 0) - (b.sats_pricing?.completion ?? 0)
+  );
 }

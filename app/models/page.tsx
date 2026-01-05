@@ -1,95 +1,153 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { models, getProviderFromModelName, fetchModels, getModelNameWithoutProvider, getModelDisplayName, getPrimaryProviderForModel } from '@/app/data/models';
-import { usePricingView } from '@/app/contexts/PricingContext';
-import { CurrencyTabs } from '@/components/ui/currency-tabs';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+  models as modelsState,
+  getProviderFromModelName,
+  fetchModels,
+  getModelNameWithoutProvider,
+  getModelDisplayName,
+  getPrimaryProviderForModel,
+  Model,
+} from "@/app/data/models";
+import { usePricingView } from "@/app/contexts/PricingContext";
+import { CurrencyTabs } from "@/components/ui/currency-tabs";
+import { ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const sortOptions = [
-  { value: 'date', label: 'Sort by Release Date' },
-  { value: 'name', label: 'Sort by Name' },
-  { value: 'provider', label: 'Sort by Provider' },
-  { value: 'price', label: 'Sort by Price' },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ModelsPage() {
   const { currency } = usePricingView();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'provider' | 'price'>('date');
-  const [providers, setProviders] = useState<string[]>([]);
-  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
-  const [sortOpen, setSortOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState<{
+    key: "name" | "context" | "input" | "output";
+    direction: "asc" | "desc";
+  }>({ key: "name", direction: "asc" });
+
+  const [items, setItems] = useState<Model[]>([]);
+  const [modelProvidersKV, setModelProvidersKV] = useState<
+    Record<string, Array<{ name: string; price: number }>>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
-  const [providersExpanded, setProvidersExpanded] = useState(false);
 
   useEffect(() => {
+    let active = true;
     async function loadModels() {
       setIsLoading(true);
+      setItems([]);
+      setModelProvidersKV({});
+
       try {
-        await fetchModels();
-        // Extract unique providers
-        const uniqueProviders = Array.from(new Set(models.map(model =>
-          getProviderFromModelName(model.name)
-        ))).sort();
-        setProviders(uniqueProviders);
+        await fetchModels((provider, newModels) => {
+          if (!active) return;
+
+          setItems((prevItems) => {
+            // Deduplicate models based on Name (not ID) to group same models
+            const currentNames = new Set(prevItems.map((m) => m.name));
+            const uniqueNewModels = newModels.filter(
+              (m) => !currentNames.has(m.name)
+            );
+            return [...prevItems, ...uniqueNewModels];
+          });
+
+          setModelProvidersKV((prev) => {
+            const next = { ...prev };
+            // For each model in this batch, add the provider to its list
+            for (const model of newModels) {
+              const modelProviderName = provider.name;
+              // Use completion price as the sorting metric (cheaper is better)
+              const price = model.sats_pricing?.completion ?? 0;
+
+              const existing = next[model.name] || [];
+              const alreadyExists = existing.some(
+                (p) => p.name === modelProviderName
+              );
+
+              if (!alreadyExists) {
+                next[model.name] = [
+                  ...existing,
+                  { name: modelProviderName, price },
+                ].sort((a, b) => a.price - b.price);
+              }
+            }
+            return next;
+          });
+        });
       } catch (error) {
-        console.error('Failed to load models:', error);
+        console.error("Failed to load models:", error);
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     }
 
     loadModels();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Filter and sort models
-  const filteredModels = models.filter(model => {
-    const matchesSearch = model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      model.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProvider = selectedProviders.length === 0 ||
-      selectedProviders.includes(getProviderFromModelName(model.name));
-    return matchesSearch && matchesProvider;
-  }).sort((a, b) => {
-    switch (sortBy) {
-      case 'date':
-        // Sort by created date (newest first)
-        return b.created - a.created;
-      case 'name':
-        return getModelNameWithoutProvider(a.name).localeCompare(getModelNameWithoutProvider(b.name));
-      case 'provider':
-        return getProviderFromModelName(a.name).localeCompare(getProviderFromModelName(b.name));
-      case 'price':
-        return currency === 'sats' 
-          ? a.sats_pricing.completion - b.sats_pricing.completion
-          : a.pricing.completion - b.pricing.completion;
-      default:
-        return 0;
-    }
-  });
+  const filteredModels = items
+    .filter((model) => {
+      const matchesSearch =
+        model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        model.id.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortConfig.key) {
+        case "name":
+          comparison = getModelNameWithoutProvider(a.name).localeCompare(
+            getModelNameWithoutProvider(b.name)
+          );
+          break;
+        case "context":
+          comparison = a.context_length - b.context_length;
+          break;
+        case "input":
+          const priceInA =
+            currency === "sats" ? a.sats_pricing.prompt : a.pricing.prompt;
+          const priceInB =
+            currency === "sats" ? b.sats_pricing.prompt : b.pricing.prompt;
+          comparison = priceInA - priceInB;
+          break;
+        case "output":
+          const priceOutA =
+            currency === "sats"
+              ? a.sats_pricing.completion
+              : a.pricing.completion;
+          const priceOutB =
+            currency === "sats"
+              ? b.sats_pricing.completion
+              : b.pricing.completion;
+          comparison = priceOutA - priceOutB;
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortConfig.direction === "asc" ? comparison : -comparison;
+    });
 
-  const handleProviderToggle = (provider: string) => {
-    setSelectedProviders(prev =>
-      prev.includes(provider)
-        ? prev.filter(p => p !== provider)
-        : [...prev, provider]
+  const handleSort = (key: typeof sortConfig.key) => {
+    setSortConfig((current) => ({
+      key,
+      direction:
+        current.key === key && current.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const SortIcon = ({ column }: { column: typeof sortConfig.key }) => {
+    if (sortConfig.key !== column)
+      return <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />;
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-2 h-4 w-4 shrink-0" />
+    ) : (
+      <ArrowDown className="ml-2 h-4 w-4 shrink-0" />
     );
   };
 
@@ -104,63 +162,72 @@ export default function ModelsPage() {
               <div>
                 <h1 className="text-2xl sm:text-4xl font-bold">Models</h1>
                 <p className="text-base sm:text-xl text-gray-400 mt-2">
-                  Browse and compare {models.length} AI models
+                  Browse and compare {items.length} AI models
                 </p>
               </div>
               <CurrencyTabs />
             </div>
 
-            {isLoading ? (
+            {isLoading && items.length === 0 ? (
               <>
-                {/* Search and filters skeleton */}
+                {/* Search skeleton */}
                 <div className="mb-10 flex flex-col md:flex-row gap-4">
                   <div className="flex-1">
                     <Skeleton className="w-full h-11" />
                   </div>
-                  <div className="flex items-stretch">
-                    <Skeleton className="w-[260px] h-11" />
-                  </div>
                 </div>
 
-                {/* Provider filters skeleton */}
-                <div className="mb-8">
-                  <Skeleton className="h-6 w-24 mb-3" />
-                  <div className="flex flex-wrap gap-3">
-                    {[...Array(6)].map((_, i) => (
-                      <Skeleton key={i} className="h-8 w-20 rounded-full" />
-                    ))}
+                {/* Models Table Skeleton */}
+                <div className="border border-white/10 rounded-lg overflow-hidden bg-black">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-white/5 text-gray-400 text-xs">
+                        <tr>
+                          <th className="px-6 py-3 font-medium">Model</th>
+                          <th className="px-6 py-3 font-medium">Provider</th>
+                          <th className="px-6 py-3 font-medium">Context</th>
+                          <th className="px-6 py-3 font-medium text-right">
+                            Input
+                          </th>
+                          <th className="px-6 py-3 font-medium text-right">
+                            Output
+                          </th>
+                          <th className="px-6 py-3 font-medium sr-only">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {[...Array(10)].map((_, i) => (
+                          <tr key={i}>
+                            <td className="px-6 py-4">
+                              <Skeleton className="h-5 w-48" />
+                            </td>
+                            <td className="px-6 py-4">
+                              <Skeleton className="h-4 w-32" />
+                            </td>
+                            <td className="px-6 py-4">
+                              <Skeleton className="h-4 w-16" />
+                            </td>
+                            <td className="px-6 py-4">
+                              <Skeleton className="ml-auto h-4 w-20" />
+                            </td>
+                            <td className="px-6 py-4">
+                              <Skeleton className="ml-auto h-4 w-20" />
+                            </td>
+                            <td className="px-6 py-4">
+                              <Skeleton className="ml-auto h-5 w-5" />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-
-                {/* Models list skeleton */}
-                <div className="grid grid-cols-1 gap-4">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className="bg-black border border-white/10 rounded-lg p-6">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <Skeleton className="h-6 w-64 mb-2" />
-                          <div className="flex flex-wrap gap-2 mt-2 mb-3">
-                            <Skeleton className="h-6 w-32 rounded" />
-                            <Skeleton className="h-6 w-36 rounded" />
-                            <Skeleton className="h-6 w-28 rounded" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-4 w-6" />
-                            <Skeleton className="h-4 w-32" />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-4 w-20" />
-                          <Skeleton className="h-4 w-4" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </>
             ) : (
               <>
-                {/* Search and filters */}
+                {/* Search */}
                 <div className="mb-10 flex flex-col md:flex-row gap-4">
                   <div className="flex-1 flex">
                     <input
@@ -172,134 +239,184 @@ export default function ModelsPage() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div className="flex items-stretch">
-                    <Popover open={sortOpen} onOpenChange={setSortOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={sortOpen}
-                          className="w-[260px] h-11 justify-between border-white/20 bg-black text-white hover:bg-white/5 hover:text-white px-4"
-                          style={{ minHeight: 44, maxHeight: 44 }}
-                        >
-                          {sortOptions.find((option) => option.value === sortBy)?.label || "Sort by"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[260px] p-0 bg-black border border-white/20 text-white">
-                        <Command className="bg-transparent">
-                          <CommandList>
-                            <CommandGroup>
-                              {sortOptions.map((option) => (
-                                <CommandItem
-                                  key={option.value}
-                                  value={option.value}
-                                  onSelect={(value) => {
-                                    setSortBy(value as 'date' | 'name' | 'provider' | 'price');
-                                    setSortOpen(false);
-                                  }}
-                                  className="text-white hover:bg-white/10"
+                </div>
+
+                {/* Models Table */}
+                <div className="border border-white/10 rounded-lg overflow-hidden bg-black">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-white/5 text-gray-400 text-xs text-left">
+                        <tr>
+                          <th
+                            className="px-6 py-3 font-medium cursor-pointer hover:text-white group select-none"
+                            onClick={() => handleSort("name")}
+                          >
+                            <div className="flex items-center">
+                              Model
+                              <SortIcon column="name" />
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 font-medium select-none">
+                            <div className="flex items-center">Provider</div>
+                          </th>
+                          <th
+                            className="px-6 py-3 font-medium cursor-pointer hover:text-white group select-none"
+                            onClick={() => handleSort("context")}
+                          >
+                            <div className="flex items-center">
+                              Context
+                              <SortIcon column="context" />
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 font-medium text-right cursor-pointer hover:text-white group select-none"
+                            onClick={() => handleSort("input")}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              Input
+                              <SortIcon column="input" />
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 font-medium text-right cursor-pointer hover:text-white group select-none"
+                            onClick={() => handleSort("output")}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              Output
+                              <SortIcon column="output" />
+                            </div>
+                          </th>
+                          <th className="px-6 py-3 font-medium sr-only">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {filteredModels.length > 0 ? (
+                          filteredModels.map((model, index) => {
+                            const providersData = modelProvidersKV[
+                              model.name
+                            ] || [
+                              {
+                                name: getProviderFromModelName(model.name),
+                                price: 0,
+                              },
+                            ];
+                            const modelName = getModelDisplayName(model);
+
+                            // Logic to display providers
+                            // Pick top 2, maybe 3 if brief, else show +X
+                            // Use text-ellipsis for safety
+                            let displayedProviders = "";
+                            if (providersData.length <= 2) {
+                              displayedProviders = providersData
+                                .map((p) => p.name)
+                                .join(", ");
+                            } else {
+                              displayedProviders = `${providersData
+                                .slice(0, 2)
+                                .map((p) => p.name)
+                                .join(", ")}, +${providersData.length - 2}`;
+                            }
+
+                            const allProvidersString = providersData
+                              .map((p) => p.name)
+                              .join(", ");
+
+                            return (
+                              <tr
+                                key={`${model.id}-${index}`}
+                                className="group hover:bg-white/5 transition-colors cursor-pointer"
+                              >
+                                <td className="px-6 py-4">
+                                  <Link
+                                    href={`/models/${model.id.replace(
+                                      "/",
+                                      "/"
+                                    )}`}
+                                    className="block font-medium text-white group-hover:text-blue-400 transition-colors"
+                                  >
+                                    {model.name || modelName}
+                                  </Link>
+                                </td>
+                                <td
+                                  className="px-6 py-4 text-gray-400 max-w-[200px] truncate"
+                                  title={allProvidersString}
                                 >
-                                  {option.label}
-                                  <Check
-                                    className={cn(
-                                      "ml-auto h-4 w-4",
-                                      sortBy === option.value ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                                  {displayedProviders}
+                                </td>
+                                <td className="px-6 py-4 text-gray-400">
+                                  {model.context_length >= 1000
+                                    ? `${Math.round(
+                                        model.context_length / 1000
+                                      )}K`
+                                    : model.context_length.toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4 text-right text-gray-400 font-mono">
+                                  {currency === "sats"
+                                    ? (
+                                        model.sats_pricing.prompt * 1_000_000
+                                      ).toLocaleString(undefined, {
+                                        maximumFractionDigits: 2,
+                                      }) + " sats"
+                                    : "$" +
+                                      (
+                                        model.pricing.prompt * 1_000_000
+                                      ).toFixed(2)}
+                                </td>
+                                <td className="px-6 py-4 text-right text-gray-400 font-mono">
+                                  {currency === "sats"
+                                    ? (
+                                        model.sats_pricing.completion *
+                                        1_000_000
+                                      ).toLocaleString(undefined, {
+                                        maximumFractionDigits: 2,
+                                      }) + " sats"
+                                    : "$" +
+                                      (
+                                        model.pricing.completion * 1_000_000
+                                      ).toFixed(2)}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <Link
+                                    href={`/models/${model.id.replace(
+                                      "/",
+                                      "/"
+                                    )}`}
+                                    className="text-white/40 hover:text-white transition-colors"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth={1.5}
+                                      stroke="currentColor"
+                                      className="w-5 h-5 ml-auto"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                                      />
+                                    </svg>
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="px-6 py-10 text-center text-gray-500"
+                            >
+                              No models found matching your criteria
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-
-                {/* Provider filters */}
-                <div className="mb-8">
-                  <h2 className="text-lg font-medium mb-3">Providers</h2>
-                  <div className="flex flex-wrap gap-3">
-                    {(providersExpanded ? providers : providers.slice(0, 12)).map(provider => (
-                      <button
-                        key={provider}
-                        className={`px-3 py-1 rounded-full text-sm ${selectedProviders.includes(provider)
-                          ? 'bg-white text-black'
-                          : 'bg-black border border-white/20 text-white'
-                          }`}
-                        onClick={() => handleProviderToggle(provider)}
-                      >
-                        {provider}
-                      </button>
-                    ))}
-                    {providers.length > 12 && (
-                      <button
-                        type="button"
-                        onClick={() => setProvidersExpanded(v => !v)}
-                        className="px-3 py-1 rounded-full text-sm bg-white/10 text-white border border-white/20 hover:bg-white/15"
-                        aria-expanded={providersExpanded}
-                      >
-                        {providersExpanded ? 'Show less' : `Show more (${providers.length - 12})`}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Models list */}
-                <div className="grid grid-cols-1 gap-4">
-                  {filteredModels.length > 0 ? (
-                    filteredModels.map((model, index) => {
-                      const provider = getProviderFromModelName(model.name);
-                      const primaryProvider = getPrimaryProviderForModel(model.id);
-                      const modelName = getModelDisplayName(model);
-
-                      return (
-                        <Link
-                          key={`${model.id}-${index}`}
-                          href={`/models/${model.id.replace('/', '/')}`}
-                          className="block bg-black border border-white/10 rounded-lg p-6 hover:border-white/20 transition-all"
-                        >
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                              <h3 className="text-xl font-bold text-white">{model.name || modelName}</h3>
-                              {model.description ? (
-                                <p className="mt-1 text-sm text-gray-400 line-clamp-2">{model.description}</p>
-                              ) : null}
-                              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                                <span className="whitespace-nowrap">by <span className="text-gray-300">{primaryProvider ? primaryProvider.name : provider}</span></span>
-                                <span className="hidden sm:inline">•</span>
-                                <span className="whitespace-nowrap">{model.context_length >= 1000 ? `${Math.round(model.context_length / 1000)}K` : model.context_length.toLocaleString()} context</span>
-                                <span className="hidden sm:inline">•</span>
-                                {currency === 'sats' ? (
-                                  <>
-                                    <span className="whitespace-nowrap">{model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} tokens/sat input</span>
-                                    <span className="hidden sm:inline">•</span>
-                                    <span className="whitespace-nowrap">{model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'} tokens/sat output</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="whitespace-nowrap">${(model.pricing.prompt * 1_000_000).toFixed(2)}/M input</span>
-                                    <span className="hidden sm:inline">•</span>
-                                    <span className="whitespace-nowrap">${(model.pricing.completion * 1_000_000).toFixed(2)}/M output</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-white/70">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                              </svg>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-10 text-gray-400">
-                      No models found matching your criteria
-                    </div>
-                  )}
                 </div>
               </>
             )}
@@ -310,4 +427,4 @@ export default function ModelsPage() {
       <Footer />
     </main>
   );
-} 
+}
