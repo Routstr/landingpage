@@ -63,8 +63,14 @@ export default function ProviderPage() {
         return a.name.localeCompare(b.name) * direction;
       }
       if (sort.key === "price") {
-        const aVal = currency === 'sats' ? (a.sats_pricing?.completion ?? 0) : (a.pricing?.completion ?? 0);
-        const bVal = currency === 'sats' ? (b.sats_pricing?.completion ?? 0) : (b.pricing?.completion ?? 0);
+        const aVal =
+          currency === "sats"
+            ? a.sats_pricing?.completion ?? 0
+            : a.pricing?.completion ?? 0;
+        const bVal =
+          currency === "sats"
+            ? b.sats_pricing?.completion ?? 0
+            : b.pricing?.completion ?? 0;
         return (aVal - bVal) * direction;
       }
       if (sort.key === "context") {
@@ -84,7 +90,10 @@ export default function ProviderPage() {
     direction: "asc" | "desc";
   }) {
     return (
-      <span aria-hidden className="ml-1 inline-block align-middle text-white/50">
+      <span
+        aria-hidden
+        className="ml-1 inline-block align-middle text-white/50"
+      >
         {active ? (
           direction === "asc" ? (
             <svg
@@ -249,9 +258,12 @@ export default function ProviderPage() {
                         value={provider.endpoint_url}
                       />
                       {(() => {
-                        const urls = (provider.mint_urls && provider.mint_urls.length > 0)
-                          ? provider.mint_urls
-                          : (provider.mint_url ? [provider.mint_url] : []);
+                        const urls =
+                          provider.mint_urls && provider.mint_urls.length > 0
+                            ? provider.mint_urls
+                            : provider.mint_url
+                            ? [provider.mint_url]
+                            : [];
                         return urls.length > 0 ? (
                           <MintsPill mints={urls} />
                         ) : null;
@@ -293,7 +305,10 @@ export default function ProviderPage() {
                           disabled={isLoading}
                         >
                           Model
-                          <SortIcon active={sort.key === "name"} direction={sort.direction} />
+                          <SortIcon
+                            active={sort.key === "name"}
+                            direction={sort.direction}
+                          />
                         </button>
                       </th>
                       <th
@@ -312,8 +327,15 @@ export default function ProviderPage() {
                           onClick={() => requestSort("price")}
                           disabled={isLoading}
                         >
-                          Price ({currency === 'sats' ? 'tokens per sat' : 'USD per M tokens'})
-                          <SortIcon active={sort.key === "price"} direction={sort.direction} />
+                          Price (
+                          {currency === "sats"
+                            ? "sats per M tokens"
+                            : "USD per M tokens"}
+                          )
+                          <SortIcon
+                            active={sort.key === "price"}
+                            direction={sort.direction}
+                          />
                         </button>
                       </th>
                       <th
@@ -333,7 +355,10 @@ export default function ProviderPage() {
                           disabled={isLoading}
                         >
                           Context
-                          <SortIcon active={sort.key === "context"} direction={sort.direction} />
+                          <SortIcon
+                            active={sort.key === "context"}
+                            direction={sort.direction}
+                          />
                         </button>
                       </th>
                       <th
@@ -353,7 +378,10 @@ export default function ProviderPage() {
                           disabled={isLoading}
                         >
                           Created
-                          <SortIcon active={sort.key === "created"} direction={sort.direction} />
+                          <SortIcon
+                            active={sort.key === "created"}
+                            direction={sort.direction}
+                          />
                         </button>
                       </th>
                     </tr>
@@ -391,11 +419,26 @@ export default function ProviderPage() {
                             </Link>
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
-                            {currency === 'sats' ? (
-                              `${model.sats_pricing.prompt > 0 ? (1 / model.sats_pricing.prompt).toFixed(2) : '—'} / ${model.sats_pricing.completion > 0 ? (1 / model.sats_pricing.completion).toFixed(2) : '—'}`
-                            ) : (
-                              `$${(model.pricing.prompt * 1_000_000).toFixed(2)} / $${(model.pricing.completion * 1_000_000).toFixed(2)}`
-                            )}
+                            {currency === "sats"
+                              ? `${
+                                  model.sats_pricing.prompt > 0
+                                    ? (
+                                        model.sats_pricing.prompt * 1_000_000
+                                      ).toFixed(2)
+                                    : "—"
+                                } / ${
+                                  model.sats_pricing.completion > 0
+                                    ? (
+                                        model.sats_pricing.completion *
+                                        1_000_000
+                                      ).toFixed(2)
+                                    : "—"
+                                }`
+                              : `$${(model.pricing.prompt * 1_000_000).toFixed(
+                                  2
+                                )} / $${(
+                                  model.pricing.completion * 1_000_000
+                                ).toFixed(2)}`}
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
                             {model.context_length.toLocaleString()} tokens
@@ -422,7 +465,9 @@ export default function ProviderPage() {
               </div>
               {/* Reviews Section */}
               {provider ? (
-                <ProviderReviews providerNpub={formatPublicKey(provider.pubkey)} />
+                <ProviderReviews
+                  providerNpub={formatPublicKey(provider.pubkey)}
+                />
               ) : null}
             </div>
           </div>
