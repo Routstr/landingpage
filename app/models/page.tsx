@@ -24,9 +24,9 @@ export default function ModelsPage() {
   const { currency } = usePricingView();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
-    key: "name" | "context" | "input" | "output";
+    key: "name" | "context" | "created" | "input" | "output";
     direction: "asc" | "desc";
-  }>({ key: "name", direction: "asc" });
+  }>({ key: "created", direction: "desc" });
 
   const [items, setItems] = useState<Model[]>([]);
   const [modelProvidersKV, setModelProvidersKV] = useState<
@@ -106,6 +106,9 @@ export default function ModelsPage() {
             getModelNameWithoutProvider(b.name)
           );
           break;
+        case "created":
+          comparison = (a.created || 0) - (b.created || 0);
+          break;
         case "context":
           comparison = a.context_length - b.context_length;
           break;
@@ -156,8 +159,8 @@ export default function ModelsPage() {
       <Header />
 
       <section className="pt-8 sm:pt-16 pb-16 bg-black">
-        <div className="px-4 md:px-6 max-w-5xl mx-auto">
-          <div className="max-w-5xl mx-auto">
+        <div className="px-4 md:px-6 max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-2xl sm:text-4xl font-bold">Models</h1>
@@ -185,12 +188,15 @@ export default function ModelsPage() {
                         <tr>
                           <th className="px-6 py-3 font-medium">Model</th>
                           <th className="px-6 py-3 font-medium">Provider</th>
+                          <th className="px-6 py-3 font-medium">
+                            Release Date
+                          </th>
                           <th className="px-6 py-3 font-medium">Context</th>
                           <th className="px-6 py-3 font-medium text-right">
-                            Input
+                            Input (per 1M)
                           </th>
                           <th className="px-6 py-3 font-medium text-right">
-                            Output
+                            Output (per 1M)
                           </th>
                           <th className="px-6 py-3 font-medium sr-only">
                             Action
@@ -205,6 +211,9 @@ export default function ModelsPage() {
                             </td>
                             <td className="px-6 py-4">
                               <Skeleton className="h-4 w-32" />
+                            </td>
+                            <td className="px-6 py-4">
+                              <Skeleton className="h-4 w-24" />
                             </td>
                             <td className="px-6 py-4">
                               <Skeleton className="h-4 w-16" />
@@ -261,6 +270,15 @@ export default function ModelsPage() {
                           </th>
                           <th
                             className="px-6 py-3 font-medium cursor-pointer hover:text-white group select-none"
+                            onClick={() => handleSort("created")}
+                          >
+                            <div className="flex items-center">
+                              Release Date
+                              <SortIcon column="created" />
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 font-medium cursor-pointer hover:text-white group select-none"
                             onClick={() => handleSort("context")}
                           >
                             <div className="flex items-center">
@@ -273,7 +291,7 @@ export default function ModelsPage() {
                             onClick={() => handleSort("input")}
                           >
                             <div className="flex items-center justify-end gap-1">
-                              Input
+                              Input (per 1M)
                               <SortIcon column="input" />
                             </div>
                           </th>
@@ -282,7 +300,7 @@ export default function ModelsPage() {
                             onClick={() => handleSort("output")}
                           >
                             <div className="flex items-center justify-end gap-1">
-                              Output
+                              Output (per 1M)
                               <SortIcon column="output" />
                             </div>
                           </th>
@@ -346,6 +364,13 @@ export default function ModelsPage() {
                                   {displayedProviders}
                                 </td>
                                 <td className="px-6 py-4 text-gray-400">
+                                  {model.created
+                                    ? new Date(
+                                        model.created * 1000
+                                      ).toLocaleDateString()
+                                    : "—"}
+                                </td>
+                                <td className="px-6 py-4 text-gray-400">
                                   {model.context_length >= 1000
                                     ? `${Math.round(
                                         model.context_length / 1000
@@ -407,7 +432,7 @@ export default function ModelsPage() {
                         ) : (
                           <tr>
                             <td
-                              colSpan={6}
+                              colSpan={7}
                               className="px-6 py-10 text-center text-gray-500"
                             >
                               No models found matching your criteria
