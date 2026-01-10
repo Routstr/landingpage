@@ -11,10 +11,10 @@ import {
   Provider,
   getProviderFromModelName,
   getModelNameWithoutProvider,
+  fetchModels as fetchModelsDirect,
 } from "@/app/data/models";
 import { useModels } from "@/app/contexts/ModelsContext";
-import { usePricingView } from "@/app/contexts/PricingContext";
-import { CurrencyTabs } from "@/components/ui/currency-tabs";
+
 import { Card } from "@/components/ui/card";
 import {
   Popover,
@@ -25,6 +25,7 @@ import {
   ChevronsUpDown as ChevronsUpDownIcon,
   Check as CheckIcon,
 } from "lucide-react";
+
 import { InfoPill } from "@/components/client/InfoPill";
 import { PriceCompChart } from "@/components/client/PriceCompChart";
 import ReactMarkdown from "react-markdown";
@@ -46,19 +47,14 @@ function decodeSegments(segments: string[]): string[] {
 
 export default function ModelDetailPage() {
   const params = useParams();
-  const { currency } = usePricingView();
-  const {
-    models,
-    loading,
-    error,
-    fetchModels,
-    findModel,
-    getProvidersForModelCheapestFirst,
-    modelProviderEntries,
-  } = useModels();
-  const [providersForModel, setProvidersForModel] = useState<Provider[]>([]);
+
+  const { models, loading, error, findModel } = useModels();
+  // State for provider data with pricing included (for chart)
+  const [providersWithPricing, setProvidersWithPricing] = useState<
+    { provider: Provider; model: Model }[]
+  >([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
-  const [pricingSelectorOpen, setPricingSelectorOpen] = useState(false);
+
   const [apiSelectorOpen, setApiSelectorOpen] = useState(false);
 
   // Handle the catch-all route by joining the path segments
@@ -78,8 +74,8 @@ export default function ModelDetailPage() {
   // Compute storage base URL from current provider selection (fallback to default)
   const storageBaseUrl = (() => {
     const selected =
-      providersForModel.find((p) => p.id === selectedProviderId) ||
-      providersForModel[0];
+      providersWithPricing.find((p) => p.provider.id === selectedProviderId)
+        ?.provider || providersWithPricing[0]?.provider;
     const base = selected?.endpoint_url || "";
     if (!base) return "https://api.routstr.com";
     return base.replace(/\/v1$/, "");
@@ -98,53 +94,81 @@ export default function ModelDetailPage() {
   useEffect(() => {
     async function loadModelData() {
       try {
-        // Try to find the model using the decoded model ID
+        // 1. Try to find the model in the existing context (fastest)
         let foundModel = findModel(decodedModelId);
 
-        if (!foundModel && models.length === 0) {
-          // If model is not found and no models loaded, try to fetch fresh data from API
-          await fetchModels();
-          foundModel = findModel(decodedModelId);
-        }
-
+        // If found immediately, set it
         if (foundModel) {
           setModel(foundModel);
           setNotFound(false);
-          setProvidersForModel(
-            getProvidersForModelCheapestFirst(foundModel.id)
-          );
-          const p = getProvidersForModelCheapestFirst(foundModel.id);
-          if (p && p.length > 0) {
-            setSelectedProviderId((prev) => prev || p[0].id);
-          }
 
-          // Removed external endpoints fetch
-
-          // Removed BTC price fetch (unused)
-        } else {
-          setNotFound(true);
+          // We need to reconstruct the pricing entries from the current models context if available,
+          // OR we simply default to empty and let the "refresh" below handle it if we want fresh data.
+          // BUT if we want "fastest", we should rely on context if it has data.
+          // Since we removed 'modelProviderEntries' from useModels destructuring (to avoid conflict/confusion),
+          // we might just want to fetch incrementally anyway if we want the *latest* prices.
+          // However, to keep it simple and fast: if context has it, use it.
+          // Since we can't easily access the raw map from here without importing it or context exposing it (which we removed),
+          // let's just trigger a fresh fetch if we don't have providers yet?
+          // Actually, let's just trigger the incremental fetch ALWAYS to ensure freshest prices/providers,
+          // but we initialize 'model' from cache so the page title renders immediately.
         }
+
+        // 2. Perform direct incremental fetch to populate/update providers and pricing
+        await fetchModelsDirect((provider, newlyFetchedModels) => {
+          // Check if this provider has the model we are looking for
+          // The API returns models with IDs. We need to match `decodedModelId`.
+          const modelInProvider = newlyFetchedModels.find(
+            (m) => m.id === decodedModelId
+          );
+
+          if (modelInProvider) {
+            // If we haven't found the "main" model details yet, set them now
+            setModel((prev) => prev || modelInProvider);
+            setNotFound(false);
+
+            // Add this provider + pricing to our list
+            setProvidersWithPricing((prev) => {
+              // Avoid duplicates
+              if (prev.some((p) => p.provider.id === provider.id)) return prev;
+
+              const newEntry = { provider, model: modelInProvider };
+              const next = [...prev, newEntry];
+
+              // Keep sorted by cheapest completion price
+              return next.sort((a, b) => {
+                const pA = a.model.sats_pricing?.completion ?? 0;
+                const pB = b.model.sats_pricing?.completion ?? 0;
+                return pA - pB;
+              });
+            });
+
+            // Set default selected provider if none
+            setSelectedProviderId((prev) => prev || provider.id);
+          }
+        });
+
+        // After fetch completes, if we still don't have a model, verify logic
+        // (The callback sets it, so we rely on that)
       } catch (error) {
         console.error("Error loading model data:", error);
-        setNotFound(true);
+        // If we still don't have a model after error
+        setModel((prev) => {
+          if (!prev) setNotFound(true);
+          return prev;
+        });
       }
     }
 
     loadModelData();
-  }, [
-    decodedModelId,
-    models,
-    findModel,
-    fetchModels,
-    getProvidersForModelCheapestFirst,
-  ]);
+  }, [decodedModelId, findModel]);
 
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col bg-black text-white">
         <Header />
         <div className="container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             {/* Back link skeleton */}
             <div className="h-6 w-32 bg-zinc-800 rounded-md mb-6 animate-pulse"></div>
 
@@ -195,32 +219,22 @@ export default function ModelDetailPage() {
               </div>
             </div>
 
-            {/* Pricing skeleton */}
-            <div className="bg-black/50 border border-zinc-800 p-6 mb-10">
-              <div className="h-6 w-40 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
-              <div className="bg-black/30 border border-zinc-700 rounded-lg p-5 mb-6">
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="border-b border-zinc-700 py-2 flex justify-between"
-                    >
-                      <div className="h-4 w-24 bg-zinc-800 rounded-md animate-pulse"></div>
-                      <div className="h-4 w-32 bg-zinc-800 rounded-md animate-pulse"></div>
+            {/* Price Comparison Chart skeleton */}
+            <div className="mb-12">
+              <div className="h-6 w-48 bg-zinc-800 rounded-md mb-6 animate-pulse"></div>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-24 h-4 bg-zinc-800 rounded animate-pulse shrink-0"></div>
+                    <div className="flex-1 h-8 bg-zinc-800/50 rounded animate-pulse relative overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-zinc-800 rounded"
+                        style={{ width: `${Math.random() * 40 + 30}%` }}
+                      ></div>
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                <div className="h-5 w-56 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
-                <div className="space-y-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-3 bg-zinc-800 rounded-md animate-pulse w-full"
-                    ></div>
-                  ))}
-                </div>
+                    <div className="w-20 h-4 bg-zinc-800 rounded animate-pulse shrink-0"></div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -315,13 +329,12 @@ export default function ModelDetailPage() {
 
   const provider = getProviderFromModelName(model.name);
   const selectedProvider =
-    providersForModel.find((p) => p.id === selectedProviderId) ||
-    providersForModel[0];
-  const activeProviderEntry = (() => {
-    const entries = modelProviderEntries.get(model.id) || [];
-    return entries.find((e) => e.provider.id === selectedProviderId) || null;
-  })();
-  const activePricingModel = activeProviderEntry?.model || model;
+    providersWithPricing.find((p) => p.provider.id === selectedProviderId)
+      ?.provider || providersWithPricing[0]?.provider;
+  const activeProviderEntry = providersWithPricing.find(
+    (e) => e.provider.id === (selectedProvider?.id || selectedProviderId)
+  );
+
   const providerBaseUrl = (() => {
     const base = selectedProvider?.endpoint_url || "";
     if (!base) return "";
@@ -533,18 +546,15 @@ print(completion.choices[0].message.content)`,
             </div>
             {/* Providers offering this model */}
             {/* Providers offering this model */}
-            {providersForModel.length > 0 && (
+            {/* Providers offering this model */}
+            {providersWithPricing.length > 0 && (
               <div className="mb-12">
                 <PriceCompChart
-                  data={providersForModel.map((p) => {
-                    // Find pricing for this provider's model entry
-                    const entry = modelProviderEntries
-                      .get(model.id)
-                      ?.find((e) => e.provider.id === p.id);
-                    const pricing = entry?.model.sats_pricing;
+                  data={providersWithPricing.map((entry) => {
+                    const pricing = entry.model.sats_pricing;
 
                     return {
-                      providerName: p.name,
+                      providerName: entry.provider.name,
                       promptPrice: (pricing?.prompt || 0) * 1_000_000,
                       completionPrice: (pricing?.completion || 0) * 1_000_000,
                     };
@@ -611,140 +621,13 @@ print(completion.choices[0].message.content)`,
               </table>
             </Card>
 
-            {/* Pricing Section */}
-            <Card className="bg-black/50 border border-white/10 p-6 mb-10">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
-                <h2 className="text-xl font-bold text-white">
-                  Pricing Information
-                </h2>
-                <div className="flex items-center gap-2 sm:gap-3 sm:ml-auto">
-                  <CurrencyTabs />
-                  {providersForModel.length > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Provider</span>
-                      <Popover
-                        open={pricingSelectorOpen}
-                        onOpenChange={setPricingSelectorOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex w-full sm:w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 sm:py-1.5 text-left text-sm text-white hover:bg-white/10"
-                            aria-label="Select provider for pricing"
-                          >
-                            <span className="truncate">
-                              {selectedProvider?.name || "Select provider"}
-                            </span>
-                            <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[90vw] sm:w-56 p-2 sm:p-1 bg-black text-white border-white/10">
-                          <div
-                            role="listbox"
-                            aria-label="Select provider"
-                            className="max-h-[60vh] sm:max-h-64 overflow-y-auto"
-                          >
-                            {providersForModel.map((p) => {
-                              const isActive = p.id === selectedProviderId;
-                              return (
-                                <button
-                                  key={p.id}
-                                  type="button"
-                                  role="option"
-                                  aria-selected={isActive}
-                                  onClick={() => {
-                                    setSelectedProviderId(p.id);
-                                    setPricingSelectorOpen(false);
-                                  }}
-                                  className={`flex w-full items-center gap-2 rounded px-3 py-3 sm:py-2 text-left text-sm hover:bg-white/10 ${
-                                    isActive ? "bg-white/10" : ""
-                                  }`}
-                                >
-                                  <CheckIcon
-                                    className={`h-4 w-4 ${
-                                      isActive ? "opacity-100" : "opacity-0"
-                                    }`}
-                                  />
-                                  <span className="truncate">{p.name}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="bg-black/30 border border-white/10 rounded-lg p-5 mb-6">
-                <table className="w-full">
-                  <tbody>
-                    <tr className="border-b border-white/10">
-                      <td className="py-2 text-gray-300">Input cost</td>
-                      <td className="py-2 font-medium text-white text-right">
-                        {currency === "sats"
-                          ? `${
-                              activePricingModel.sats_pricing.prompt > 0
-                                ? (
-                                    1 / activePricingModel.sats_pricing.prompt
-                                  ).toFixed(2)
-                                : "—"
-                            } tokens/sat`
-                          : `$${(
-                              activePricingModel.pricing.prompt * 1_000_000
-                            ).toFixed(2)}/M tokens`}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-white/10">
-                      <td className="py-2 text-gray-300">Output cost</td>
-                      <td className="py-2 font-medium text-white text-right">
-                        {currency === "sats"
-                          ? `${
-                              activePricingModel.sats_pricing.completion > 0
-                                ? (
-                                    1 /
-                                    activePricingModel.sats_pricing.completion
-                                  ).toFixed(2)
-                                : "—"
-                            } tokens/sat`
-                          : `$${(
-                              activePricingModel.pricing.completion * 1_000_000
-                            ).toFixed(2)}/M tokens`}
-                      </td>
-                    </tr>
-                    {currency === "sats" &&
-                      activePricingModel.sats_pricing.request > 0 && (
-                        <tr className="border-b border-white/10">
-                          <td className="py-2 text-gray-300">Request fee</td>
-                          <td className="py-2 font-medium text-white text-right">
-                            {activePricingModel.sats_pricing.request.toFixed(8)}{" "}
-                            sats/request
-                          </td>
-                        </tr>
-                      )}
-                    {currency === "sats" &&
-                      activePricingModel.sats_pricing.image > 0 && (
-                        <tr className="border-b border-white/10">
-                          <td className="py-2 text-gray-300">Image fee</td>
-                          <td className="py-2 font-medium text-white text-right">
-                            {activePricingModel.sats_pricing.image.toFixed(8)}{" "}
-                            sats/image
-                          </td>
-                        </tr>
-                      )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-
             {/* API Section */}
             <Card className="bg-black/50 border border-white/10 p-6 mb-12">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h2 className="text-xl font-bold text-white">
                   API Integration
                 </h2>
-                {providersForModel.length > 0 ? (
+                {providersWithPricing.length > 0 ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">Provider</span>
                     <Popover
@@ -769,7 +652,8 @@ print(completion.choices[0].message.content)`,
                           aria-label="Select provider"
                           className="max-h-[60vh] sm:max-h-64 overflow-y-auto"
                         >
-                          {providersForModel.map((p) => {
+                          {providersWithPricing.map((entry) => {
+                            const p = entry.provider;
                             const isActive = p.id === selectedProviderId;
                             return (
                               <button
@@ -1129,7 +1013,7 @@ print(completion.choices[0].message.content)`,
             {/* Model Reviews Section */}
             <ModelReviews
               modelId={model.id}
-              providersForModel={providersForModel}
+              providersForModel={providersWithPricing.map((p) => p.provider)}
             />
           </div>
         </div>
