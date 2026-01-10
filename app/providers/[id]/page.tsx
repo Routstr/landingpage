@@ -184,8 +184,8 @@ export default function ProviderPage() {
       <Header />
       <main className="flex-grow">
         <div className="pt-8 sm:pt-12 pb-12 border-b border-white/5">
-          <div className="max-w-5xl mx-auto px-4 md:px-6">
-            <div className="max-w-5xl mx-auto">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="max-w-7xl mx-auto">
               <div className="flex items-center mb-6">
                 <BackButton
                   fallbackHref="/providers"
@@ -277,8 +277,8 @@ export default function ProviderPage() {
         </div>
 
         <div className="pt-8 sm:pt-12 pb-12">
-          <div className="max-w-5xl mx-auto px-4 md:px-6">
-            <div className="max-w-5xl mx-auto">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="max-w-7xl mx-auto">
               <div className="flex items-center justify-between gap-3 mb-6">
                 <h2 className="text-xl sm:text-2xl font-bold">Models</h2>
                 <CurrencyTabs />

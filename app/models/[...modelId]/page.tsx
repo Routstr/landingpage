@@ -26,6 +26,7 @@ import {
   Check as CheckIcon,
 } from "lucide-react";
 import { InfoPill } from "@/components/client/InfoPill";
+import { PriceCompChart } from "@/components/client/PriceCompChart";
 import ReactMarkdown from "react-markdown";
 import { ModelReviews } from "@/components/ModelReviews";
 import { getLocalCashuToken, setLocalCashuToken } from "@/utils/storageUtils";
@@ -327,14 +328,6 @@ export default function ModelDetailPage() {
     return base.endsWith("/v1") ? base : `${base.replace(/\/$/, "")}/v1`;
   })();
 
-  const handleCopyId = async () => {
-    if (model) {
-      await navigator.clipboard.writeText(model.id);
-      setIdCopied(true);
-      setTimeout(() => setIdCopied(false), 2000);
-    }
-  };
-
   const doCopy = async () => {
     try {
       const tokenForCode = (tokenInput ?? "").trim();
@@ -432,8 +425,8 @@ print(completion.choices[0].message.content)`,
       <Header />
 
       <section className="py-12 bg-black">
-        <div className="max-w-5xl mx-auto px-4 md:px-6">
-          <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="max-w-7xl mx-auto">
             <BackButton
               fallbackHref="/models"
               className="text-gray-300 hover:text-white flex items-center gap-2 mb-6"
@@ -539,41 +532,25 @@ print(completion.choices[0].message.content)`,
               )}
             </div>
             {/* Providers offering this model */}
+            {/* Providers offering this model */}
             {providersForModel.length > 0 && (
               <div className="mb-12">
-                <h2 className="text-2xl font-bold mb-4">
-                  Available From Providers
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {providersForModel.map((p) => (
-                    <Link
-                      key={p.id}
-                      href={`/providers/${encodeURIComponent(p.id)}`}
-                      className="flex items-center justify-between bg-black/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-all"
-                    >
-                      <div>
-                        <div className="text-white font-medium">{p.name}</div>
-                        <div className="text-xs text-gray-400 truncate">
-                          {p.endpoint_url}
-                        </div>
-                      </div>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="w-4 h-4 text-gray-300"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                        />
-                      </svg>
-                    </Link>
-                  ))}
-                </div>
+                <PriceCompChart
+                  data={providersForModel.map((p) => {
+                    // Find pricing for this provider's model entry
+                    const entry = modelProviderEntries
+                      .get(model.id)
+                      ?.find((e) => e.provider.id === p.id);
+                    const pricing = entry?.model.sats_pricing;
+
+                    return {
+                      providerName: p.name,
+                      promptPrice: (pricing?.prompt || 0) * 1_000_000,
+                      completionPrice: (pricing?.completion || 0) * 1_000_000,
+                    };
+                  })}
+                  currencyLabel="sats / 1M tokens"
+                />
               </div>
             )}
 
@@ -758,67 +735,6 @@ print(completion.choices[0].message.content)`,
                       )}
                   </tbody>
                 </table>
-              </div>
-
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                <h4 className="font-medium text-yellow-300 mb-2">
-                  Cost Calculation Example
-                </h4>
-                <p className="text-sm text-gray-200">
-                  For a conversation with 100 tokens of input and 500 tokens of
-                  output:
-                  <br />
-                  {currency === "sats" ? (
-                    <>
-                      Input cost: 100 ÷{" "}
-                      {activePricingModel.sats_pricing.prompt > 0
-                        ? (1 / activePricingModel.sats_pricing.prompt).toFixed(
-                            2
-                          )
-                        : "—"}{" "}
-                      ={" "}
-                      {(100 * activePricingModel.sats_pricing.prompt).toFixed(
-                        8
-                      )}{" "}
-                      sats
-                      <br />
-                      Output cost: 500 ÷{" "}
-                      {activePricingModel.sats_pricing.completion > 0
-                        ? (
-                            1 / activePricingModel.sats_pricing.completion
-                          ).toFixed(2)
-                        : "—"}{" "}
-                      ={" "}
-                      {(
-                        500 * activePricingModel.sats_pricing.completion
-                      ).toFixed(8)}{" "}
-                      sats
-                      <br />
-                      Total:{" "}
-                      {(
-                        100 * activePricingModel.sats_pricing.prompt +
-                        500 * activePricingModel.sats_pricing.completion
-                      ).toFixed(8)}{" "}
-                      sats
-                    </>
-                  ) : (
-                    <>
-                      Input cost: 100 × $
-                      {activePricingModel.pricing.prompt.toFixed(6)} = $
-                      {(100 * activePricingModel.pricing.prompt).toFixed(6)}
-                      <br />
-                      Output cost: 500 × $
-                      {activePricingModel.pricing.completion.toFixed(6)} = $
-                      {(500 * activePricingModel.pricing.completion).toFixed(6)}
-                      <br />
-                      Total: $
-                      {(
-                        100 * activePricingModel.pricing.prompt +
-                        500 * activePricingModel.pricing.completion
-                      ).toFixed(6)}
-                    </>
-                  )}
-                </p>
               </div>
             </Card>
 

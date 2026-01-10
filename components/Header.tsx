@@ -53,7 +53,7 @@ export default function Header() {
   };
 
   return (
-    <header className="py-4 bg-black w-full max-w-5xl mx-auto">
+    <header className="py-4 bg-black w-full max-w-7xl mx-auto">
       <div className="flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">

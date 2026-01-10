@@ -43,8 +43,8 @@ export default function BlogPostPage() {
       <Header />
 
       <section className="pt-8 sm:pt-12 pb-10 sm:pb-12 bg-black">
-        <div className="w-full max-w-5xl mx-auto px-4 md:px-6">
-            <div className="max-w-3xl mx-auto">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mx-auto">
             <BackButton
               fallbackHref="/blog"
               className="mb-6 text-xs sm:text-sm text-gray-400 hover:text-white transition-colors"
@@ -81,30 +81,51 @@ export default function BlogPostPage() {
                 components={{
                   a({ href, children, ...props }) {
                     return (
-                      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        {...props}
+                      >
                         {children}
                       </a>
                     );
                   },
-                  img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+                  img({
+                    src,
+                    alt,
+                    ...props
+                  }: React.ImgHTMLAttributes<HTMLImageElement>) {
                     return (
                       <Image
-                        src={typeof src === 'string' ? src : ""}
-                        alt={typeof alt === 'string' ? alt : ""}
-                        width={typeof props.width === 'number' ? props.width : 800}
-                        height={typeof props.height === 'number' ? props.height : 600}
+                        src={typeof src === "string" ? src : ""}
+                        alt={typeof alt === "string" ? alt : ""}
+                        width={
+                          typeof props.width === "number" ? props.width : 800
+                        }
+                        height={
+                          typeof props.height === "number" ? props.height : 600
+                        }
                         className="rounded-lg border border-white/10"
                       />
                     );
                   },
-                  code({ inline, className, children, ...props }: React.HTMLAttributes<HTMLElement> & {
+                  code({
+                    inline,
+                    className,
+                    children,
+                    ...props
+                  }: React.HTMLAttributes<HTMLElement> & {
                     inline?: boolean;
                     className?: string;
                     children?: React.ReactNode;
                   }) {
                     const match = /language-(\w+)/.exec(className || "");
                     const codeText = String(children);
-                    const isInline = typeof inline === "boolean" ? inline : !/[\r\n]/.test(codeText);
+                    const isInline =
+                      typeof inline === "boolean"
+                        ? inline
+                        : !/[\r\n]/.test(codeText);
                     if (!isInline && match) {
                       return (
                         <SyntaxHighlighter
@@ -112,7 +133,11 @@ export default function BlogPostPage() {
                           style={atomDark as any}
                           language={match ? match[1] : undefined}
                           PreTag="pre"
-                          customStyle={{ background: "transparent", margin: 0, padding: 0 }}
+                          customStyle={{
+                            background: "transparent",
+                            margin: 0,
+                            padding: 0,
+                          }}
                           {...props}
                         >
                           {codeText.replace(/\n$/, "")}
@@ -138,5 +163,3 @@ export default function BlogPostPage() {
     </main>
   );
 }
-
-

@@ -44,12 +44,14 @@ export default function BlogIndexPage() {
       <Header />
 
       <section className="pt-6 sm:pt-14 pb-10 sm:pb-14 bg-black">
-        <div className="w-full max-w-5xl mx-auto px-4 md:px-6">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left column: title + subtitle (sticky) */}
             <div className="md:col-span-1">
               <div className="md:sticky md:top-24">
-                <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">Blog</h1>
+                <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">
+                  Blog
+                </h1>
                 <p className="text-base sm:text-xl text-gray-400">
                   Updates, guides, and announcements from the Routstr team
                 </p>
@@ -63,7 +65,10 @@ export default function BlogIndexPage() {
                   {Array(3)
                     .fill(0)
                     .map((_, idx) => (
-                      <div key={idx} className="bg-black border border-white/10 rounded-lg p-6 animate-pulse">
+                      <div
+                        key={idx}
+                        className="bg-black border border-white/10 rounded-lg p-6 animate-pulse"
+                      >
                         <div className="h-6 bg-white/5 rounded w-1/3 mb-3"></div>
                         <div className="h-4 bg-white/5 rounded w-1/4 mb-4"></div>
                         <div className="h-4 bg-white/5 rounded w-2/3"></div>
@@ -74,7 +79,8 @@ export default function BlogIndexPage() {
 
               {errorMessage && (
                 <p className="text-sm text-gray-400">
-                  {errorMessage} Add a file at <code className="text-gray-300">public/blog/index.json</code>.
+                  {errorMessage} Add a file at{" "}
+                  <code className="text-gray-300">public/blog/index.json</code>.
                 </p>
               )}
 
@@ -89,15 +95,30 @@ export default function BlogIndexPage() {
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1 min-w-0 flex flex-col gap-2">
-                            <h2 className="text-base sm:text-xl font-bold text-white">{post.title}</h2>
+                            <h2 className="text-base sm:text-xl font-bold text-white">
+                              {post.title}
+                            </h2>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                               {post.date && (
-                                <span>{new Date(post.date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>
+                                <span>
+                                  {new Date(post.date).toLocaleDateString(
+                                    undefined,
+                                    {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                    }
+                                  )}
+                                </span>
                               )}
                               {post.tags && post.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
                                   {post.tags.map((tag) => (
-                                    <Badge key={tag} variant="outline" className="text-gray-400 border-white/10">
+                                    <Badge
+                                      key={tag}
+                                      variant="outline"
+                                      className="text-gray-400 border-white/10"
+                                    >
                                       {tag}
                                     </Badge>
                                   ))}
@@ -119,7 +140,11 @@ export default function BlogIndexPage() {
                               stroke="currentColor"
                               className="w-4 h-4 text-white"
                             >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                              />
                             </svg>
                           </div>
                         </div>
@@ -137,5 +162,3 @@ export default function BlogIndexPage() {
     </main>
   );
 }
-
-

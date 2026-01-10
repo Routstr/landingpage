@@ -46,8 +46,8 @@ export default function ProvidersPage() {
 
       <main className="flex-grow">
         <div className="pt-8 sm:pt-16 pb-16 bg-black">
-          <div className="max-w-5xl mx-auto px-4 md:px-6">
-            <div className="max-w-5xl mx-auto">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="max-w-7xl mx-auto">
               <h1 className="text-2xl sm:text-4xl font-bold mb-6">Providers</h1>
               <p className="text-base sm:text-xl text-gray-400 mb-10">
                 Browse {items.length} providers available through Routstr&apos;s
@@ -58,9 +58,9 @@ export default function ProvidersPage() {
         </div>
 
         <div className="pt-0 pb-16">
-          <div className="max-w-5xl mx-auto px-4 md:px-6">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
             {isLoading && items.length === 0 ? (
-              <div className="max-w-5xl mx-auto border border-white/10 rounded-lg overflow-hidden">
+              <div className="max-w-7xl mx-auto border border-white/10 rounded-lg overflow-hidden">
                 <ul className="divide-y divide-white/10">
                   {[...Array(8)].map((_, i) => (
                     <li key={i} className="p-4 sm:p-6">
@@ -87,7 +87,7 @@ export default function ProvidersPage() {
                 </ul>
               </div>
             ) : (
-              <div className="max-w-5xl mx-auto border border-white/10 rounded-lg overflow-hidden">
+              <div className="max-w-7xl mx-auto border border-white/10 rounded-lg overflow-hidden">
                 <ul className="divide-y divide-white/10">
                   {sortedItems.map((provider) => {
                     const modelCount = provider.supported_models?.length || 0;

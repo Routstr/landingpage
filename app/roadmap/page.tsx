@@ -15,8 +15,8 @@ export default function RoadmapPage() {
         "Per-request micropayments with Cashu tokens",
         "Token-based pricing by input/output tokens",
         "Authorization via API keys or Cashu tokens",
-        "Cost reporting in streaming and non-streaming responses"
-      ]
+        "Cost reporting in streaming and non-streaming responses",
+      ],
     },
     {
       id: "rip-02",
@@ -28,8 +28,8 @@ export default function RoadmapPage() {
         "Node capabilities including models, pricing, region",
         "Operator pubkey association",
         "Endpoint URL and latency metrics",
-        "Client subscription to node listings"
-      ]
+        "Client subscription to node listings",
+      ],
     },
     {
       id: "rip-03",
@@ -41,8 +41,8 @@ export default function RoadmapPage() {
         "Filter by models, region, price, social proximity",
         "Node cards with descriptions and metrics",
         "Search and filtering capabilities",
-        "Real-time updates on new node events"
-      ]
+        "Real-time updates on new node events",
+      ],
     },
     {
       id: "rip-04",
@@ -54,8 +54,8 @@ export default function RoadmapPage() {
         "Anonymized metrics on quality, latency, and cost",
         "Provider ratings with ephemeral Nostr keys",
         "Kind 31555 events with standardized tags",
-        "Aggregation of multiple evaluations"
-      ]
+        "Aggregation of multiple evaluations",
+      ],
     },
     {
       id: "rip-05",
@@ -67,9 +67,9 @@ export default function RoadmapPage() {
         "Auto-redemption and token splitting",
         "Proxy/Tor routing for privacy",
         "Provider optimization based on metrics",
-        "Dynamic scoring for provider selection"
-      ]
-    }
+        "Dynamic scoring for provider selection",
+      ],
+    },
   ];
 
   return (
@@ -78,16 +78,32 @@ export default function RoadmapPage() {
 
       {/* Hero Section */}
       <section className="pt-8 sm:pt-16 md:pt-24 pb-16 md:pb-24 bg-black border-b border-white/5">
-        <div className="px-4 md:px-6 max-w-5xl mx-auto">
-          <div className="max-w-5xl mx-auto text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">Routstr Roadmap</h1>
+        <div className="px-4 md:px-6 max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto text-center">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
+              Routstr Roadmap
+            </h1>
             <p className="text-base sm:text-xl text-gray-300 mb-8">
               Our progressive journey to building a decentralized AI ecosystem
             </p>
             <div className="flex justify-center">
-              <BackButton fallbackHref="/" className="inline-flex items-center justify-center gap-2 text-white hover:text-gray-300">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              <BackButton
+                fallbackHref="/"
+                className="inline-flex items-center justify-center gap-2 text-white hover:text-gray-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+                  />
                 </svg>
                 Back
               </BackButton>
@@ -101,17 +117,22 @@ export default function RoadmapPage() {
         <div className="px-4 md:px-6 max-w-5xl mx-auto">
           <div className="max-w-5xl mx-auto">
             <div className="mb-16">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8 pb-4 border-b border-white/10">Milestone Roadmap</h2>
-              
-              <RoadmapTimeline 
-                items={roadmapItems} 
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8 pb-4 border-b border-white/10">
+                Milestone Roadmap
+              </h2>
+
+              <RoadmapTimeline
+                items={roadmapItems}
                 alternating={false}
                 showTheme={false}
               />
             </div>
 
             <div className="text-center mt-16 pt-8 border-t border-white/10">
-              <p className="text-gray-400 mb-4">This roadmap is subject to change as we adapt to community feedback and industry developments.</p>
+              <p className="text-gray-400 mb-4">
+                This roadmap is subject to change as we adapt to community
+                feedback and industry developments.
+              </p>
               <BackButton
                 fallbackHref="/"
                 className="inline-flex items-center justify-center rounded-md bg-white text-black px-8 py-3 text-sm font-medium transition-colors hover:bg-gray-200"
@@ -126,4 +147,4 @@ export default function RoadmapPage() {
       <Footer />
     </main>
   );
-} 
+}

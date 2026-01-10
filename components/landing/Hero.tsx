@@ -125,7 +125,7 @@ export function LandingHero() {
         </Link>
       </div>
 
-      <div ref={containerRef} className="relative mx-auto max-w-5xl w-full">
+      <div ref={containerRef} className="relative mx-auto max-w-7xl w-full">
         <div
           className="h-[400px] md:h-[600px] relative overflow-hidden flex items-center justify-center cursor-pointer"
           onClick={() => setGlobeOpen(true)}
