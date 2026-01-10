@@ -315,14 +315,15 @@ export async function fetchModels(
           content: p.content,
         };
 
-        // Deduplicate and map
+        // Deduplicate global model map but keep provider-specific models for pricing
         const existingModelsForProvider: Model[] = [];
         providerModels.forEach((model) => {
           const existing = modelMap.get(model.id);
           if (!existing) {
             modelMap.set(model.id, model);
           }
-          existingModelsForProvider.push(modelMap.get(model.id)!);
+          // Use the provider-specific model (with this provider's pricing), not the deduplicated one
+          existingModelsForProvider.push(model);
           const existingProviders = newModelProvidersMap.get(model.id) || [];
           newModelProvidersMap.set(model.id, [
             ...existingProviders,
