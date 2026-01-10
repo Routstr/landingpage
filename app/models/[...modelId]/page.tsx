@@ -54,6 +54,7 @@ export default function ModelDetailPage() {
     { provider: Provider; model: Model }[]
   >([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
+  const [pricingLoading, setPricingLoading] = useState(true);
 
   const [apiSelectorOpen, setApiSelectorOpen] = useState(false);
 
@@ -92,30 +93,22 @@ export default function ModelDetailPage() {
   }, [storageBaseUrl]);
 
   useEffect(() => {
+    let active = true;
     async function loadModelData() {
+      setPricingLoading(true);
       try {
         // 1. Try to find the model in the existing context (fastest)
-        let foundModel = findModel(decodedModelId);
+        const foundModel = findModel(decodedModelId);
 
-        // If found immediately, set it
+        // If found immediately, set it so the page renders instantly
         if (foundModel) {
           setModel(foundModel);
           setNotFound(false);
-
-          // We need to reconstruct the pricing entries from the current models context if available,
-          // OR we simply default to empty and let the "refresh" below handle it if we want fresh data.
-          // BUT if we want "fastest", we should rely on context if it has data.
-          // Since we removed 'modelProviderEntries' from useModels destructuring (to avoid conflict/confusion),
-          // we might just want to fetch incrementally anyway if we want the *latest* prices.
-          // However, to keep it simple and fast: if context has it, use it.
-          // Since we can't easily access the raw map from here without importing it or context exposing it (which we removed),
-          // let's just trigger a fresh fetch if we don't have providers yet?
-          // Actually, let's just trigger the incremental fetch ALWAYS to ensure freshest prices/providers,
-          // but we initialize 'model' from cache so the page title renders immediately.
         }
 
         // 2. Perform direct incremental fetch to populate/update providers and pricing
         await fetchModelsDirect((provider, newlyFetchedModels) => {
+          if (!active) return;
           // Check if this provider has the model we are looking for
           // The API returns models with IDs. We need to match `decodedModelId`.
           const modelInProvider = newlyFetchedModels.find(
@@ -148,22 +141,31 @@ export default function ModelDetailPage() {
           }
         });
 
-        // After fetch completes, if we still don't have a model, verify logic
-        // (The callback sets it, so we rely on that)
+        // After fetch completes, if we still don't have a model, set notFound
+        setModel((prev) => {
+          if (!prev && active) setNotFound(true);
+          return prev;
+        });
       } catch (error) {
         console.error("Error loading model data:", error);
         // If we still don't have a model after error
         setModel((prev) => {
-          if (!prev) setNotFound(true);
+          if (!prev && active) setNotFound(true);
           return prev;
         });
+      } finally {
+        if (active) setPricingLoading(false);
       }
     }
 
     loadModelData();
+    return () => {
+      active = false;
+    };
   }, [decodedModelId, findModel]);
 
-  if (loading) {
+  // Show skeleton only when we have no model data at all and context is still loading
+  if (loading && !model) {
     return (
       <main className="flex min-h-screen flex-col bg-black text-white">
         <Header />
@@ -547,8 +549,50 @@ print(completion.choices[0].message.content)`,
             {/* Providers offering this model */}
             {/* Providers offering this model */}
             {/* Providers offering this model */}
-            {providersWithPricing.length > 0 && (
-              <div className="mb-12">
+            <div className="mb-12">
+              {pricingLoading && providersWithPricing.length === 0 ? (
+                // Loading skeleton for price comparison
+                <div className="w-full">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="h-6 w-40 bg-zinc-800 rounded animate-pulse"></div>
+                    <div className="h-4 w-28 bg-zinc-800 rounded animate-pulse"></div>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-white/5 border border-white/10 rounded-lg p-4"
+                      >
+                        <div className="flex justify-between items-end mb-2">
+                          <div className="h-5 w-32 bg-zinc-800 rounded animate-pulse"></div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3 text-xs">
+                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
+                            <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-zinc-700 rounded-full animate-pulse"
+                                style={{ width: `${30 + i * 20}%` }}
+                              ></div>
+                            </div>
+                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs">
+                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
+                            <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-zinc-700 rounded-full animate-pulse"
+                                style={{ width: `${40 + i * 15}%` }}
+                              ></div>
+                            </div>
+                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : providersWithPricing.length > 0 ? (
                 <PriceCompChart
                   data={providersWithPricing.map((entry) => {
                     const pricing = entry.model.sats_pricing;
@@ -561,8 +605,8 @@ print(completion.choices[0].message.content)`,
                   })}
                   currencyLabel="sats / 1M tokens"
                 />
-              </div>
-            )}
+              ) : null}
+            </div>
 
             {/* Endpoints table removed */}
 

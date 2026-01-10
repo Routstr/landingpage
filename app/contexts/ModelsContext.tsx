@@ -1,29 +1,55 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
-import { Model, Provider, PerRequestLimits } from '@/app/data/models';
-import { filterStagingEndpoints, shouldHideProvider } from '@/lib/staging-filter';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
+import { Model, Provider, PerRequestLimits } from "@/app/data/models";
+import {
+  filterStagingEndpoints,
+  shouldHideProvider,
+} from "@/lib/staging-filter";
 
 interface ModelsState {
   models: Model[];
   providerMap: Map<string, Provider[]>;
   // For each model id, keep provider-specific model entries so we can access provider-specific pricing
-  modelProviderEntries: Map<string, Array<{ provider: Provider; model: Model }>>;
+  modelProviderEntries: Map<
+    string,
+    Array<{ provider: Provider; model: Model }>
+  >;
   loading: boolean;
   error: string | null;
   lastFetched: number | null;
 }
 
 type ModelsAction =
-  | { type: 'FETCH_START' }
-  | { type: 'FETCH_SUCCESS'; payload: { models: Model[]; providerMap: Map<string, Provider[]>; modelProviderEntries: Map<string, Array<{ provider: Provider; model: Model }>> } }
-  | { type: 'FETCH_ERROR'; payload: string }
-  | { type: 'CLEAR_ERROR' };
+  | { type: "FETCH_START" }
+  | {
+      type: "FETCH_SUCCESS";
+      payload: {
+        models: Model[];
+        providerMap: Map<string, Provider[]>;
+        modelProviderEntries: Map<
+          string,
+          Array<{ provider: Provider; model: Model }>
+        >;
+      };
+    }
+  | { type: "FETCH_ERROR"; payload: string }
+  | { type: "CLEAR_ERROR" };
 
 const initialState: ModelsState = {
   models: [],
   providerMap: new Map<string, Provider[]>(),
-  modelProviderEntries: new Map<string, Array<{ provider: Provider; model: Model }>>(),
+  modelProviderEntries: new Map<
+    string,
+    Array<{ provider: Provider; model: Model }>
+  >(),
   loading: false,
   error: null,
   lastFetched: null,
@@ -31,9 +57,9 @@ const initialState: ModelsState = {
 
 function modelsReducer(state: ModelsState, action: ModelsAction): ModelsState {
   switch (action.type) {
-    case 'FETCH_START':
+    case "FETCH_START":
       return { ...state, loading: true, error: null };
-    case 'FETCH_SUCCESS':
+    case "FETCH_SUCCESS":
       return {
         ...state,
         loading: false,
@@ -43,9 +69,9 @@ function modelsReducer(state: ModelsState, action: ModelsAction): ModelsState {
         lastFetched: Date.now(),
         error: null,
       };
-    case 'FETCH_ERROR':
+    case "FETCH_ERROR":
       return { ...state, loading: false, error: action.payload };
-    case 'CLEAR_ERROR':
+    case "CLEAR_ERROR":
       return { ...state, error: null };
     default:
       return state;
@@ -68,19 +94,22 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 
   const fetchModels = useCallback(async () => {
     // Don't fetch if already loading or recently fetched (within 5 minutes)
-    if (state.loading || (state.lastFetched && Date.now() - state.lastFetched < 5 * 60 * 1000)) {
+    if (
+      state.loading ||
+      (state.lastFetched && Date.now() - state.lastFetched < 5 * 60 * 1000)
+    ) {
       return;
     }
 
-    dispatch({ type: 'FETCH_START' });
+    dispatch({ type: "FETCH_START" });
 
     try {
       let response;
       try {
-        response = await fetch('https://api.routstr.com/v1/providers/');
+        response = await fetch("https://api.routstr.com/v1/providers/");
       } catch {
         // Fetch blocked (e.g., by browser extension) - silently fail
-        dispatch({ type: 'FETCH_ERROR', payload: 'Network request blocked' });
+        dispatch({ type: "FETCH_ERROR", payload: "Network request blocked" });
         return;
       }
       if (!response.ok) {
@@ -104,16 +133,23 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       }> = Array.isArray(data.providers) ? data.providers : [];
 
       const normalizeForFetch = (urlOrHost: string): string => {
-        if (!urlOrHost) return '';
+        if (!urlOrHost) return "";
         const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
         return hasProtocol ? urlOrHost : `https://${urlOrHost}`;
       };
 
-      const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response | null> => {
+      const fetchWithTimeout = async (
+        url: string,
+        options: RequestInit = {},
+        timeoutMs = 8000
+      ): Promise<Response | null> => {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeoutMs);
         try {
-          const resp = await fetch(url, { ...options, signal: controller.signal });
+          const resp = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
           return resp;
         } catch {
           // Silently fail - could be blocked by browser extension, network error, or timeout
@@ -126,22 +162,28 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       // Assemble models by querying each provider's /v1/models
       const modelMap = new Map<string, Model>();
       const providerMap = new Map<string, Provider[]>();
-  const modelProviderEntries = new Map<string, Array<{ provider: Provider; model: Model }>>();
+      const modelProviderEntries = new Map<
+        string,
+        Array<{ provider: Provider; model: Model }>
+      >();
 
       await Promise.all(
         list
           .filter((p) => {
-            const endpoints = (Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0)
-              ? p.endpoint_urls!
-              : [p.endpoint_url].filter(Boolean);
-            const nameOrTag = `${p.name || ''}`.toLowerCase();
-            const looksLikeStaging = nameOrTag.includes('staging');
+            const endpoints =
+              Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
+                ? p.endpoint_urls!
+                : [p.endpoint_url].filter(Boolean);
+            const nameOrTag = `${p.name || ""}`.toLowerCase();
+            const looksLikeStaging = nameOrTag.includes("staging");
             return !shouldHideProvider(endpoints) && !looksLikeStaging;
           })
           .map(async (p) => {
             const nonStaging = filterStagingEndpoints(p.endpoint_urls || []);
-            const http = nonStaging.filter((u) => typeof u === 'string' && !u.includes('.onion'));
-            const primary = (http[0] || p.endpoint_url || '').trim();
+            const http = nonStaging.filter(
+              (u) => typeof u === "string" && !u.includes(".onion")
+            );
+            const primary = (http[0] || p.endpoint_url || "").trim();
 
             const providerObj: Provider = {
               id: p.id,
@@ -154,7 +196,11 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
               description: p.description,
               contact: undefined,
               pricing_url: undefined,
-              mint_url: (p.mint_url ?? null) || (Array.isArray(p.mint_urls) && p.mint_urls.length > 0 ? p.mint_urls[0] : null),
+              mint_url:
+                (p.mint_url ?? null) ||
+                (Array.isArray(p.mint_urls) && p.mint_urls.length > 0
+                  ? p.mint_urls[0]
+                  : null),
               mint_urls: Array.isArray(p.mint_urls) ? p.mint_urls : [],
               version: p.version,
               supported_models: [],
@@ -163,9 +209,13 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 
             if (!primary) return; // skip if no usable endpoint
             try {
-              const base = normalizeForFetch(primary).replace(/\/$/, '');
+              const base = normalizeForFetch(primary).replace(/\/$/, "");
               const modelsUrl = `${base}/v1/models`;
-              const r = await fetchWithTimeout(modelsUrl, { headers: { 'accept': 'application/json' } }, 8000);
+              const r = await fetchWithTimeout(
+                modelsUrl,
+                { headers: { accept: "application/json" } },
+                8000
+              );
               if (!r || !r.ok) return;
               const payload = await r.json();
               const arr: Array<{
@@ -207,13 +257,14 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
                   id: raw.id,
                   name: raw.name,
                   created: raw.created,
-                  description: raw.description ?? '',
+                  description: raw.description ?? "",
                   context_length: raw.context_length ?? 0,
                   architecture: {
-                    modality: raw.architecture?.modality ?? '',
+                    modality: raw.architecture?.modality ?? "",
                     input_modalities: raw.architecture?.input_modalities ?? [],
-                    output_modalities: raw.architecture?.output_modalities ?? [],
-                    tokenizer: raw.architecture?.tokenizer ?? '',
+                    output_modalities:
+                      raw.architecture?.output_modalities ?? [],
+                    tokenizer: raw.architecture?.tokenizer ?? "",
                     instruct_type: raw.architecture?.instruct_type ?? null,
                   },
                   pricing: {
@@ -231,12 +282,15 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
                     request: raw.sats_pricing?.request ?? 0,
                     image: raw.sats_pricing?.image ?? 0,
                     web_search: raw.sats_pricing?.web_search ?? 0,
-                    internal_reasoning: raw.sats_pricing?.internal_reasoning ?? 0,
+                    internal_reasoning:
+                      raw.sats_pricing?.internal_reasoning ?? 0,
                     max_cost: raw.sats_pricing?.max_cost ?? 0,
                   },
-                  per_request_limits: (raw.per_request_limits && Object.keys(raw.per_request_limits).length > 0)
-                    ? raw.per_request_limits as PerRequestLimits
-                    : null,
+                  per_request_limits:
+                    raw.per_request_limits &&
+                    Object.keys(raw.per_request_limits).length > 0
+                      ? (raw.per_request_limits as PerRequestLimits)
+                      : null,
                   top_provider: {
                     context_length: raw.context_length ?? 0,
                     max_completion_tokens: null,
@@ -248,7 +302,10 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
                 const existing = providerMap.get(m.id) || [];
                 providerMap.set(m.id, [...existing, providerObj]);
                 const existingEntries = modelProviderEntries.get(m.id) || [];
-                modelProviderEntries.set(m.id, [...existingEntries, { provider: providerObj, model: m }]);
+                modelProviderEntries.set(m.id, [
+                  ...existingEntries,
+                  { provider: providerObj, model: m },
+                ]);
               });
             } catch {
               // ignore per-provider errors
@@ -257,36 +314,44 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
       );
 
       dispatch({
-        type: 'FETCH_SUCCESS',
-    payload: { models: Array.from(modelMap.values()), providerMap, modelProviderEntries },
+        type: "FETCH_SUCCESS",
+        payload: {
+          models: Array.from(modelMap.values()),
+          providerMap,
+          modelProviderEntries,
+        },
       });
     } catch (error) {
       dispatch({
-        type: 'FETCH_ERROR',
-        payload: error instanceof Error ? error.message : 'Unknown error occurred'
+        type: "FETCH_ERROR",
+        payload:
+          error instanceof Error ? error.message : "Unknown error occurred",
       });
     }
   }, [state.loading, state.lastFetched]);
 
   const clearError = () => {
-    dispatch({ type: 'CLEAR_ERROR' });
+    dispatch({ type: "CLEAR_ERROR" });
   };
 
   const findModel = (id: string): Model | undefined => {
     const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
-    const canonicalize = (s: string) => normalize(s).replace(/[\s._-]/g, '');
+    const canonicalize = (s: string) => normalize(s).replace(/[\s._-]/g, "");
     const parseProviderAndModel = (s: string) => {
-      const parts = normalize(s).split('/');
-      const providerSegment = parts.length > 1 ? parts[0] : '';
-      const modelSegment = parts.length > 1 ? parts.slice(1).join('/') : parts[0];
+      const parts = normalize(s).split("/");
+      const providerSegment = parts.length > 1 ? parts[0] : "";
+      const modelSegment =
+        parts.length > 1 ? parts.slice(1).join("/") : parts[0];
       return { providerSegment, modelSegment };
     };
     const expandProviderAliases = (provider: string): readonly string[] => {
       const p = canonicalize(provider);
       if (!p) return [];
       // Known aliases: "z-ai" often maps to Zhipu providers/IDs (glm family)
-      if (p === 'zai' || p === 'z-ai' || p.includes('zai')) {
-        return ['zai', 'z-ai', 'zhipu', 'zhipuai', 'zhipu-ai'].map(canonicalize);
+      if (p === "zai" || p === "z-ai" || p.includes("zai")) {
+        return ["zai", "z-ai", "zhipu", "zhipuai", "zhipu-ai"].map(
+          canonicalize
+        );
       }
       return [p];
     };
@@ -300,20 +365,25 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     if (found) return found;
 
     // 2) Case-insensitive / decoded match
-    found = state.models.find((model) => normalize(model.id) === targetNormalized);
+    found = state.models.find(
+      (model) => normalize(model.id) === targetNormalized
+    );
     if (found) return found;
 
     // 3) Canonical (punctuation-insensitive) full-ID match
-    found = state.models.find((model) => canonicalize(model.id) === targetCanonical);
+    found = state.models.find(
+      (model) => canonicalize(model.id) === targetCanonical
+    );
     if (found) return found;
 
     // 4) Fuzzy match on last segment (handle dots vs dashes, etc.)
-    const { providerSegment: wantedProvider, modelSegment: wantedModel } = parseProviderAndModel(targetRaw);
-    const wantedLast = (wantedModel.split('/').pop() || '').trim();
+    const { providerSegment: wantedProvider, modelSegment: wantedModel } =
+      parseProviderAndModel(targetRaw);
+    const wantedLast = (wantedModel.split("/").pop() || "").trim();
     const wantedLastCanonical = canonicalize(wantedLast);
 
     const lastSegmentCandidates = state.models.filter((model) => {
-      const modelLast = normalize(model.id).split('/').pop() || '';
+      const modelLast = normalize(model.id).split("/").pop() || "";
       return canonicalize(modelLast) === wantedLastCanonical;
     });
     if (lastSegmentCandidates.length === 1) return lastSegmentCandidates[0];
@@ -322,7 +392,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     if (lastSegmentCandidates.length > 1 && wantedProvider) {
       const aliasSet = new Set(expandProviderAliases(wantedProvider));
       const aliasMatches = lastSegmentCandidates.filter((model) => {
-        const providerOfModel = normalize(model.id).split('/')[0] || '';
+        const providerOfModel = normalize(model.id).split("/")[0] || "";
         return aliasSet.has(canonicalize(providerOfModel));
       });
       if (aliasMatches.length === 1) return aliasMatches[0];
@@ -331,7 +401,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 
     // 6) As a final fallback, if exactly one model matches by case-insensitive last segment
     const ciLastMatches = state.models.filter((model) => {
-      const modelLast = normalize(model.id).split('/').pop() || '';
+      const modelLast = normalize(model.id).split("/").pop() || "";
       return modelLast === normalize(wantedLast);
     });
     if (ciLastMatches.length === 1) return ciLastMatches[0];
@@ -353,9 +423,12 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
   // Cheapest-first providers by comparing provider-specific model sats completion pricing
   const getProvidersForModelCheapestFirst = (id: string): Provider[] => {
     const normalize = (s: string) => decodeURIComponent(s).trim().toLowerCase();
-    const entries = state.modelProviderEntries.get(id)
-      ?? Array.from(state.modelProviderEntries.entries()).find(([key]) => normalize(key) === normalize(id))?.[1]
-      ?? [];
+    const entries =
+      state.modelProviderEntries.get(id) ??
+      Array.from(state.modelProviderEntries.entries()).find(
+        ([key]) => normalize(key) === normalize(id)
+      )?.[1] ??
+      [];
     if (entries.length === 0) return getProvidersForModel(id);
     const sorted = [...entries].sort((a, b) => {
       const aPrice = a.model.sats_pricing?.completion ?? 0;
@@ -391,7 +464,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 export function useModels() {
   const context = useContext(ModelsContext);
   if (context === undefined) {
-    throw new Error('useModels must be used within a ModelsProvider');
+    throw new Error("useModels must be used within a ModelsProvider");
   }
   return context;
 }
