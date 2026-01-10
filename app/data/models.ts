@@ -169,40 +169,49 @@ export async function fetchModels(
         const mintUrl =
           (p.mint_url ?? null) || (mintUrls.length > 0 ? mintUrls[0] : null);
 
-        const providerAugmented: Provider = {
-          id: p.id,
-          pubkey: p.pubkey,
-          created_at: p.created_at,
-          kind: p.kind,
-          endpoint_url: primary || p.endpoint_url,
-          endpoint_urls: nonStaging,
-          name: p.name,
-          description: p.description,
-          contact: undefined,
-          pricing_url: undefined,
-          mint_url: mintUrl,
-          mint_urls: mintUrls,
-          version: p.version,
-          supported_models: [], // Will be populated below
-          content: p.content,
-        };
-
         // Note: we don't push to allProviders here immediately if we want to ensure
         // supported_models is populated first. However, to support progress, we might
         // want to emit it after we fetch its models.
 
         let providerModels: Model[] = [];
+        let fetchedVersion = p.version;
+
         if (primary) {
-          try {
-            const base = normalizeForFetch(primary).replace(/\/$/, "");
-            const modelsUrl = `${base}/v1/models`;
-            const r = await fetchWithTimeout(
+          const base = normalizeForFetch(primary).replace(/\/$/, "");
+
+          // Fetch models and info in parallel
+          const modelsUrl = `${base}/v1/models`;
+          const infoUrl = `${base}/v1/info`;
+
+          const [modelsRes, infoRes] = await Promise.allSettled([
+            fetchWithTimeout(
               modelsUrl,
               { headers: { accept: "application/json" } },
               8000
-            );
-            if (r.ok) {
-              const m = await r.json();
+            ),
+            fetchWithTimeout(
+              infoUrl,
+              { headers: { accept: "application/json" } },
+              5000
+            ),
+          ]);
+
+          // Handle Info Response
+          if (infoRes.status === "fulfilled" && infoRes.value.ok) {
+            try {
+              const info = await infoRes.value.json();
+              if (info && typeof info.version === "string") {
+                fetchedVersion = info.version;
+              }
+            } catch {
+              // Ignore info parse errors
+            }
+          }
+
+          // Handle Models Response
+          if (modelsRes.status === "fulfilled" && modelsRes.value.ok) {
+            try {
+              const m = await modelsRes.value.json();
               const arr: Array<{
                 id: string;
                 name: string;
@@ -282,11 +291,29 @@ export async function fetchModels(
                 };
                 return model;
               });
+            } catch {
+              // ignore per-provider errors
             }
-          } catch {
-            // ignore per-provider errors
           }
         }
+
+        const providerAugmented: Provider = {
+          id: p.id,
+          pubkey: p.pubkey,
+          created_at: p.created_at,
+          kind: p.kind,
+          endpoint_url: primary || p.endpoint_url,
+          endpoint_urls: nonStaging,
+          name: p.name,
+          description: p.description,
+          contact: undefined,
+          pricing_url: undefined,
+          mint_url: mintUrl,
+          mint_urls: mintUrls,
+          version: fetchedVersion,
+          supported_models: [], // Will be populated below
+          content: p.content,
+        };
 
         // Deduplicate and map
         const existingModelsForProvider: Model[] = [];
