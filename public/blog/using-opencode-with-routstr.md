@@ -281,10 +281,11 @@ You can configure OpenCode to use different Routstr nodes for different projects
 
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
   "provider": {
     "routstr-api": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "routstr",
+      "name": "routstr-api",
       "options": {
         "baseURL": "https://api.routstr.com/v1",
         "apiKey": "your-cashu-token-1",
@@ -296,7 +297,7 @@ You can configure OpenCode to use different Routstr nodes for different projects
     },
     "routstr-nonkycai": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "nonkycai",
+      "name": "routstr-nonkycai",
       "options": {
         "baseURL": "https://api.nonkycai.com/v1",
         "apiKey": "your-cashu-token-2",
