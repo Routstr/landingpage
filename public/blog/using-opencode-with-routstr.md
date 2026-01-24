@@ -181,7 +181,7 @@ You'll see all the Routstr models listed under the "routstr" provider. Select th
 
 To verify that OpenCode is successfully using your Routstr node:
 
-1. Run a simple coding task: `opencode "write a hello world function"`
+1. Run a simple coding task: `opencode run -m routstr/glm-4.7 "write a hello world function"`
 2. Check that your Cashu token balance has decreased appropriately
 3. Verify the response quality matches your expected model
 
@@ -191,10 +191,10 @@ You can also check your node's dashboard (if available) to see recent requests.
 
 The models available through your Routstr node depend on which node you're connected to. Common models include:
 
-- **OpenAI Models**: GPT-4o, GPT-4o-mini, GPT-4 Turbo
-- **Anthropic Models**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
-- **Google Models**: Gemini 2.0 Flash, Gemini 1.5 Pro
-- **Specialized Coding Models**: Qwen Coder Turbo, DeepSeek Chat, CodeLlama
+- **OpenAI Models**: GPT-5.2 Pro, GPT-5.2, GPT-5.1 Codex
+- **Anthropic Models**: Claude Sonnet 4.5, Claude Opus 4.5
+- **Google Models**: Gemini 3 Pro Preview, Gemini 3 Flash Preview
+- **Specialized AI Models**: DeepSeek v3.2, Qwen3 VL 235B Thinking, Kimi K2 Thinking
 - **And more!**
 
 Each Routstr node may offer different models based on their infrastructure and partnerships.
@@ -244,7 +244,7 @@ Once you have the models list, you can update your `opencode.json` configuration
 ### Code Generation
 
 ```bash
-opencode "Create a REST API endpoint for user authentication"
+opencode run -m routstr/glm-4.7 "Create a REST API endpoint for user authentication"
 ```
 
 OpenCode will analyze your project structure and generate appropriate code using a Routstr node for inference.
@@ -252,7 +252,7 @@ OpenCode will analyze your project structure and generate appropriate code using
 ### Debugging
 
 ```bash
-opencode "Fix the error in src/auth.ts"
+opencode run -m routstr/claude-opus-4.5 "Fix the error in src/auth.ts"
 ```
 
 OpenCode reads your code, identifies issues, and suggests fixes.
@@ -260,7 +260,7 @@ OpenCode reads your code, identifies issues, and suggests fixes.
 ### Code Review
 
 ```bash
-opencode "Review the changes in my pull request"
+opencode run -m routstr/claude-opus-4.5 "Review the changes in my pull request"
 ```
 
 Get AI-powered code reviews without sending your code to centralized services.
@@ -268,24 +268,12 @@ Get AI-powered code reviews without sending your code to centralized services.
 ### Documentation
 
 ```bash
-opencode "Generate documentation for this module"
+opencode run -m routstr/claude-sonnet-4.5  "Generate documentation for this module"
 ```
 
 Automatically create comprehensive documentation for your codebase.
 
 ## Advanced Configuration
-
-### Multiple Routstr Nodes
-
-You can configure OpenCode to use different Routstr nodes for different tasks:
-
-```bash
-# For code generation
-opencode config set api.base_url https://api.routstr.com/v1
-
-# For debugging (using fallback)
-opencode config set api.base_url https://api.nonkycai.com/v1
-```
 
 ### Using Multiple Routstr Nodes
 
@@ -294,7 +282,7 @@ You can configure OpenCode to use different Routstr nodes for different projects
 ```json
 {
   "provider": {
-    "routstr": {
+    "routstr-api": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "routstr",
       "options": {
@@ -306,7 +294,7 @@ You can configure OpenCode to use different Routstr nodes for different projects
         /* models */
       }
     },
-    "nonkycai": {
+    "routstr-nonkycai": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "nonkycai",
       "options": {
@@ -328,29 +316,6 @@ This allows you to:
 - Compare pricing and performance across nodes
 - Have fallback options if one node is unavailable
 - Separate work projects from personal projects
-
-### Local Models with Routstr Payment Integration
-
-You can even combine local inference with Routstr's ecosystem by running your own node or connecting to local models:
-
-```json
-{
-  "provider": {
-    "local-routstr": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "local-routstr",
-      "options": {
-        "baseURL": "http://localhost:11434/v1",
-        "apiKey": "local-token",
-        "includeUsage": true
-      },
-      "models": {
-        /* local models */
-      }
-    }
-  }
-}
-```
 
 ## Troubleshooting
 
@@ -375,16 +340,13 @@ For payment-related problems:
 
 ### Performance Tips
 
-- **Choose nearby nodes** - Use Routstr nodes closer to your location for lower latency
-- **Monitor token balance** - Keep track of your Cashu balance to avoid interruptions
+- **Monitor token balance** - Keep track of your Cashu balance in `chat.routstr.com` to avoid interruptions
 - **Select appropriate models** - Use lighter models for simple tasks to save costs
 - **Batch similar requests** - Group related coding tasks together
-- **Consider local models** - For highly sensitive code, consider running local inference
 
 ## Tips for Best Results
 
-- **Choose the right model**: Use specialized coding models like `qwen-coder-turbo` or `deepseek-chat` for programming tasks
-- **Monitor your usage**: Track your Cashu token spending to understand costs
+- **Choose the right model**: Use specialized coding models like `claude-opus-4.5` or `glm-4.7` for programming tasks
 - **Experiment**: Different models excel at different tasks—try a few to find your favorite
 - **Stay private**: Take advantage of Routstr's anonymous payments for sensitive projects
 - **Support decentralization**: Try different Routstr nodes to support the decentralized ecosystem
@@ -401,16 +363,17 @@ If you encounter issues:
 
 ## Community and Support
 
-- **Routstr GitHub**: https://github.com/Routstr/protocol
+- **Tag Red, Shroominic, or Routstr on Nostr**: [Red](https://jumble.social/users/npub1ftt05tgku25m2akgvw6v7aqy5ux5mseqcrzy05g26ml43xf74nyqsredsh), [Shroominic](https://jumble.social/users/npub18gr2m5cflkzpn6jdfer4a8qdlavsn334m9mfhurjsge08grg82zq6hu9su) or [Routstr](https://jumble.social/users/npub130mznv74rxs032peqym6g3wqavh472623mt3z5w73xq9r6qqdufs7ql29s)
+- **Routstr GitHub**: https://github.com/Routstr/routstr-core
 - **OpenCode Documentation**: https://opencode.ai/docs
-- **Nostr**: Join the conversation on Nostr for privacy-first support
 - **Community Nodes**: Discover and connect with community-run Routstr nodes
 
 ## Contributing
 
 Both Routstr and OpenCode are open-source projects. Contributions are welcome!
 
-- Routstr: https://github.com/Routstr/protocol
+- Routstr: https://github.com/Routstr/routstr-core
+- Routstr Chat: https://github.com/Routstr/routstr-chat
 - OpenCode: https://github.com/sst/opencode
 
 ---
