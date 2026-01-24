@@ -74,9 +74,7 @@ export function NostrProvider({ children }: { children: ReactNode }) {
     
     // Cleanup on unmount
     return () => {
-      if (pool) {
-        pool.close(getDefaultRelays());
-      }
+      newPool.close(getDefaultRelays());
     };
   }, []);
 
