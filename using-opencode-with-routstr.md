@@ -51,12 +51,14 @@ Unlike traditional API services, Routstr uses Cashu e-cash for anonymous payment
 
 You can obtain a Cashu token in two ways:
 
-**Option A: Via Cashu Wallet with Topup**
+**Option A: Via any Cashu Wallet with Topup**
+
 1. Use any Cashu wallet (e.g., Nutstash, Cashu.me, or a self-hosted wallet)
 2. Top up your wallet with e-cash at [https://routstr.com/topup](https://routstr.com/topup)
 3. Copy your Cashu token from the wallet
 
 **Option B: Via Routstr Chat Interface**
+
 1. Visit [chat.routstr.com](https://chat.routstr.com)
 2. Create or manage an API key directly in the interface
 3. The system will generate a Cashu token for you automatically
@@ -85,7 +87,7 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
       "npm": "@ai-sdk/openai-compatible",
       "name": "routstr",
       "options": {
-        "baseURL": "https://your-routstr-node.com/v1",
+        "baseURL": "https://api.routstr.com/v1",
         "apiKey": "your-cashu-token-here",
         "includeUsage": true
       },
@@ -160,7 +162,8 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
 ```
 
 **Important**:
-- Replace `https://your-routstr-node.com/v1` with your chosen Routstr node URL
+
+- The `baseURL` is set to `https://api.routstr.com/v1` (you can also use `https://api.nonkycai.com/v1` as a fallback)
 - Replace `your-cashu-token-here` with your actual Cashu token
 - The models listed are examples; check your Routstr node for available models
 
@@ -203,7 +206,13 @@ Want to see what models are available on your Routstr node? You can fetch the li
 View all available models:
 
 ```bash
-curl https://your-routstr-node.com/v1/models
+curl https://api.routstr.com/v1/models
+```
+
+Or use the fallback:
+
+```bash
+curl https://api.nonkycai.com/v1/models
 ```
 
 This endpoint returns a JSON list of all currently available models on that specific Routstr node. You can use this to:
@@ -216,7 +225,7 @@ This endpoint returns a JSON list of all currently available models on that spec
 
 Once you have the models list, you can update your `opencode.json` configuration:
 
-1. Fetch the models from your node: `curl https://your-routstr-node.com/v1/models`
+1. Fetch the models from your node: `curl https://api.routstr.com/v1/models` (or `https://api.nonkycai.com/v1/models`)
 2. Copy the model IDs from the response
 3. Add them to your configuration file under the "models" section:
 
@@ -272,10 +281,10 @@ You can configure OpenCode to use different Routstr nodes for different tasks:
 
 ```bash
 # For code generation
-opencode config set api.base_url https://node1.routstr.com/v1
+opencode config set api.base_url https://api.routstr.com/v1
 
-# For debugging
-opencode config set api.base_url https://node2.routstr.com/v1
+# For debugging (using fallback)
+opencode config set api.base_url https://api.nonkycai.com/v1
 ```
 
 ### Using Multiple Routstr Nodes
@@ -285,31 +294,36 @@ You can configure OpenCode to use different Routstr nodes for different projects
 ```json
 {
   "provider": {
-    "routstr-node1": {
+    "routstr": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "routstr-node1",
+      "name": "routstr",
       "options": {
-        "baseURL": "https://node1.routstr.com/v1",
+        "baseURL": "https://api.routstr.com/v1",
         "apiKey": "your-cashu-token-1",
         "includeUsage": true
       },
-      "models": { /* models */ }
+      "models": {
+        /* models */
+      }
     },
-    "routstr-node2": {
+    "nonkycai": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "routstr-node2",
+      "name": "nonkycai",
       "options": {
-        "baseURL": "https://node2.routstr.com/v1",
+        "baseURL": "https://api.nonkycai.com/v1",
         "apiKey": "your-cashu-token-2",
         "includeUsage": true
       },
-      "models": { /* models */ }
+      "models": {
+        /* models */
+      }
     }
   }
 }
 ```
 
 This allows you to:
+
 - Use different tokens for different nodes
 - Compare pricing and performance across nodes
 - Have fallback options if one node is unavailable
@@ -330,7 +344,9 @@ You can even combine local inference with Routstr's ecosystem by running your ow
         "apiKey": "local-token",
         "includeUsage": true
       },
-      "models": { /* local models */ }
+      "models": {
+        /* local models */
+      }
     }
   }
 }
