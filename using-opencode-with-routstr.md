@@ -1,62 +1,234 @@
-# Using OpenCode with Routstr
+# Using OpenCode AI Coding Agent with Routstr
 
-OpenCode is an open-source AI coding assistant that works directly in your terminal. When combined with Routstr's decentralized AI inference protocol, you get a powerful, private, and flexible development experience.
+Learn how to integrate OpenCode, the open source AI coding agent, with Routstr to access premium AI models with complete privacy, anonymous payments, and no account requirements.
 
-## What is Routstr?
+## What is OpenCode?
 
-Routstr is a decentralized protocol for AI inference that enables:
-- **Anonymous payments** using Cashu e-cash
-- **No account requirements** - just connect and use
-- **Privacy-first** approach with Nostr integration
-- **OpenAI API compatibility** - works with existing tools
+OpenCode is an open source AI coding agent that helps you write code directly in your terminal, IDE, or desktop application. With OpenCode, you can leverage AI to assist with coding tasks, refactoring, debugging, and more—all through a simple command-line interface or desktop app.
 
-## Setting Up OpenCode with Routstr
+## Why Use Routstr with OpenCode?
+
+By connecting OpenCode to Routstr's decentralized AI inference protocol, you gain access to cutting-edge AI models with unique benefits:
+
+- **Complete Privacy** - Anonymous payments using Cashu e-cash
+- **No Account Required** - Just connect and use, no signup needed
+- **Decentralized Infrastructure** - Choose from multiple independent nodes
+- **OpenAI API Compatible** - Works seamlessly with existing tools
+- **Pay-Per-Use** - Micropayments for what you actually use, no subscriptions
+- **Nostr Integration** - Privacy-first communication protocol
+
+All models available through Routstr nodes work with OpenCode's interface, giving you the freedom to code privately without centralized tracking.
+
+## Step by Step Set Up
 
 ### 1. Install OpenCode
+
+First, install OpenCode using one of the following methods:
+
+Using curl:
 
 ```bash
 curl -fsSL https://opencode.ai/install | bash
 ```
 
-### 2. Configure Routstr as Your AI Provider
-
-OpenCode supports custom OpenAI-compatible endpoints. Configure it to use a Routstr node:
+Using npm:
 
 ```bash
-opencode config set api.base_url https://your-routstr-node.com/v1
-opencode config set api.key your-cashu-token
+npm install -g opencode
 ```
 
-### 3. Initialize Your Project
-
-Navigate to your project directory and initialize OpenCode:
+Using brew (macOS):
 
 ```bash
-cd your-project
-opencode
+brew install opencode
 ```
 
-Then type `/init` to let OpenCode analyze your repository.
+For more installation options, visit the [OpenCode GitHub repository](https://github.com/sst/opencode).
 
-## Benefits of Using OpenCode with Routstr
+### 2. Get Your Cashu Token
 
-### Privacy
-- Your code stays local
-- No account registration required
-- Anonymous payments protect your identity
-- No tracking or data collection
+Unlike traditional API services, Routstr uses Cashu e-cash for anonymous payments. Your Cashu token acts as both authentication and payment mechanism—no personal information required.
 
-### Flexibility
-- Use any language or framework
-- Switch between different Routstr nodes
-- Local model support available
-- Works with your existing workflow
+You can obtain a Cashu token in two ways:
 
-### Cost-Effective
-- Pay only for what you use with Cashu
-- No subscription fees
-- Micropayments for small tasks
-- Transparent pricing
+**Option A: Via Cashu Wallet with Topup**
+1. Use any Cashu wallet (e.g., Nutstash, Cashu.me, or a self-hosted wallet)
+2. Top up your wallet with e-cash at [https://routstr.com/topup](https://routstr.com/topup)
+3. Copy your Cashu token from the wallet
+
+**Option B: Via Routstr Chat Interface**
+1. Visit [chat.routstr.com](https://chat.routstr.com)
+2. Create or manage an API key directly in the interface
+3. The system will generate a Cashu token for you automatically
+
+Ensure you have sufficient balance for your intended usage before proceeding.
+
+### 3. Locate Your OpenCode Config Folder
+
+OpenCode stores its configuration in a platform-specific location:
+
+- **Linux**: `~/.config/opencode`
+- **macOS**: `~/.config/opencode`
+- **Windows**: `%APPDATA%\opencode`
+
+Navigate to this folder in your terminal or file explorer.
+
+### 4. Create the Configuration File
+
+Create a new file called `opencode.json` in your OpenCode config folder with the following content:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "routstr": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "routstr",
+      "options": {
+        "baseURL": "https://your-routstr-node.com/v1",
+        "apiKey": "your-cashu-token-here",
+        "includeUsage": true
+      },
+      "models": {
+        "gemini-3-pro-preview": {
+          "name": "gemini-3-pro-preview"
+        },
+        "gpt-5.2": {
+          "name": "gpt-5.2"
+        },
+        "gpt-5.2-pro": {
+          "name": "gpt-5.2-pro"
+        },
+        "glm-4.7": {
+          "name": "glm-4.7"
+        },
+        "kimi-k2-thinking": {
+          "name": "kimi-k2-thinking"
+        },
+        "gpt-5.1-codex": {
+          "name": "gpt-5.1-codex"
+        },
+        "claude-sonnet-4.5": {
+          "name": "claude-sonnet-4.5"
+        },
+        "gemini-3-flash-preview": {
+          "name": "gemini-3-flash-preview"
+        },
+        "grok-4.1-fast": {
+          "name": "grok-4.1-fast"
+        },
+        "venice-uncensored": {
+          "name": "venice-uncensored"
+        },
+        "deepseek-v3.2-speciale": {
+          "name": "deepseek-v3.2-speciale"
+        },
+        "deepseek-v3.2": {
+          "name": "deepseek-v3.2"
+        },
+        "minimax-m2.1": {
+          "name": "minimax-m2.1"
+        },
+        "qwen3-vl-235b-a22b-thinking": {
+          "name": "qwen3-vl-235b-a22b-thinking"
+        },
+        "claude-opus-4.5": {
+          "name": "claude-opus-4.5"
+        },
+        "gpt-5-mini": {
+          "name": "gpt-5-mini"
+        },
+        "gpt-oss-120b": {
+          "name": "gpt-oss-120b"
+        },
+        "gpt-oss-20b": {
+          "name": "gpt-oss-20b"
+        },
+        "grok-code-fast-1": {
+          "name": "grok-code-fast-1"
+        },
+        "kimi-linear-48b-a3b-instruct": {
+          "name": "kimi-linear-48b-a3b-instruct"
+        },
+        "gemma-3n-e4b-it": {
+          "name": "gemma-3n-e4b-it"
+        }
+      }
+    }
+  }
+}
+```
+
+**Important**:
+- Replace `https://your-routstr-node.com/v1` with your chosen Routstr node URL
+- Replace `your-cashu-token-here` with your actual Cashu token
+- The models listed are examples; check your Routstr node for available models
+
+### 5. Launch OpenCode and Select Your Model
+
+Start OpenCode in your terminal or desktop app. To view all available Routstr models, use the `/models` command:
+
+```bash
+/models
+```
+
+You'll see all the Routstr models listed under the "routstr" provider. Select the model that best fits your coding task.
+
+### 6. Verify Your Setup
+
+To verify that OpenCode is successfully using your Routstr node:
+
+1. Run a simple coding task: `opencode "write a hello world function"`
+2. Check that your Cashu token balance has decreased appropriately
+3. Verify the response quality matches your expected model
+
+You can also check your node's dashboard (if available) to see recent requests.
+
+## Available Models
+
+The models available through your Routstr node depend on which node you're connected to. Common models include:
+
+- **OpenAI Models**: GPT-4o, GPT-4o-mini, GPT-4 Turbo
+- **Anthropic Models**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
+- **Google Models**: Gemini 2.0 Flash, Gemini 1.5 Pro
+- **Specialized Coding Models**: Qwen Coder Turbo, DeepSeek Chat, CodeLlama
+- **And more!**
+
+Each Routstr node may offer different models based on their infrastructure and partnerships.
+
+## Get the Most Recent Models
+
+Want to see what models are available on your Routstr node? You can fetch the list directly from the node's API:
+
+View all available models:
+
+```bash
+curl https://your-routstr-node.com/v1/models
+```
+
+This endpoint returns a JSON list of all currently available models on that specific Routstr node. You can use this to:
+
+- **Check for new models** - See what's been added since you last checked
+- **Build custom configs** - Create your own `opencode.json` with specific models you want
+- **Compare nodes** - Check different Routstr nodes to find the best model selection
+
+### Update Your Configuration with Available Models
+
+Once you have the models list, you can update your `opencode.json` configuration:
+
+1. Fetch the models from your node: `curl https://your-routstr-node.com/v1/models`
+2. Copy the model IDs from the response
+3. Add them to your configuration file under the "models" section:
+
+```json
+"models": {
+  "model-id-here": {
+    "name": "model-id-here"
+  }
+}
+```
+
+**Critical**: Each model entry must have the model ID as BOTH the object key AND the "name" property value. Only use the "id" field from the API response—don't include other fields like "object", "created", or "owned_by".
 
 ## Example Workflows
 
@@ -106,25 +278,60 @@ opencode config set api.base_url https://node1.routstr.com/v1
 opencode config set api.base_url https://node2.routstr.com/v1
 ```
 
-### Local Models with Routstr
+### Using Multiple Routstr Nodes
 
-Combine local inference with Routstr's payment infrastructure:
+You can configure OpenCode to use different Routstr nodes for different projects or tasks. Simply update the `baseURL` in your `opencode.json` file:
 
-```bash
-opencode config set api.base_url http://localhost:11434/v1
+```json
+{
+  "provider": {
+    "routstr-node1": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "routstr-node1",
+      "options": {
+        "baseURL": "https://node1.routstr.com/v1",
+        "apiKey": "your-cashu-token-1",
+        "includeUsage": true
+      },
+      "models": { /* models */ }
+    },
+    "routstr-node2": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "routstr-node2",
+      "options": {
+        "baseURL": "https://node2.routstr.com/v1",
+        "apiKey": "your-cashu-token-2",
+        "includeUsage": true
+      },
+      "models": { /* models */ }
+    }
+  }
+}
 ```
 
-### Custom Skills
+This allows you to:
+- Use different tokens for different nodes
+- Compare pricing and performance across nodes
+- Have fallback options if one node is unavailable
+- Separate work projects from personal projects
 
-Create custom OpenCode skills that leverage Routstr's capabilities:
+### Local Models with Routstr Payment Integration
 
-```javascript
-// .opencode/skills/routstr-payment.js
-export default {
-  name: 'routstr-payment',
-  description: 'Handle payments using Routstr protocol',
-  execute: async (context) => {
-    // Your custom logic
+You can even combine local inference with Routstr's ecosystem by running your own node or connecting to local models:
+
+```json
+{
+  "provider": {
+    "local-routstr": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "local-routstr",
+      "options": {
+        "baseURL": "http://localhost:11434/v1",
+        "apiKey": "local-token",
+        "includeUsage": true
+      },
+      "models": { /* local models */ }
+    }
   }
 }
 ```
@@ -140,28 +347,48 @@ If you can't connect to your Routstr node:
 3. Ensure the node is online and accepting requests
 4. Try a different Routstr node
 
-### Payment Issues
+### Cashu Token Issues
 
 For payment-related problems:
 
-1. Check your Cashu wallet balance
-2. Verify the token mint URL
-3. Ensure you have sufficient funds for the request
-4. Check the node's pricing structure
+1. **Check your Cashu wallet balance** - Ensure you have sufficient e-cash
+2. **Verify your token format** - Make sure you copied the complete Cashu token
+3. **Check the mint URL** - Ensure the mint associated with your token is operational
+4. **Verify node compatibility** - Confirm the node accepts your Cashu mint
+5. **Token expiration** - Some tokens may have expiration dates
 
 ### Performance Tips
 
-- Use nodes closer to your location for lower latency
-- Cache frequently used responses
-- Batch similar requests together
-- Consider local models for sensitive code
+- **Choose nearby nodes** - Use Routstr nodes closer to your location for lower latency
+- **Monitor token balance** - Keep track of your Cashu balance to avoid interruptions
+- **Select appropriate models** - Use lighter models for simple tasks to save costs
+- **Batch similar requests** - Group related coding tasks together
+- **Consider local models** - For highly sensitive code, consider running local inference
+
+## Tips for Best Results
+
+- **Choose the right model**: Use specialized coding models like `qwen-coder-turbo` or `deepseek-chat` for programming tasks
+- **Monitor your usage**: Track your Cashu token spending to understand costs
+- **Experiment**: Different models excel at different tasks—try a few to find your favorite
+- **Stay private**: Take advantage of Routstr's anonymous payments for sensitive projects
+- **Support decentralization**: Try different Routstr nodes to support the decentralized ecosystem
+
+## Problems?
+
+If you encounter issues:
+
+- **Check the Routstr website** - Visit the main Routstr node for status updates
+- **Join Nostr channels** - Ask questions in privacy-focused Routstr communities
+- **Verify your setup** - Double-check your `opencode.json` configuration
+- **Try a different node** - If one node is down, try connecting to another
+- **Check OpenCode docs** - Review [OpenCode documentation](https://opencode.ai/docs) for troubleshooting
 
 ## Community and Support
 
-- **Routstr Documentation**: https://docs.routstr.com
+- **Routstr GitHub**: https://github.com/Routstr/protocol
 - **OpenCode Documentation**: https://opencode.ai/docs
-- **Routstr Nostr**: Join the conversation on Nostr
-- **GitHub Issues**: Report bugs and request features
+- **Nostr**: Join the conversation on Nostr for privacy-first support
+- **Community Nodes**: Discover and connect with community-run Routstr nodes
 
 ## Contributing
 
@@ -170,10 +397,6 @@ Both Routstr and OpenCode are open-source projects. Contributions are welcome!
 - Routstr: https://github.com/Routstr/protocol
 - OpenCode: https://github.com/sst/opencode
 
-## License
-
-This guide is part of the Routstr ecosystem. See individual project licenses for details.
-
 ---
 
-**Ready to code with privacy and freedom?** Start using OpenCode with Routstr today!
+**Ready to code with complete privacy and freedom?** Start using OpenCode with Routstr today and experience AI-powered development without compromising your privacy or requiring accounts!
