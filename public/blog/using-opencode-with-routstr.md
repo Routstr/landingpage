@@ -1,4 +1,4 @@
-# Using OpenCode AI Coding Agent with Routstr
+# Using OpenCode Agent with Routstr
 
 Learn how to integrate OpenCode, the open source AI coding agent, with Routstr to access premium AI models with complete privacy, anonymous payments, and no account requirements.
 

@@ -1,5 +1,11 @@
 [
   {
+    "slug": "using-opencode-with-routstr",
+    "title": "Using OpenCode Agent with Routstr",
+    "description": "Learn how to integrate OpenCode, the open source AI coding agent, with Routstr to access premium AI models with complete privacy, anonymous payments, and no account requirements.",
+    "tags": ["announcement"]
+  },
+  {
     "slug": "routstr_0_1_0_announcement",
     "title": "Announcing Routstr Core v0.1.0: Come Run Routstr Nodes with Us",
     "description": "With this stable release, anyone can run Routstr nodes and help decentralize AI access to anyone, anywhere on earth!",
@@ -12,5 +18,3 @@
     "tags": ["guide", "how-to"]
   }
 ]
-
-
