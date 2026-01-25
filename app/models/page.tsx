@@ -5,19 +5,15 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
-  models as modelsState,
   getProviderFromModelName,
   fetchModels,
   getModelNameWithoutProvider,
   getModelDisplayName,
-  getPrimaryProviderForModel,
   Model,
 } from "@/app/data/models";
 import { usePricingView } from "@/app/contexts/PricingContext";
 import { CurrencyTabs } from "@/components/ui/currency-tabs";
 import { ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ModelsPage() {

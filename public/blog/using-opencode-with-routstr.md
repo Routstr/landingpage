@@ -87,7 +87,7 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
       "npm": "@ai-sdk/openai-compatible",
       "name": "routstr",
       "options": {
-        "baseURL": "https://api.routstr.com/v1",
+        "baseURL": "https://api.nonkycai.com/v1",
         "apiKey": "your-cashu-token-here",
         "includeUsage": true
       },
@@ -163,7 +163,7 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
 
 **Important**:
 
-- The `baseURL` is set to `https://api.routstr.com/v1` (you can also use `https://api.nonkycai.com/v1` as a fallback)
+- The `baseURL` is set to `https://api.nonkycai.com/v1` (you can also use `https://api.routstr.com/v1` as a fallback)
 - Replace `your-cashu-token-here` with your actual Cashu token
 - The models listed are examples; check your Routstr node for available models
 
@@ -206,13 +206,13 @@ Want to see what models are available on your Routstr node? You can fetch the li
 View all available models:
 
 ```bash
-curl https://api.routstr.com/v1/models
+curl https://api.nonkycai.com/v1/models
 ```
 
 Or use the fallback:
 
 ```bash
-curl https://api.nonkycai.com/v1/models
+curl https://api.routstr.com/v1/models
 ```
 
 This endpoint returns a JSON list of all currently available models on that specific Routstr node. You can use this to:
@@ -225,7 +225,7 @@ This endpoint returns a JSON list of all currently available models on that spec
 
 Once you have the models list, you can update your `opencode.json` configuration:
 
-1. Fetch the models from your node: `curl https://api.routstr.com/v1/models` (or `https://api.nonkycai.com/v1/models`)
+1. Fetch the models from your node: `curl https://api.nonkycai.com/v1/models` (or `https://api.routstr.com/v1/models`)
 2. Copy the model IDs from the response
 3. Add them to your configuration file under the "models" section:
 
@@ -283,11 +283,11 @@ You can configure OpenCode to use different Routstr nodes for different projects
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "routstr-api": {
+    "routstr-nonkycai": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "routstr-api",
+      "name": "routstr-nonkycai",
       "options": {
-        "baseURL": "https://api.routstr.com/v1",
+        "baseURL": "https://api.nonkycai.com/v1",
         "apiKey": "your-cashu-token-1",
         "includeUsage": true
       },
@@ -295,11 +295,11 @@ You can configure OpenCode to use different Routstr nodes for different projects
         /* models */
       }
     },
-    "routstr-nonkycai": {
+    "routstr-api": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "routstr-nonkycai",
+      "name": "routstr-api",
       "options": {
-        "baseURL": "https://api.nonkycai.com/v1",
+        "baseURL": "https://api.routstr.com/v1",
         "apiKey": "your-cashu-token-2",
         "includeUsage": true
       },

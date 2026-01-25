@@ -1,13 +1,11 @@
 "use client";
-import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { CurrencyTabs } from "@/components/ui/currency-tabs";
 import { usePricingView } from "@/app/contexts/PricingContext";
 import { useModels } from "@/app/contexts/ModelsContext";
 import { getPopularModels, getProviderFromModelName } from "@/app/data/models";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface DisplayModel {
   id: string;

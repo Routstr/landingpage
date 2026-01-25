@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useModels } from "@/app/contexts/ModelsContext";
 
@@ -72,10 +72,10 @@ export function LandingLogos() {
 
   const activeLogoSet = modelSets[activeSetIndex] || modelSets[0];
 
-  const flipLogos = () => {
+  const flipLogos = useCallback(() => {
     setActiveSetIndex((current) => (current + 1) % modelSets.length);
     setIsAnimating(true);
-  };
+  }, [modelSets.length]);
 
   useEffect(() => {
     if (!isAnimating && modelSets.length > 1) {
@@ -84,7 +84,7 @@ export function LandingLogos() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [isAnimating, modelSets.length]);
+  }, [flipLogos, isAnimating, modelSets.length]);
 
   return (
     <div className="relative z-20 py-10 md:py-20 px-4 md:px-8 bg-black">

@@ -31,9 +31,6 @@ import { PriceCompChart } from "@/components/client/PriceCompChart";
 import ReactMarkdown from "react-markdown";
 import { ModelReviews } from "@/components/ModelReviews";
 import { getLocalCashuToken, setLocalCashuToken } from "@/utils/storageUtils";
-// import ProviderPage from '@/app/providers/[id]/page';
-// ProvidersTable removed
-// import { UnfoldHorizontal } from 'lucide-react';
 
 // Define types for code examples
 type CodeLanguage = "curl" | "javascript" | "python";
@@ -71,6 +68,7 @@ export default function ModelDetailPage() {
   const [tokenInput, setTokenInput] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
   const [descExpanded, setDescExpanded] = useState<boolean>(false);
+  const priceSkeletonWidths = [34, 42, 58, 47, 39];
 
   // Compute storage base URL from current provider selection (fallback to default)
   const storageBaseUrl = (() => {
@@ -231,7 +229,9 @@ export default function ModelDetailPage() {
                     <div className="flex-1 h-8 bg-zinc-800/50 rounded animate-pulse relative overflow-hidden">
                       <div
                         className="absolute inset-y-0 left-0 bg-zinc-800 rounded"
-                        style={{ width: `${Math.random() * 40 + 30}%` }}
+                        style={{
+                          width: `${priceSkeletonWidths[i % priceSkeletonWidths.length]}%`,
+                        }}
                       ></div>
                     </div>
                     <div className="w-20 h-4 bg-zinc-800 rounded animate-pulse shrink-0"></div>
@@ -333,10 +333,6 @@ export default function ModelDetailPage() {
   const selectedProvider =
     providersWithPricing.find((p) => p.provider.id === selectedProviderId)
       ?.provider || providersWithPricing[0]?.provider;
-  const activeProviderEntry = providersWithPricing.find(
-    (e) => e.provider.id === (selectedProvider?.id || selectedProviderId)
-  );
-
   const providerBaseUrl = (() => {
     const base = selectedProvider?.endpoint_url || "";
     if (!base) return "";

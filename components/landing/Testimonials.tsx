@@ -169,7 +169,7 @@ const testimonials: Testimonial[] = [
         <br />
         <br />
         Hey everyone! Routstr is a cool new platform that makes using AI super
-        easy and private. It's built on Nostr and Bitcoin, so you can access AI
+        easy and private. It&apos;s built on Nostr and Bitcoin, so you can access AI
         models without big companies watching you.
         <br />
         <br />
