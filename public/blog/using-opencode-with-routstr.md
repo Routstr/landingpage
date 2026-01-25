@@ -53,7 +53,7 @@ You can obtain a Cashu token in two ways:
 
 **Option A: Via Routstr Chat Interface**
 
-1. Visit [chat.routstr.com](https://chat.routstr.com/?tab=apikeys)
+1. Visit [chat.routstr.com/?tab=apikeys](https://chat.routstr.com/?tab=apikeys)
 2. Create or manage an API key directly in the interface (stored in Nostr relays)
 3. The system will generate a Cashu token for you automatically
 
