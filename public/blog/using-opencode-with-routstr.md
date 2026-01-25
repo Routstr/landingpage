@@ -51,17 +51,17 @@ Unlike traditional API services, Routstr uses Cashu e-cash for anonymous payment
 
 You can obtain a Cashu token in two ways:
 
-**Option A: Via any Cashu Wallet with Topup**
+**Option A: Via Routstr Chat Interface**
+
+1. Visit [chat.routstr.com](https://chat.routstr.com/?tab=apikeys)
+2. Create or manage an API key directly in the interface (stored in Nostr relays)
+3. The system will generate a Cashu token for you automatically
+
+**Option B: Via any Cashu Wallet with Topup**
 
 1. Use any Cashu wallet (e.g., Nutstash, Cashu.me, or a self-hosted wallet)
 2. Top up your wallet with e-cash at [https://routstr.com/topup](https://routstr.com/topup)
 3. Copy your Cashu token from the wallet
-
-**Option B: Via Routstr Chat Interface**
-
-1. Visit [chat.routstr.com](https://chat.routstr.com)
-2. Create or manage an API key directly in the interface
-3. The system will generate a Cashu token for you automatically
 
 Ensure you have sufficient balance for your intended usage before proceeding.
 
