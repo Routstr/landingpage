@@ -109,6 +109,9 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
         "kimi-k2-thinking": {
           "name": "kimi-k2-thinking"
         },
+        "kimi-k2.5": {
+          "name": "kimi-k2.5"
+        },
         "gpt-5.1-codex": {
           "name": "gpt-5.1-codex"
         },
