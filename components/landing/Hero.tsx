@@ -112,16 +112,16 @@ export function LandingHero() {
       </p>
       <div className="mb-10 mt-8 flex w-full flex-col items-center justify-center gap-4 px-8 sm:flex-row md:mb-20">
         <Link
-          href="/models"
+          href="https://chat.routstr.com"
           className="group relative z-20 flex h-10 w-full cursor-pointer items-center justify-center space-x-2 rounded-lg bg-white p-px px-4 py-2 text-center text-sm font-semibold leading-6 text-black no-underline transition duration-200 hover:bg-gray-200 sm:w-52"
         >
-          Explore Models
+          Chat using Routstr
         </Link>
         <Link
-          href="https://docs.routstr.com"
+          href="https://chat.routstr.com/?tab=apikeys"
           className="group relative z-20 flex h-10 w-full cursor-pointer items-center justify-center space-x-2 rounded-lg bg-black border border-white/20 p-px px-4 py-2 text-sm font-semibold leading-6 text-white no-underline shadow-input transition duration-200 hover:bg-white/10 sm:w-52"
         >
-          Read Docs
+          Get API Key
         </Link>
       </div>
 
