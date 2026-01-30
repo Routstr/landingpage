@@ -77,6 +77,8 @@ Navigate to this folder in your terminal or file explorer.
 
 ### 4. Create the Configuration File
 
+> **Note**: OpenCode v0.3.0 includes a patch for seamless integration, running on api.nonkycai.com (community run) and staging.routstr.com (team run). This example uses nonkycai for its competitive pricing.
+
 Create a new file called `opencode.json` in your OpenCode config folder with the following content:
 
 ```json
@@ -106,6 +108,9 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
         },
         "kimi-k2-thinking": {
           "name": "kimi-k2-thinking"
+        },
+        "kimi-k2.5": {
+          "name": "kimi-k2.5"
         },
         "gpt-5.1-codex": {
           "name": "gpt-5.1-codex"
