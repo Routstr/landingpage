@@ -10,6 +10,7 @@ MINT_URL="https://mint.cubabitcoin.org/"
 
 # Parse command line arguments
 CASHU_TOKEN=""
+SKIP_CLAW=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -17,16 +18,20 @@ while [[ $# -gt 0 ]]; do
             CASHU_TOKEN="$2"
             shift 2
             ;;
+        --skip-claw)
+            SKIP_CLAW=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--cashu <token>]"
+            echo "Usage: $0 [--cashu <token>] [--skip-claw]"
             exit 1
             ;;
     esac
 done
 
-# If no cashu token provided, run install script and exit
-if [ -z "$CASHU_TOKEN" ]; then
+# If no cashu token provided and --skip-claw not set, run install script
+if [ -z "$CASHU_TOKEN" ] && [ "$SKIP_CLAW" = false ]; then
     echo "Running OpenClaw install script..."
     curl -fsSL https://openclaw.bot/install.sh | bash -s -- --no-onboard
 fi
