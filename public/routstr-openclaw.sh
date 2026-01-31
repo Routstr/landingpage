@@ -298,10 +298,10 @@ if [ -z "$CASHU_TOKEN" ]; then
 fi
 
 if [ "$LNVPS" = true ]; then
-    KIT_URL="https://github.com/Routstr/agents-w-routstr/blob/main/routstr-lnvps-openclaw/routstr-kit-lnvps-openclaw.tar.gz"
-    KIT_FILE="routstr-lnvps-kit-openclaw.tar.gz"
+    KIT_URL="https://routstr.com/routstr-kit-lnvps-openclaw.tar.gz"
+    KIT_FILE="routstr-kit-lnvps-openclaw.tar.gz"
 else
-    KIT_URL="https://github.com/Routstr/agents-w-routstr/blob/main/routstr-openclaw/routstr-kit-openclaw.tar.gz"
+    KIT_URL="https://routstr.com/routstr-kit-openclaw.tar.gz"
     KIT_FILE="routstr-kit-openclaw.tar.gz"
 fi
 
