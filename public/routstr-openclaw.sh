@@ -11,6 +11,7 @@ MINT_URL="https://mint.cubabitcoin.org/"
 # Parse command line arguments
 CASHU_TOKEN=""
 SKIP_CLAW=false
+LNVPS=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -22,9 +23,13 @@ while [[ $# -gt 0 ]]; do
             SKIP_CLAW=true
             shift
             ;;
+        --lnvps)
+            LNVPS=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--cashu <token>] [--skip-claw]"
+            echo "Usage: $0 [--cashu <token>] [--skip-claw] [--lnvps]"
             exit 1
             ;;
     esac
@@ -292,11 +297,19 @@ if [ -z "$CASHU_TOKEN" ]; then
     echo ""
 fi
 
+if [ "$LNVPS" = true ]; then
+    KIT_URL="https://github.com/Routstr/agents-w-routstr/blob/main/routstr-lnvps-openclaw/routstr-lnvps-kit-openclaw.tar.gz"
+    KIT_FILE="routstr-lnvps-kit-openclaw.tar.gz"
+else
+    KIT_URL="https://github.com/Routstr/agents-w-routstr/blob/main/routstr-openclaw/routstr-openclaw.tar.gz"
+    KIT_FILE="routstr-kit-openclaw.tar.gz"
+fi
+
 # Download the tar.gz file from GitHub (raw content URL)
-curl -L -o routstr-kit-openclaw.tar.gz "https://github.com/Routstr/agents-w-routstr/raw/main/routstr-kit-openclaw.tar.gz"
+curl -L -o "$KIT_FILE" "$KIT_URL"
 
 # Extract the tar.gz file
-tar -xzvf routstr-kit-openclaw.tar.gz
+tar -xzvf "$KIT_FILE"
 
 # Insert the cashu token into openclaw.json apiKey field
 # Using jq to safely update the JSON
@@ -360,7 +373,17 @@ else
 fi
 
 # Move contents of skills folder to the target location
-mv skills/* ~/.npm-global/lib/node_modules/openclaw/skills/
+TARGET_SKILLS_DIR="$HOME/.npm-global/lib/node_modules/openclaw/skills/"
+for skill in skills/*; do
+    if [ -e "$skill" ]; then
+        skill_name=$(basename "$skill")
+        if [ ! -e "$TARGET_SKILLS_DIR/$skill_name" ]; then
+            mv "$skill" "$TARGET_SKILLS_DIR"
+        else
+            echo "Skill $skill_name already exists in target, skipping..."
+        fi
+    fi
+done
 
 # Move AGENTS.md to workspace directory
 mkdir -p ~/.openclaw/workspace
@@ -368,7 +391,7 @@ mv AGENTS.md ~/.openclaw/workspace/
 
 # Clean up
 rm -rf skills
-rm routstr-kit-openclaw.tar.gz
+rm "$KIT_FILE"
 
 echo "Copied skills and config files!"
 
