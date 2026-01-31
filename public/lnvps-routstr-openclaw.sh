@@ -32,9 +32,58 @@ esac
 echo "Detected OS: $OS_TYPE"
 echo ""
 
+# Function to install jq
+install_jq() {
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "jq not found. Attempting to install..."
+        if [ "$OS_TYPE" = "mac" ]; then
+            if command -v brew >/dev/null 2>&1; then
+                brew install jq
+            else
+                echo "Error: Homebrew is required to install jq on macOS."
+                echo "Please install Homebrew or install jq manually."
+                exit 1
+            fi
+        elif [ "$OS_TYPE" = "linux" ]; then
+            if command -v apt-get >/dev/null 2>&1; then
+                SUDO=""
+                [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+                $SUDO apt-get update && $SUDO apt-get install -y jq
+            elif command -v yum >/dev/null 2>&1; then
+                SUDO=""
+                [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+                $SUDO yum install -y jq
+            elif command -v apk >/dev/null 2>&1; then
+                SUDO=""
+                [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+                $SUDO apk add jq
+            elif command -v pacman >/dev/null 2>&1; then
+                SUDO=""
+                [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+                $SUDO pacman -S --noconfirm jq
+            else
+                echo "Error: Could not detect package manager to install jq."
+                echo "Please install jq manually."
+                exit 1
+            fi
+        else
+            echo "Error: Unsupported OS for automatic installation."
+            echo "Please install jq manually."
+            exit 1
+        fi
+        
+        # Verify installation
+        if ! command -v jq >/dev/null 2>&1; then
+            echo "Error: Failed to install jq."
+            exit 1
+        fi
+        echo "jq installed successfully."
+    fi
+}
+
 # Check dependencies
 command -v nak >/dev/null 2>&1 || { curl -sSL https://raw.githubusercontent.com/fiatjaf/nak/master/install.sh | sh; }
-command -v jq >/dev/null 2>&1 || { echo "Error: jq is required"; exit 1; }
+install_jq
 command -v curl >/dev/null 2>&1 || { echo "Error: curl is required"; exit 1; }
 
 # Setup temp-routstr, cdk-cli, and uv/qrcode
