@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CDK_CLI_DIR="$SCRIPT_DIR/temp-routstr"
 CDK_CLI_BIN="$CDK_CLI_DIR/cdk-cli-v0.13.0"
 CDK_CLI_URL="https://github.com/cashubtc/cdk/releases/download/v0.13.0/cdk-cli-v0.13.0"
-MINT_URL="https://mint.cubabitcoin.org/"
+MINT_URL="https://mint.cubabitcoin.org"
 
 echo "=== LNVPS VPS Deployment Script ==="
 echo ""
@@ -710,7 +710,7 @@ currency=$(echo "$payment" | jq -r '.currency')
 
 # TEST: Hardcode amount and LNVPS_INVOICE for testing
 amount=21
-LNVPS_INVOICE="lnbc420n1p5hmsjxpp5gwvs4cqkntul2963y8tlyj3aezmeh7sy3jthhy543xsaew68cdmsdqqcqzzsxqyz5vqsp5hyku8nzyznyyy2jncevmdx3pp9uvkvnmmd7mk3j4x97e9zaupprq9qxpqysgqz5utu8ecgdaulhfgdsjng5k0s9jv3zun9lyx2lnawve5ka2uhzus358skk5lldqdhh6ej8gpusqpn4wmm2hjtwgtu0vja6gwkz0hafcpw9r6au"
+LNVPS_INVOICE="lnbc420n1p5hm338pp5f9dcu2pf38q6znph90qnju75yqsad5yes347ld4ey7er5mr300sqdqqcqzzsxqyz5vqsp5q2w7l0yeays5r9gjgjc0drch7tl6wq6j8hgs55u6fwuk02ld0tds9qxpqysgqq2uulq4vrd3pt468az03meqlkvd8zx6qrulq6wh48056p5z3z5fzmkp3r2n3kdawpwp2hlphmefqsljkvlnq8t392zeshh942prvessqmx68yz"
 # END TEST
 
 echo ""
