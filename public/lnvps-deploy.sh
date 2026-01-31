@@ -256,8 +256,12 @@ nip98_auth() {
             --sec "$NSEC" 2>/dev/null)
     fi
     
-    # Encode as base64 for Authorization header
-    echo "$signed_event" | base64 -w 0
+    # Encode as base64 for Authorization header (macOS base64 doesn't have -w flag)
+    if [ "$OS_TYPE" = "mac" ]; then
+        echo "$signed_event" | base64
+    else
+        echo "$signed_event" | base64 -w 0
+    fi
 }
 
 # Function to make authenticated API call
@@ -292,6 +296,7 @@ DESIRED_DISK_INTERFACE="pcie"
 # Get available VM templates
 echo "Fetching available VM templates..."
 templates_response=$(curl -s "${API_BASE}/vm/templates")
+echo "$templates_response"
 templates=$(echo "$templates_response" | jq -r '.data.templates // []')
 custom_templates=$(echo "$templates_response" | jq -r '.data.custom_template // []')
 
@@ -463,10 +468,15 @@ ssh_keys=$(echo "$ssh_keys_response" | jq -r '.data // []')
 local_keys=()
 local_key_paths=()
 if [ -d "$HOME/.ssh" ]; then
-    while IFS= read -r -d '' pubkey; do
-        local_keys+=("$pubkey")
-        local_key_paths+=("$pubkey")
-    done < <(find "$HOME/.ssh" -maxdepth 1 -name "*.pub" -print0 2>/dev/null)
+    # Use temp file to avoid subshell issues (Bash 3.2 compatible)
+    find "$HOME/.ssh" -maxdepth 1 -name "*.pub" 2>/dev/null > /tmp/lnvps_local_keys_$$
+    while IFS= read -r pubkey; do
+        if [ -n "$pubkey" ]; then
+            local_keys+=("$pubkey")
+            local_key_paths+=("$pubkey")
+        fi
+    done < /tmp/lnvps_local_keys_$$
+    rm -f /tmp/lnvps_local_keys_$$
 fi
 
 echo ""
@@ -474,7 +484,8 @@ echo "=== SSH Key Selection ==="
 echo ""
 
 option_num=1
-declare -A options
+# Use indexed arrays instead of associative arrays for Bash 3.2 compatibility
+options_values=()
 
 # List local SSH keys
 if [ ${#local_keys[@]} -gt 0 ]; then
@@ -484,8 +495,8 @@ if [ ${#local_keys[@]} -gt 0 ]; then
         key_type=$(awk '{print $1}' "$pubkey" | sed 's/ssh-//')
         key_comment=$(awk '{print $3}' "$pubkey")
         echo "  [$option_num] $key_name ($key_type) ${key_comment:+- $key_comment}"
-        options[$option_num]="local:$pubkey"
-        ((option_num++))
+        options_values[$option_num]="local:$pubkey"
+        option_num=$((option_num + 1))
     done
     echo ""
 fi
@@ -493,21 +504,25 @@ fi
 # List API keys
 if [ -n "$ssh_keys" ] && [ "$ssh_keys" != "[]" ] && [ "$ssh_keys" != "null" ]; then
     echo "Already uploaded to LNVPS:"
+    # Save to temp file to avoid subshell issues with while loop
+    echo "$ssh_keys" | jq -r '.[] | "\(.id)|\(.name)"' > /tmp/lnvps_api_keys_$$
+    
     while IFS= read -r line; do
         key_id=$(echo "$line" | cut -d'|' -f1)
         key_name=$(echo "$line" | cut -d'|' -f2)
         echo "  [$option_num] $key_name (ID: $key_id)"
-        options[$option_num]="api:$key_id:$key_name"
-        ((option_num++))
-    done < <(echo "$ssh_keys" | jq -r '.[] | "\(.id)|\(.name)"')
+        options_values[$option_num]="api:$key_id:$key_name"
+        option_num=$((option_num + 1))
+    done < /tmp/lnvps_api_keys_$$
+    rm -f /tmp/lnvps_api_keys_$$
     echo ""
 fi
 
 # Option to generate new key
 echo "Generate new key:"
 echo "  [$option_num] Generate new SSH key (ssh-keygen)"
-options[$option_num]="generate"
-((option_num++))
+options_values[$option_num]="generate"
+option_num=$((option_num + 1))
 
 echo ""
 echo -n "Enter your choice [1-$((option_num-1))] (enter = default 1): "
@@ -517,12 +532,12 @@ if [ -z "$ssh_choice" ]; then
     ssh_choice=1
 fi
 
-if [ -z "${options[$ssh_choice]}" ]; then
+if [ -z "${options_values[$ssh_choice]}" ]; then
     echo "Error: Invalid selection"
     exit 1
 fi
 
-selected="${options[$ssh_choice]}"
+selected="${options_values[$ssh_choice]}"
 
 if [[ "$selected" == local:* ]]; then
     # Upload local key to API
