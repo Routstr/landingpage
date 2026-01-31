@@ -467,7 +467,33 @@ rm "$KIT_FILE"
 echo "Copied skills and config files!"
 
 echo "Configuring OpenClaw with onboard command!"
-~/.npm-global/bin/openclaw onboard --non-interactive \
+
+# Find openclaw executable
+OPENCLAW_BIN=""
+
+# 1. Check hardcoded path first (as per original script)
+if [ -f "$HOME/.npm-global/bin/openclaw" ]; then
+    OPENCLAW_BIN="$HOME/.npm-global/bin/openclaw"
+# 2. Check if it's in the PATH
+elif command -v openclaw >/dev/null 2>&1; then
+    OPENCLAW_BIN=$(command -v openclaw)
+# 3. Check relative to npm location
+elif command -v npm >/dev/null 2>&1; then
+    NPM_PATH=$(command -v npm)
+    NPM_DIR=$(dirname "$NPM_PATH")
+    if [ -f "$NPM_DIR/openclaw" ]; then
+        OPENCLAW_BIN="$NPM_DIR/openclaw"
+    fi
+fi
+
+if [ -z "$OPENCLAW_BIN" ]; then
+    echo "Error: Could not find openclaw executable. Please ensure it is installed and in your PATH."
+    exit 1
+fi
+
+echo "Using OpenClaw at: $OPENCLAW_BIN"
+
+$OPENCLAW_BIN onboard --non-interactive \
         --accept-risk \
         --mode local \
         --gateway-port 18789 \
