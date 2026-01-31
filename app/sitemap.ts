@@ -1,54 +1,60 @@
-import type { MetadataRoute } from 'next'
-import { fetchModels, models } from './data/models'
+import type { MetadataRoute } from "next";
+import { fetchModels, models } from "./data/models";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all models if they're not already loaded
   if (models.length === 0) {
-    await fetchModels()
+    await fetchModels();
   }
 
   // Create base routes
   const baseRoutes: MetadataRoute.Sitemap = [
     {
-      url: 'https://routstr.com',
+      url: "https://routstr.com",
       lastModified: new Date(),
-      changeFrequency: 'weekly',
+      changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: 'https://routstr.com/models',
+      url: "https://routstr.com/models",
       lastModified: new Date(),
-      changeFrequency: 'weekly',
+      changeFrequency: "weekly",
       priority: 0.8,
     },
     {
-      url: 'https://routstr.com/chat',
+      url: "https://routstr.com/chat",
       lastModified: new Date(),
-      changeFrequency: 'daily',
+      changeFrequency: "daily",
       priority: 0.8,
     },
     {
-      url: 'https://routstr.com/roadmap',
+      url: "https://routstr.com/roadmap",
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: 'https://routstr.com/settings',
+      url: "https://routstr.com/settings",
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: "monthly",
       priority: 0.6,
     },
-  ]
+    {
+      url: "https://routstr.com/openclaw",
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+  ];
 
   // Generate model-specific routes
-  const modelRoutes: MetadataRoute.Sitemap = models.map(model => ({
-    url: `https://routstr.com/models/${model.id.replace('/', '/')}`,
+  const modelRoutes: MetadataRoute.Sitemap = models.map((model) => ({
+    url: `https://routstr.com/models/${model.id.replace("/", "/")}`,
     lastModified: new Date(model.created * 1000), // Convert UNIX timestamp to Date
-    changeFrequency: 'monthly',
+    changeFrequency: "monthly",
     priority: 0.5,
-  }))
+  }));
 
   // Combine and return all routes
-  return [...baseRoutes, ...modelRoutes]
-} 
+  return [...baseRoutes, ...modelRoutes];
+}
