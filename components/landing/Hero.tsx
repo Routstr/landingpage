@@ -94,9 +94,34 @@ export function LandingHero() {
       </div>
 
       <div className="relative z-50 mx-auto mb-6 w-full text-center px-4">
-        <span className="mb-4 block font-mono text-xl text-gray-400">
-          With Routstr
-        </span>
+        <Link
+          href="/openclaw"
+          className="group mx-auto mb-8 flex w-fit items-center justify-center gap-3 overflow-hidden rounded-full border border-white/10 bg-white/5 px-2 py-2 pr-5 transition-all hover:bg-white/10 hover:border-white/20"
+        >
+          <span className="rounded-full bg-orange-500 px-3 py-1 text-sm font-semibold text-white tracking-wide">
+            NEW
+          </span>
+          <span className="text-base font-medium text-gray-300 group-hover:text-white transition-colors flex items-center gap-1">
+            Routstr &lt;-&gt; OpenClaw
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </span>
+        </Link>
+
+        <span className="mb-4 block font-mono text-xl text-gray-400"></span>
         <h1 className="text-balance mx-auto mb-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
           Access to AI is Now
         </h1>
@@ -222,7 +247,7 @@ const CollisionMechanism = ({
       (entries) => {
         setIsVisible(entries[0]?.isIntersecting ?? false);
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(parentRef.current);
@@ -325,7 +350,7 @@ const CollisionMechanism = ({
         className={cn(
           "absolute top-20 m-auto h-10 w-10 z-20",
           isMobile ? mobileOffset || "left-1/3" : "left-96",
-          beamOptions.className
+          beamOptions.className,
         )}
       >
         <motion.div
@@ -431,7 +456,7 @@ const GridLineVertical = ({
         "[mask:linear-gradient(to_top,var(--background)_var(--fade-stop),transparent),_linear-gradient(to_bottom,var(--background)_var(--fade-stop),transparent),_linear-gradient(black,black)]",
         "[mask-composite:exclude]",
         "z-30",
-        className
+        className,
       )}
     ></div>
   );
