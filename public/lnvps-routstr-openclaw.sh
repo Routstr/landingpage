@@ -296,7 +296,6 @@ DESIRED_DISK_INTERFACE="pcie"
 # Get available VM templates
 echo "Fetching available VM templates..."
 templates_response=$(curl -s "${API_BASE}/vm/templates")
-echo "$templates_response"
 templates=$(echo "$templates_response" | jq -r '.data.templates // []')
 custom_templates=$(echo "$templates_response" | jq -r '.data.custom_template // []')
 
