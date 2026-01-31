@@ -722,11 +722,6 @@ amount_raw=$(echo "$payment" | jq -r '.amount')
 amount=$((amount_raw / 1000))
 currency=$(echo "$payment" | jq -r '.currency')
 
-# TEST: Hardcode amount and LNVPS_INVOICE for testing
-amount=21
-LNVPS_INVOICE="lnbc420n1p5hm338pp5f9dcu2pf38q6znph90qnju75yqsad5yes347ld4ey7er5mr300sqdqqcqzzsxqyz5vqsp5q2w7l0yeays5r9gjgjc0drch7tl6wq6j8hgs55u6fwuk02ld0tds9qxpqysgqq2uulq4vrd3pt468az03meqlkvd8zx6qrulq6wh48056p5z3z5fzmkp3r2n3kdawpwp2hlphmefqsljkvlnq8t392zeshh942prvessqmx68yz"
-# END TEST
-
 echo ""
 echo "========================================"
 echo "VPS COST: $amount sats"
@@ -857,9 +852,6 @@ echo "Waiting for payment (checking every 10 seconds)..."
 while true; do
     sleep 10
 
-   # TEST: Hardcode break
-    break
-    # END TEST 
     payment_check=$(api_call "GET" "/payment/${payment_id}")
     is_paid=$(echo "$payment_check" | jq -r '.data.is_paid')
     
@@ -876,10 +868,6 @@ done
 echo ""
 echo "Provisioning VM..."
 sleep 5
-
-# TEST: Hardcode vm_id for testing
-vm_id=884
-# END TEST
 
 vm_details=$(api_call "GET" "/vm/${vm_id}")
 vm_ip=$(echo "$vm_details" | jq -r '.data.ip_assignments[0].ip // empty')

@@ -149,11 +149,6 @@ create_cashu_token() {
     display_qr_code "$INVOICE"
     
     echo ""
-    echo "=========================================="
-    echo "Waiting for payment..."
-    echo "Press Enter once you have paid the invoice"
-    echo "=========================================="
-    read -r
     
     # Check payment status and retrieve token
     echo "=== Checking payment status ==="
@@ -165,15 +160,16 @@ create_cashu_token() {
     
     while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
         QUOTE_STATUS=$("$CDK_CLI_BIN" mint "$MINT_URL" -q "$QUOTE_ID" 2>&1) || true
+        echo "$QUOTE_STATUS"
         
-        if echo "$QUOTE_STATUS" | grep -q "Received $amount sats"; then
+        if echo "$QUOTE_STATUS" | grep -q "Received $amount from mint"; then
             PAID=true
             break
         fi
         
         ((ATTEMPT++))
         echo "Checking payment status... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
-        sleep 2
+        sleep 10
     done
     
     if [ "$PAID" = false ]; then
@@ -386,4 +382,15 @@ echo "Configuring OpenClaw with onboard command!"
         --daemon-runtime node \
         --skip-skills
 
-echo "Setup complete!"
+echo ""
+echo "#######################################################"
+echo "#                                                     #"
+echo "#      OPENCLAW & ROUTSTR SETUP COMPLETE! 🚀          #"
+echo "#                                                     #"
+echo "#######################################################"
+echo ""
+echo "⚠️  ONE LAST ACTION REQUIRED ⚠️"
+echo ""
+echo "To setup your message channels, run this command:"
+echo ""
+echo "  openclaw channels add"
