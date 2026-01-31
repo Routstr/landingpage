@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Download the zip file from GitHub (raw content URL)
-curl -L -o routstr-kit-openclaw.zip "https://github.com/Routstr/agents-w-routstr/raw/main/routstr-kit-openclaw.zip"
+# Download the tar.gz file from GitHub (raw content URL)
+curl -L -o routstr-kit-openclaw.tar.gz "https://github.com/Routstr/agents-w-routstr/raw/main/routstr-kit-openclaw.tar.gz"
 
-# Unzip the file
-unzip -o routstr-kit-openclaw.zip
+# Extract the tar.gz file
+tar -xzvf routstr-kit-openclaw.tar.gz
 
 # Create target directories if they don't exist
 mkdir -p ~/.openclaw
@@ -18,6 +18,6 @@ mv skills/* ~/.npm-global/lib/node_modules/openclaw/skills/
 
 # Clean up
 rm -rf skills
-rm routstr-kit-openclaw.zip
+rm routstr-kit-openclaw.tar.gz
 
 echo "Setup complete!"
