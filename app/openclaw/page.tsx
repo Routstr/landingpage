@@ -80,7 +80,7 @@ export default function OpenClawPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="pt-24 pb-16 md:pt-32 md:pb-24 border-b border-white/10">
+      <section className="pt-24 pb-8 md:pt-32 md:pb-12 border-b border-white/10">
         <div className="px-4 md:px-6 max-w-7xl mx-auto">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-8 tracking-tight text-balance">
@@ -113,78 +113,6 @@ export default function OpenClawPage() {
                 <Server className="w-4 h-4 text-blue-500" aria-hidden="true" />
                 Self-hosted
               </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* What is OpenClaw Section - Redesigned to be cleaner */}
-      <section className="py-20 border-b border-white/10">
-        <div className="px-4 md:px-6 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">
-                Your Personal AI, <br />
-                Running on Your Hardware.
-              </h2>
-              <div className="space-y-6 text-gray-400 text-lg leading-relaxed">
-                <p>
-                  <strong className="text-white">OpenClaw</strong> connects to
-                  your life—WhatsApp, Telegram, Slack, Discord, and iMessage.
-                  It&apos;s not just a chatbot; it&apos;s an agent that lives in
-                  your terminal and talks to your services.
-                </p>
-                <p>
-                  By connecting it to{" "}
-                  <strong className="text-white">Routstr</strong>, you bypass
-                  the need for OpenAI or Anthropic subscriptions. Just top up
-                  with sats and pay only for what you use.
-                </p>
-              </div>
-
-              <div className="mt-8 flex gap-8">
-                <div>
-                  <div className="text-3xl font-bold text-white mb-1">
-                    127k+
-                  </div>
-                  <div className="text-sm text-gray-500 font-mono">
-                    GitHub Stars
-                  </div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-white mb-1">10+</div>
-                  <div className="text-sm text-gray-500 font-mono">
-                    Channels
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-zinc-900 border border-white/10 rounded-lg p-6 font-mono text-sm relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 left-0 w-full h-8 bg-white/5 border-b border-white/5 flex items-center px-4 gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
-              </div>
-              <div className="mt-8 space-y-2 text-gray-300">
-                <div className="flex gap-2">
-                  <span className="text-green-400">➜</span>
-                  <span className="text-blue-400">~</span>
-                  <span>openclaw agent --message &quot;Check my PRs&quot;</span>
-                </div>
-                <div className="text-gray-500">Thinking...</div>
-                <div className="pl-4 border-l-2 border-white/10">
-                  <span className="text-orange-400">@GitHub</span> PR #124 from
-                  dependabot needs review.
-                  <br />
-                  Analyzing changes...
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <span className="text-green-400">➜</span>
-                  <span className="text-blue-400">~</span>
-                  <span className="animate-pulse">_</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -278,6 +206,78 @@ export default function OpenClawPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* What is OpenClaw Section - Redesigned to be cleaner */}
+      <section className="py-20 border-b border-white/10">
+        <div className="px-4 md:px-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">
+                Your Personal AI, <br />
+                Running on Your Hardware.
+              </h2>
+              <div className="space-y-6 text-gray-400 text-lg leading-relaxed">
+                <p>
+                  <strong className="text-white">OpenClaw</strong> connects to
+                  your life—WhatsApp, Telegram, Slack, Discord, and iMessage.
+                  It&apos;s not just a chatbot; it&apos;s an agent that lives in
+                  your terminal and talks to your services.
+                </p>
+                <p>
+                  By connecting it to{" "}
+                  <strong className="text-white">Routstr</strong>, you bypass
+                  the need for OpenAI or Anthropic subscriptions. Just top up
+                  with sats and pay only for what you use.
+                </p>
+              </div>
+
+              <div className="mt-8 flex gap-8">
+                <div>
+                  <div className="text-3xl font-bold text-white mb-1">
+                    127k+
+                  </div>
+                  <div className="text-sm text-gray-500 font-mono">
+                    GitHub Stars
+                  </div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-white mb-1">10+</div>
+                  <div className="text-sm text-gray-500 font-mono">
+                    Channels
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-zinc-900 border border-white/10 rounded-lg p-6 font-mono text-sm relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 left-0 w-full h-8 bg-white/5 border-b border-white/5 flex items-center px-4 gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
+              </div>
+              <div className="mt-8 space-y-2 text-gray-300">
+                <div className="flex gap-2">
+                  <span className="text-green-400">➜</span>
+                  <span className="text-blue-400">~</span>
+                  <span>openclaw agent --message &quot;Check my PRs&quot;</span>
+                </div>
+                <div className="text-gray-500">Thinking...</div>
+                <div className="pl-4 border-l-2 border-white/10">
+                  <span className="text-orange-400">@GitHub</span> PR #124 from
+                  dependabot needs review.
+                  <br />
+                  Analyzing changes...
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <span className="text-green-400">➜</span>
+                  <span className="text-blue-400">~</span>
+                  <span className="animate-pulse">_</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
