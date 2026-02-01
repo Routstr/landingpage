@@ -234,12 +234,7 @@ if [ -z "$HEX_KEY" ]; then
             exit 1
         fi
     
-        echo "Generated new private key. Save it securely."
-        GENERATED_NSEC=$(nak encode nsec "$NSEC" 2>/dev/null || true)
-        if [ -n "$GENERATED_NSEC" ]; then
-            echo "nsec: $GENERATED_NSEC"
-        fi
-        echo "hex:  $NSEC"
+        echo "Generated new private key. It is stored in nostr.config.json."
     fi
     
     # Handle both nsec (bech32) and hex private key formats
@@ -439,20 +434,70 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
             vm_id="$use_vm_id"
             
             vm_state=$(echo "$vm_data" | jq -r '.status.state // "unknown"')
+            vm_ip=$(echo "$vm_data" | jq -r '.ip_assignments[0].ip // "pending"')
+            vm_expires=$(echo "$vm_data" | jq -r '.expires // null')
+            vm_days="?"
+            if [ -n "$vm_expires" ] && [ "$vm_expires" != "null" ]; then
+                vm_days=$(days_until "$vm_expires")
+            fi
             
             if [ "$vm_state" = "stopped" ]; then
-                 echo "VM is stopped."
-                 echo -n "Do you want to start this VM? [Y/n] "
-                 read start_choice
-                 if [[ "$start_choice" =~ ^[Yy] ]] || [ -z "$start_choice" ]; then
-                     echo "Starting VM..."
-                     start_resp=$(api_call "PATCH" "/vm/${vm_id}/start")
-                     echo "VM start command sent."
-                     echo "Waiting for VM to start..."
-                     sleep 5
+                 # Check if VM needs payment (stopped + pending IP + 0 days)
+                 if [ "$vm_ip" = "pending" ] && [ "$vm_days" = "0" ]; then
+                     echo "VM is stopped and requires payment to be activated."
+                     echo -n "Do you want to pay for this VM? [Y/n] "
+                     read pay_choice
+                     if [[ "$pay_choice" =~ ^[Yy] ]] || [ -z "$pay_choice" ]; then
+                         echo "Getting payment invoice..."
+                         renew_resp=$(api_call "GET" "/vm/${vm_id}/renew")
+                         payment=$(echo "$renew_resp" | jq -r '.data // null')
+                         
+                         if [ -n "$payment" ] && [ "$payment" != "null" ]; then
+                             payment_id=$(echo "$payment" | jq -r '.id')
+                             invoice=$(echo "$payment" | jq -r '.data.lightning // .invoice')
+                             amount=$(echo "$payment" | jq -r '.amount')
+                             amount=$((amount / 1000))
+                             
+                             echo ""
+                             echo "Payment Invoice ($amount sats):"
+                             echo "$invoice"
+                             echo ""
+                             print_qr_code "$invoice"
+                             
+                             echo "Waiting for payment..."
+                             while true; do
+                                sleep 5
+                                chk=$(api_call "GET" "/payment/${payment_id}")
+                                paid=$(echo "$chk" | jq -r '.data.is_paid')
+                                if [ "$paid" = "true" ]; then
+                                    echo "Payment received!"
+                                    echo "Waiting for VM to start..."
+                                    sleep 5
+                                    break
+                                fi
+                             done
+                         else
+                             echo "Error: Could not get payment invoice."
+                             exit 1
+                         fi
+                     else
+                        echo "Cannot proceed without payment."
+                        exit 1
+                     fi
                  else
-                    echo "Cannot proceed with stopped VM."
-                    exit 1
+                     echo "VM is stopped."
+                     echo -n "Do you want to start this VM? [Y/n] "
+                     read start_choice
+                     if [[ "$start_choice" =~ ^[Yy] ]] || [ -z "$start_choice" ]; then
+                         echo "Starting VM..."
+                         start_resp=$(api_call "PATCH" "/vm/${vm_id}/start")
+                         echo "VM start command sent."
+                         echo "Waiting for VM to start..."
+                         sleep 5
+                     else
+                        echo "Cannot proceed with stopped VM."
+                        exit 1
+                     fi
                  fi
             elif [ "$vm_state" = "expired" ]; then
                  echo "VM is expired."
