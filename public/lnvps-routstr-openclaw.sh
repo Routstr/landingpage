@@ -382,11 +382,17 @@ vms=$(echo "$vms_response" | jq -r '.data // []')
 
 if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
     echo ""
-    echo "Found existing VMs:"
-    echo "ID    | Status  | IP               | Expires"
-    echo "------|---------|------------------|----------------"
+    echo "=== Existing VMs ==="
+    echo ""
     
-    echo "$vms" | jq -c '.[]' | while read -r vm; do
+    # Build VM list with indexes
+    vm_opt_num=1
+    vm_options_ids=()
+    
+    # Save VM data to temp file to avoid subshell issues
+    echo "$vms" | jq -c '.[]' > /tmp/lnvps_vms_$$
+    
+    while IFS= read -r vm; do
         id=$(echo "$vm" | jq -r '.id')
         status=$(echo "$vm" | jq -r '.status.state // "unknown"')
         ip=$(echo "$vm" | jq -r '.ip_assignments[0].ip // "pending"')
@@ -400,14 +406,29 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
              fi
         fi
         
-        printf "%-5s | %-7s | %-16s | %s\n" "$id" "$status" "$ip" "$expiry_str"
-    done
+        printf "  [%d] VM %s | %-7s | %-16s | %s\n" "$vm_opt_num" "$id" "$status" "$ip" "$expiry_str"
+        vm_options_ids[$vm_opt_num]="$id"
+        vm_opt_num=$((vm_opt_num + 1))
+    done < /tmp/lnvps_vms_$$
+    rm -f /tmp/lnvps_vms_$$
+    
+    # Add option to create new VM
+    echo ""
+    echo "  [$vm_opt_num] Create a new VM"
+    create_new_option=$vm_opt_num
     
     echo ""
-    echo -n "Enter VM ID to use existing, or press Enter to create a new one: "
-    read use_vm_id
+    echo -n "Enter your choice [1-$vm_opt_num] (enter = default 1): "
+    read vm_choice
     
-    if [ -n "$use_vm_id" ]; then
+    if [ -z "$vm_choice" ]; then
+        vm_choice=1
+    fi
+    
+    if [ "$vm_choice" -eq "$create_new_option" ] 2>/dev/null; then
+        echo "Creating a new VM..."
+    elif [ -n "${vm_options_ids[$vm_choice]}" ]; then
+        use_vm_id="${vm_options_ids[$vm_choice]}"
         echo "Fetching details for VM $use_vm_id..."
         vm_details_resp=$(api_call "GET" "/vm/${use_vm_id}")
         vm_data=$(echo "$vm_details_resp" | jq -r '.data // null')
@@ -597,6 +618,8 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
         else
             echo "VM ID not found. Creating new VM."
         fi
+    else
+        echo "Invalid selection, creating new VM."
     fi
 fi
 
@@ -1163,50 +1186,66 @@ else
     echo "$LNVPS_INVOICE" | "$CDK_CLI_BIN" melt --mint-url "$MINT_URL"
 fi
 
-# Poll for payment status
-echo "Waiting for payment (checking every 10 seconds)..."
-while true; do
-    sleep 10
-
-    payment_check=$(api_call "GET" "/payment/${payment_id}")
-    is_paid=$(echo "$payment_check" | jq -r '.data.is_paid')
-    
-    if [ "$is_paid" = "true" ]; then
-        echo ""
-        echo "Payment received!"
-        break
-    fi
-    
-    echo -n "."
-done
-
-# Get VM details
-echo ""
-echo "Provisioning VM..."
-sleep 5
-
-vm_details=$(api_call "GET" "/vm/${vm_id}")
-vm_ip=$(echo "$vm_details" | jq -r '.data.ip_assignments[0].ip // empty')
-vm_user=$(echo "$vm_details" | jq -r '.data.image.default_username // "root"')
-
-if [ -z "$vm_ip" ] || [ "$vm_ip" = "null" ]; then
-    echo "Waiting for IP assignment..."
-    for i in {1..12}; do
+if [ "$SKIP_CREATION" = "false" ]; then
+    # Poll for payment status (only for new VMs)
+    echo "Waiting for payment (checking every 10 seconds)..."
+    while true; do
         sleep 10
-        vm_details=$(api_call "GET" "/vm/${vm_id}")
-        vm_ip=$(echo "$vm_details" | jq -r '.data.ip_assignments[0].ip // empty')
-        if [ -n "$vm_ip" ] && [ "$vm_ip" != "null" ]; then
+
+        payment_check=$(api_call "GET" "/payment/${payment_id}")
+        is_paid=$(echo "$payment_check" | jq -r '.data.is_paid')
+        
+        if [ "$is_paid" = "true" ]; then
+            echo ""
+            echo "Payment received!"
             break
         fi
+        
         echo -n "."
     done
-fi
 
-if [ -z "$vm_ip" ] || [ "$vm_ip" = "null" ]; then
+    # Get VM details
     echo ""
-    echo "Warning: Could not get VM IP. Check status manually:"
-    echo "  VM ID: $vm_id"
-    exit 1
+    echo "Provisioning VM..."
+    sleep 5
+
+    vm_details=$(api_call "GET" "/vm/${vm_id}")
+    vm_ip=$(echo "$vm_details" | jq -r '.data.ip_assignments[0].ip // empty')
+    vm_user=$(echo "$vm_details" | jq -r '.data.image.default_username // "root"')
+
+    if [ -z "$vm_ip" ] || [ "$vm_ip" = "null" ]; then
+        echo "Waiting for IP assignment..."
+        for i in {1..12}; do
+            sleep 10
+            vm_details=$(api_call "GET" "/vm/${vm_id}")
+            vm_ip=$(echo "$vm_details" | jq -r '.data.ip_assignments[0].ip // empty')
+            if [ -n "$vm_ip" ] && [ "$vm_ip" != "null" ]; then
+                break
+            fi
+            echo -n "."
+        done
+    fi
+
+    if [ -z "$vm_ip" ] || [ "$vm_ip" = "null" ]; then
+        echo ""
+        echo "Warning: Could not get VM IP. Check status manually:"
+        echo "  VM ID: $vm_id"
+        exit 1
+    fi
+else
+    # For existing VMs, get current details
+    echo ""
+    echo "Fetching existing VM details..."
+    vm_details=$(api_call "GET" "/vm/${vm_id}")
+    vm_ip=$(echo "$vm_details" | jq -r '.data.ip_assignments[0].ip // empty')
+    vm_user=$(echo "$vm_details" | jq -r '.data.image.default_username // "root"')
+    
+    if [ -z "$vm_ip" ] || [ "$vm_ip" = "null" ]; then
+        echo ""
+        echo "Warning: Could not get VM IP. Check status manually:"
+        echo "  VM ID: $vm_id"
+        exit 1
+    fi
 fi
 
 # Strip CIDR suffix (e.g., /25) from IP address
