@@ -419,8 +419,22 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
             
             vm_state=$(echo "$vm_data" | jq -r '.status.state // "unknown"')
             
-            if [ "$vm_state" = "expired" ] || [ "$vm_state" = "stopped" ]; then
-                 echo "VM is $vm_state."
+            if [ "$vm_state" = "stopped" ]; then
+                 echo "VM is stopped."
+                 echo -n "Do you want to start this VM? [Y/n] "
+                 read start_choice
+                 if [[ "$start_choice" =~ ^[Yy] ]] || [ -z "$start_choice" ]; then
+                     echo "Starting VM..."
+                     start_resp=$(api_call "PATCH" "/vm/${vm_id}/start")
+                     echo "VM start command sent."
+                     echo "Waiting for VM to start..."
+                     sleep 5
+                 else
+                    echo "Cannot proceed with stopped VM."
+                    exit 1
+                 fi
+            elif [ "$vm_state" = "expired" ]; then
+                 echo "VM is expired."
                  echo -n "Do you want to renew this VM? [Y/n] "
                  read renew_choice
                  if [[ "$renew_choice" =~ ^[Yy] ]] || [ -z "$renew_choice" ]; then
@@ -458,6 +472,8 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
                     echo "Cannot proceed with expired VM without renewal."
                     exit 1
                  fi
+            elif [ "$vm_state" = "running" ]; then
+                 echo "VM is already running."
             fi
             
             echo ""
