@@ -54,17 +54,42 @@ install_jq() {
             if command -v apt-get >/dev/null 2>&1; then
                 SUDO=""
                 [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
-                while true; do
-                    if $SUDO apt-get update && $SUDO apt-get install -y jq; then
-                        break
-                    elif [ $? -eq 100 ] || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
-                        echo "apt is locked by another process. Waiting 20 seconds..."
+                RETRY_COUNT=0
+                MAX_RETRIES=30
+                while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                    APT_FAILED=0
+                    $SUDO apt-get update || APT_FAILED=1
+                    if [ $APT_FAILED -eq 0 ]; then
+                        $SUDO apt-get install -y jq && break
+                    fi
+                    
+                    # Check if apt is locked (apt exits with various codes when locked)
+                    LOCK_DETECTED=0
+                    if command -v fuser >/dev/null 2>&1; then
+                        fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 && LOCK_DETECTED=1
+                        fuser /var/lib/apt/lists/lock >/dev/null 2>&1 && LOCK_DETECTED=1
+                        fuser /var/lib/dpkg/lock >/dev/null 2>&1 && LOCK_DETECTED=1
+                    fi
+                    # Also check for lock files directly
+                    [ -f /var/lib/dpkg/lock-frontend ] && [ "$(fuser /var/lib/dpkg/lock-frontend 2>/dev/null)" ] && LOCK_DETECTED=1
+                    [ -f /var/lib/apt/lists/lock ] && [ "$(fuser /var/lib/apt/lists/lock 2>/dev/null)" ] && LOCK_DETECTED=1
+                    
+                    if [ $LOCK_DETECTED -eq 1 ]; then
+                        RETRY_COUNT=$((RETRY_COUNT + 1))
+                        echo "apt is locked by another process (attempt $RETRY_COUNT/$MAX_RETRIES). Waiting 20 seconds..."
                         sleep 20
                     else
-                        echo "apt-get failed for unknown reason."
-                        exit 1
+                        # No lock detected but apt failed - could be a transient error, retry
+                        RETRY_COUNT=$((RETRY_COUNT + 1))
+                        echo "apt-get failed, possibly due to lock race condition (attempt $RETRY_COUNT/$MAX_RETRIES). Retrying in 20 seconds..."
+                        sleep 20
                     fi
                 done
+                
+                if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                    echo "Error: apt-get failed after $MAX_RETRIES attempts."
+                    exit 1
+                fi
             elif command -v yum >/dev/null 2>&1; then
                 SUDO=""
                 [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
