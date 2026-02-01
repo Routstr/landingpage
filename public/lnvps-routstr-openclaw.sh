@@ -1224,7 +1224,6 @@ else
         
         echo -n "."
     done
-    fi
 
     echo ""
     echo "Paying VPS invoice with cdk-cli..."
