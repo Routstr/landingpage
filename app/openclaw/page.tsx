@@ -31,7 +31,9 @@ export default function OpenClawPage() {
       borderColor: "border-orange-500/30",
       iconColor: "text-orange-400",
       commands: [
-        "curl -fsSL https://routstr.com/openclaw-lnvps.sh | bash",
+        "curl -L https://routstr.com/lnvps-routstr-openclaw.sh -o routstr-setup.sh",
+        "chmod +x routstr-setup.sh",
+        "./routstr-setup.sh",
       ],
       features: [
         "Pay for VPS with Lightning",
@@ -50,7 +52,9 @@ export default function OpenClawPage() {
       borderColor: "border-blue-500/30",
       iconColor: "text-blue-400",
       commands: [
-        "curl -fsSL https://routstr.com/openclaw.sh | bash",
+        "curl -L https://routstr.com/routstr-openclaw.sh -o routstr-setup.sh",
+        "chmod +x routstr-setup.sh",
+        "./routstr-setup.sh",
       ],
       features: [
         "Linux (macOS coming soon)",
