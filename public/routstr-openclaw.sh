@@ -327,13 +327,13 @@ if [ -z "$CASHU_TOKEN" ]; then
         echo "║           OpenClaw Setup - Cashu Token Required            ║"
         echo "╠════════════════════════════════════════════════════════════╣"
         echo "║  Running in non-interactive mode (piped execution).        ║"
-        echo "║  Using default amount: 4200 sats                           ║"
+        echo "║  Using default amount: 2100 sats                           ║"
         echo "║                                                            ║"
         echo "║  To provide a token manually, use:                         ║"
         echo "║    --cashu <token>                                         ║"
         echo "╚════════════════════════════════════════════════════════════╝"
         echo ""
-        AMOUNT=4200
+        AMOUNT=2100
     else
         echo ""
         echo "╔════════════════════════════════════════════════════════════╗"
