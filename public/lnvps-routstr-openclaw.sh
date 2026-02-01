@@ -1089,6 +1089,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
     echo ""
     echo "========================================"
     echo "VPS COST: $amount sats"
+    echo "Raw Amount & Currency: $amount_raw $currency"
     echo "========================================"
 
     if [ "$OS_TYPE" = "mac" ]; then
