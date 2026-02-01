@@ -1330,6 +1330,14 @@ echo ""
 echo "Installing OpenClaw on VPS, this will take a solid 5 mins..."
 if [ -n "$ssh_private_key" ]; then
 
+    # Apply network fix before installing
+    echo "Applying network fix..."
+    if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -fsSL https://routstr.com/lnvps-net-fix.sh | sudo bash"; then
+        echo ""
+        echo "Warning: Network fix script failed, continuing anyway..."
+        echo ""
+    fi
+
     if [ "$OS_TYPE" = "mac" ]; then
         # Mac: Skip cashu token generation and run without --cashu flag
         if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash -s -- --lnvps"; then
