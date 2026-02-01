@@ -1339,7 +1339,7 @@ if [ -n "$ssh_private_key" ]; then
         echo ""
     fi
 
-    if [ "$OS_TYPE" = "mac" || [ "$OS_TYPE" = "linux" ]; then
+    if [ "$OS_TYPE" = "mac" ] || [ "$OS_TYPE" = "linux" ]; then
         # Mac: Skip cashu token generation and run without --cashu flag
         if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash -s -- --lnvps"; then
             echo ""
