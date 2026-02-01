@@ -1284,7 +1284,7 @@ if [ -n "$ssh_private_key" ]; then
 
     if [ "$OS_TYPE" = "mac" ]; then
         # Mac: Skip cashu token generation and run without --cashu flag
-        if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash"; then
+        if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash -s -- --lnvps"; then
             echo ""
             echo "Error: Failed to configure Routstr on VPS."
             echo ""
@@ -1339,7 +1339,7 @@ if [ -n "$ssh_private_key" ]; then
         echo "Generated Token: ${CASHU_TOKEN}"
         echo "${CASHU_TOKEN}" > ./cashu_token.txt
 
-        if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash -s -- --cashu $CASHU_TOKEN"; then
+        if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash -s -- --cashu $CASHU_TOKEN --lnvps"; then
             echo ""
             echo "Error: Failed to configure Routstr on VPS."
             echo ""
