@@ -1,19 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import {
-  Copy,
-  Check,
-  Terminal,
-  Server,
-  Laptop,
-  Zap,
-  Shield,
-  Bitcoin,
-} from "lucide-react";
+import { Copy, Check, Server, Laptop, Zap, Shield } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
 export default function OpenClawPage() {

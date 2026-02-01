@@ -2,6 +2,24 @@ import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RoadmapTimeline, { RoadmapItem } from "@/components/RoadmapTimeline";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Roadmap - Routstr",
+  description:
+    "Follow our journey to building a decentralized AI ecosystem. See upcoming features and milestones for Routstr.",
+  openGraph: {
+    title: "Roadmap - Routstr",
+    description:
+      "Follow our journey to building a decentralized AI ecosystem. See upcoming features and milestones for Routstr.",
+    url: "https://routstr.com/roadmap",
+  },
+  twitter: {
+    title: "Roadmap - Routstr",
+    description:
+      "Follow our journey to building a decentralized AI ecosystem. See upcoming features and milestones for Routstr.",
+  },
+};
 
 export default function RoadmapPage() {
   const roadmapItems: RoadmapItem[] = [

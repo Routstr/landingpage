@@ -79,7 +79,7 @@ async function geolocateHost(host: string): Promise<{
     let dnsRes;
     try {
       dnsRes = await fetch(
-        `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`
+        `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`,
       );
     } catch {
       // Fetch blocked (e.g., by browser extension) - silently fail
@@ -88,7 +88,8 @@ async function geolocateHost(host: string): Promise<{
     if (!dnsRes.ok) return null;
     const dnsData = await dnsRes.json();
     const ip = Array.isArray(dnsData?.Answer)
-      ? dnsData.Answer.find((a: { type: number }) => a.type === 1)?.data ?? null
+      ? (dnsData.Answer.find((a: { type: number }) => a.type === 1)?.data ??
+        null)
       : null;
     if (!ip) return null;
 
@@ -161,7 +162,7 @@ function clampLat(lat: number): number {
 }
 
 function disambiguateOverlappingPoints(
-  points: ProviderPoint[]
+  points: ProviderPoint[],
 ): ProviderPoint[] {
   const groups = new Map<string, ProviderPoint[]>();
   const keyFor = (p: ProviderPoint) =>
@@ -203,8 +204,8 @@ function disambiguateOverlappingPoints(
 const MOVEMENT_DAMPING = 1400;
 
 const GLOBE_CONFIG: COBEOptions = {
-  width: 800,
-  height: 800,
+  width: 600,
+  height: 600,
   onRender: () => {},
   // Cap device pixel ratio to 1 for much better scroll performance
   devicePixelRatio: 1,
@@ -212,8 +213,8 @@ const GLOBE_CONFIG: COBEOptions = {
   theta: 0.3,
   dark: 0,
   diffuse: 0.4,
-  // 4000 samples for good dot density with scroll optimizations
-  mapSamples: 4000,
+  // Reduced samples for better performance
+  mapSamples: 1600,
   mapBrightness: 1.2,
   baseColor: [1, 1, 1],
   markerColor: [251 / 255, 100 / 255, 21 / 255],
@@ -260,7 +261,7 @@ export function Globe({
   useEffect(() => {
     const onResize = () => {
       if (canvasRef.current) {
-        widthRef.current = canvasRef.current.offsetWidth;
+        widthRef.current = Math.min(canvasRef.current.offsetWidth, 700);
       }
     };
 
@@ -274,7 +275,7 @@ export function Globe({
       (entries) => {
         isVisible = entries[0]?.isIntersecting ?? true;
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (canvasRef.current) {
@@ -294,8 +295,8 @@ export function Globe({
           // Skip rendering when not visible
           if (!isVisible) return;
 
-          // Slower rotation (0.002 instead of 0.005) for smoother performance
-          if (!pointerInteracting.current) phiRef.current += 0.002;
+          // Slower rotation for smoother performance
+          if (!pointerInteracting.current) phiRef.current += 0.001;
           state.phi = phiRef.current + rs.get();
           state.width = widthRef.current * dpr;
           state.height = widthRef.current * dpr;
@@ -307,7 +308,7 @@ export function Globe({
       console.error("Globe Error: createGlobe call failed.", e);
       console.error(
         "Globe Error Details: Canvas at time of error:",
-        canvasRef.current
+        canvasRef.current,
       );
       return;
     }
@@ -341,29 +342,33 @@ export function Globe({
           return !shouldHideProvider(endpoints);
         });
         // Map providers to points using geolocation with fallback to hashed coords
-        const points: ProviderPoint[] = [];
-        for (const p of providers) {
-          const host = extractHost(p.endpoint_url);
-          let latlng: { lat: number; lng: number } | null = null;
-          if (host) {
-            const geo = await geolocateHost(host);
-            if (geo) latlng = { lat: geo.lat, lng: geo.lng };
-          }
-          if (!latlng) {
-            const key = host ?? p.id;
-            latlng = hashToCoords(key);
-          }
-          const httpEndpoints = filterStagingEndpoints([p.endpoint_url]);
-          // Only plot if at least one non-staging endpoint exists
-          if (httpEndpoints.length === 0) continue;
-          points.push({
-            id: p.id,
-            name: p.name,
-            endpoint: httpEndpoints[0],
-            lat: latlng.lat,
-            lng: latlng.lng,
-          });
-        }
+        const points = (
+          await Promise.all(
+            providers.map(async (p) => {
+              const httpEndpoints = filterStagingEndpoints([p.endpoint_url]);
+              // Only plot if at least one non-staging endpoint exists
+              if (httpEndpoints.length === 0) return null;
+
+              const host = extractHost(p.endpoint_url);
+              let latlng: { lat: number; lng: number } | null = null;
+              if (host) {
+                const geo = await geolocateHost(host);
+                if (geo) latlng = { lat: geo.lat, lng: geo.lng };
+              }
+              if (!latlng) {
+                const key = host ?? p.id;
+                latlng = hashToCoords(key);
+              }
+              return {
+                id: p.id,
+                name: p.name,
+                endpoint: httpEndpoints[0],
+                lat: latlng.lat,
+                lng: latlng.lng,
+              };
+            }),
+          )
+        ).filter((p): p is ProviderPoint => p !== null);
         const adjusted = disambiguateOverlappingPoints(points);
         const markers = adjusted.map((pt) => ({
           location: [pt.lat, pt.lng] as [number, number],
@@ -385,12 +390,12 @@ export function Globe({
     <div
       className={cn(
         "relative mx-auto aspect-[1/1] w-full max-w-[700px]",
-        className
+        className,
       )}
     >
       <canvas
         className={cn(
-          "size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]"
+          "size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]",
         )}
         ref={canvasRef}
         onPointerDown={(e) => {
