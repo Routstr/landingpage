@@ -35,15 +35,15 @@ export default function OpenClawPage() {
       title: "Fresh VPS with LNVPS",
       subtitle: "Pay for hosting with Bitcoin",
       description:
-        "Get a VPS from LNVPS (pay with Lightning), then run the setup script. Full stack deployment with Routstr pre-configured.",
+        "Get a Linux VPS from LNVPS (pay with Lightning), then run the setup script. Full stack deployment with Routstr pre-configured.",
       icon: Server,
       gradient: "from-orange-500/20 to-amber-500/20",
       borderColor: "border-orange-500/30",
       iconColor: "text-orange-400",
       commands: [
-        "curl -L https://routstr.com/lnvps-routstr-openclaw.sh -o setup.sh",
-        "chmod +x setup.sh",
-        "./setup.sh",
+        "curl -L https://routstr.com/lnvps-routstr-openclaw.sh -o routstr-setup.sh",
+        "chmod +x routstr-setup.sh",
+        "./routstr-setup.sh",
       ],
       features: [
         "Pay for VPS with Lightning",
@@ -54,7 +54,7 @@ export default function OpenClawPage() {
     },
     {
       title: "Your Own Machine",
-      subtitle: "macOS, Linux, or WSL2",
+      subtitle: "Only Linux (macOS coming soon)",
       description:
         "Already have a machine? Run the setup script to install OpenClaw and configure Routstr as your AI provider.",
       icon: Laptop,
@@ -62,12 +62,12 @@ export default function OpenClawPage() {
       borderColor: "border-blue-500/30",
       iconColor: "text-blue-400",
       commands: [
-        "curl -L https://routstr.com/routstr-openclaw.sh -o setup.sh",
-        "chmod +x setup.sh",
-        "./setup.sh",
+        "curl -L https://routstr.com/routstr-openclaw.sh -o routstr-setup.sh",
+        "chmod +x routstr-setup.sh",
+        "./routstr-setup.sh",
       ],
       features: [
-        "macOS, Linux, Windows (WSL2)",
+        "Linux (macOS coming soon)",
         "Requires Node.js 22+",
         "Configures Routstr as provider",
         "Runs onboarding wizard",
@@ -83,12 +83,14 @@ export default function OpenClawPage() {
       <section className="pt-24 pb-8 md:pt-32 md:pb-12 border-b border-white/10">
         <div className="px-4 md:px-6 max-w-7xl mx-auto">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-8 tracking-tight text-balance">
-              Routstr <span className="text-gray-600 mx-2">↔</span> OpenClaw
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 tracking-tight text-balance">
+              {/* Routstr <span className="text-gray-600 mx-2">↔</span> OpenClaw */}
+              OpenClaw in {"<"} 5 mins with{" "}
+              <span className="text-orange-400">₿</span>
             </h1>
 
             <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-pretty">
-              Run your own{" "}
+              Setup{" "}
               <a
                 href="https://openclaw.ai"
                 target="_blank"
@@ -97,7 +99,12 @@ export default function OpenClawPage() {
               >
                 OpenClaw
               </a>{" "}
-              personal AI assistant. Pay per token with Bitcoin.
+              with a{" "}
+              <span className="text-orange-400 font-semibold">
+                single lightning payment
+              </span>{" "}
+              to deploy a VPS with Routstr balance and arm it with skills to pay
+              for itself.
             </p>
 
             <div className="flex flex-wrap justify-center gap-6 text-sm font-mono text-gray-500">
@@ -282,12 +289,62 @@ export default function OpenClawPage() {
         </div>
       </section>
 
+      {/* Skills That Come With the Setup */}
+      <section className="py-20 border-b border-white/10">
+        <div className="px-4 md:px-6 max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-white mb-12 tracking-tight">
+            Skills That Come With the Setup
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-orange-400" />
+              </div>
+              <h3 className="text-lg font-bold text-white">
+                Routstr Balance Manager
+              </h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Your agent can check your Routstr balance, request top-ups, and
+                monitor your spending on LLM requests automatically.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-green-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-white">Cashu Wallet</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Built-in Cashu e-cash wallet for private, instant payments. Send
+                and receive sats without on-chain transactions.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                <Server className="w-6 h-6 text-blue-400" />
+              </div>
+              <h3 className="text-lg font-bold text-white">LNVPS Manager</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Your agent can manage its own VPS through LNVPS—restart
+                services, check status, and handle deployments via Bitcoin
+                payments.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Simple Steps */}
       <section className="py-20 border-t border-white/10">
         <div className="px-4 md:px-6 max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="space-y-4">
-              <div className="text-4xl font-bold text-white/10 font-mono">
+              <div className="text-4xl font-bold text-gray-500 font-mono">
                 01
               </div>
               <h3 className="text-lg font-bold text-white">Install & Config</h3>
@@ -297,17 +354,17 @@ export default function OpenClawPage() {
               </p>
             </div>
             <div className="space-y-4">
-              <div className="text-4xl font-bold text-white/10 font-mono">
+              <div className="text-4xl font-bold text-gray-500 font-mono">
                 02
               </div>
-              <h3 className="text-lg font-bold text-white">Top Up</h3>
+              <h3 className="text-lg font-bold text-white">LLM Top Up</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Send Bitcoin via Lightning or Cashu to your Routstr API key. You
-                only pay for the tokens you generate.
+                Ask your LLM to help you topup, and it'll send you a lightning
+                invoice.
               </p>
             </div>
             <div className="space-y-4">
-              <div className="text-4xl font-bold text-white/10 font-mono">
+              <div className="text-4xl font-bold text-gray-500 font-mono">
                 03
               </div>
               <h3 className="text-lg font-bold text-white">Connect</h3>
