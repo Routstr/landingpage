@@ -1092,7 +1092,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
     echo "Raw Amount & Currency: $amount_raw $currency"
     echo "========================================"
 
-    if [ "$OS_TYPE" = "mac" ]; then
+    if [ "$OS_TYPE" = "mac" ] || [ "$OS_TYPE" = "linux" ]; then
         # macOS: Direct Lightning payment (no cdk-cli)
         echo ""
         echo "Pay the VPS invoice directly with your Lightning wallet:"
