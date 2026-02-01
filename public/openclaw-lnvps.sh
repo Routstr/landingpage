@@ -203,50 +203,28 @@ if [ -f "$NOSTR_CONFIG_FILE" ]; then
     fi
 fi
 
-# If no valid key from config, prompt user
+# If no valid key from config, generate new one
 if [ -z "$HEX_KEY" ]; then
-    echo "Enter your Nostr private key (nsec or hex), or press enter to generate one: "
-    
-    # Disable terminal echo
-    stty -echo
-    while IFS= read -r -n1 char; do
-        if [[ "$char" == "" ]]; then
-            break
-        elif [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\b' ]]; then
-            if [[ -n "$NSEC" ]]; then
-                NSEC="${NSEC%?}"
-                echo -ne "\b \b"
-            fi
-        else
-            NSEC+="$char"
-            echo -n "•"
-        fi
-    done
-    # Re-enable terminal echo
-    stty echo
-    echo ""
+    echo "Generating a new Nostr private key..."
+    NSEC=$(nak key generate 2>/dev/null || true)
     
     if [ -z "$NSEC" ]; then
-        echo "No key entered. Generating a new Nostr private key..."
-        NSEC=$(nak key generate 2>/dev/null || true)
-        if [ -z "$NSEC" ]; then
-            echo "Error: Failed to generate a private key"
-            exit 1
-        fi
-    
-        echo "Generated new private key. It is stored in nostr.config.json."
+        echo "Error: Failed to generate a private key"
+        exit 1
     fi
+
+    echo "Generated new private key. It is stored in nostr.config.json."
     
-    # Handle both nsec (bech32) and hex private key formats
+    # Handle nsec (bech32) - nak key generate returns nsec
     if [[ "$NSEC" == nsec1* ]]; then
         # Decode nsec to hex for nak key public
         HEX_KEY=$(nak decode "$NSEC" 2>/dev/null)
         if [ -z "$HEX_KEY" ]; then
-            echo "Error: Invalid nsec"
+            echo "Error: Invalid nsec generated"
             exit 1
         fi
     else
-        # Assume hex format
+        # Should not happen with nak key generate but strictly speaking possible if nak changes
         HEX_KEY="$NSEC"
     fi
 fi
