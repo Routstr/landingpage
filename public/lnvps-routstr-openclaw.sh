@@ -741,56 +741,89 @@ if [ "$SKIP_CREATION" = "false" ]; then
         return 1
     }
 
+    # ===== CUSTOM TEMPLATES TEMPORARILY DISABLED =====
+    # Uncomment this section to re-enable custom template selection
+    # USE_CUSTOM_TEMPLATE=false
+    # CUSTOM_PRICING_ID=""
+    # CUSTOM_REGION_NAME=""
+    #
+    # echo ""
+    # echo "Checking for custom VM configuration (2 CPU, 2GB RAM, 40GB SSD)..."
+    #
+    # # Try Dublin first
+    # dublin_pricing_id=$(check_custom_template "Dublin")
+    # if [ -n "$dublin_pricing_id" ]; then
+    #     price_info=$(get_custom_price "$dublin_pricing_id")
+    #     if [ -n "$price_info" ]; then
+    #         USE_CUSTOM_TEMPLATE=true
+    #         CUSTOM_PRICING_ID="$dublin_pricing_id"
+    #         CUSTOM_REGION_NAME="Dublin (IE)"
+    #         CUSTOM_PRICE=$(echo "$price_info" | cut -d'|' -f1)
+    #         CUSTOM_CURRENCY=$(echo "$price_info" | cut -d'|' -f2)
+    #         echo "  Dublin available: $CUSTOM_PRICE $CUSTOM_CURRENCY/month"
+    #     fi
+    # fi
+    #
+    # # Try London if Dublin failed
+    # if [ "$USE_CUSTOM_TEMPLATE" = false ]; then
+    #     london_pricing_id=$(check_custom_template "London")
+    #     if [ -n "$london_pricing_id" ]; then
+    #         price_info=$(get_custom_price "$london_pricing_id")
+    #         if [ -n "$price_info" ]; then
+    #             USE_CUSTOM_TEMPLATE=true
+    #             CUSTOM_PRICING_ID="$london_pricing_id"
+    #             CUSTOM_REGION_NAME="London (GB)"
+    #             CUSTOM_PRICE=$(echo "$price_info" | cut -d'|' -f1)
+    #             CUSTOM_CURRENCY=$(echo "$price_info" | cut -d'|' -f2)
+    #             echo "  London available: $CUSTOM_PRICE $CUSTOM_CURRENCY/month"
+    #         fi
+    #     fi
+    # fi
+    #
+    # if [ "$USE_CUSTOM_TEMPLATE" = true ]; then
+    #     echo ""
+    #     echo "Custom VM configuration selected:"
+    #     echo "  Region: $CUSTOM_REGION_NAME"
+    #     echo "  CPU: $DESIRED_CPU cores"
+    #     echo "  RAM: $((DESIRED_MEMORY / 1024 / 1024 / 1024)) GB"
+    #     echo "  Disk: $((DESIRED_DISK / 1024 / 1024 / 1024)) GB SSD"
+    #     echo "  Cost: $CUSTOM_PRICE $CUSTOM_CURRENCY/month"
+    #     echo ""
+    # else
+    # ===== END CUSTOM TEMPLATES SECTION =====
+
+    # Using standard templates - auto-select "Small" by default
     USE_CUSTOM_TEMPLATE=false
-    CUSTOM_PRICING_ID=""
-    CUSTOM_REGION_NAME=""
-
+    
     echo ""
-    echo "Checking for custom VM configuration (2 CPU, 2GB RAM, 40GB SSD)..."
+    echo "Selecting VM template..."
 
-    # Try Dublin first
-    dublin_pricing_id=$(check_custom_template "Dublin")
-    if [ -n "$dublin_pricing_id" ]; then
-        price_info=$(get_custom_price "$dublin_pricing_id")
-        if [ -n "$price_info" ]; then
-            USE_CUSTOM_TEMPLATE=true
-            CUSTOM_PRICING_ID="$dublin_pricing_id"
-            CUSTOM_REGION_NAME="Dublin (IE)"
-            CUSTOM_PRICE=$(echo "$price_info" | cut -d'|' -f1)
-            CUSTOM_CURRENCY=$(echo "$price_info" | cut -d'|' -f2)
-            echo "  Dublin available: $CUSTOM_PRICE $CUSTOM_CURRENCY/month"
-        fi
-    fi
-
-    # Try London if Dublin failed
-    if [ "$USE_CUSTOM_TEMPLATE" = false ]; then
-        london_pricing_id=$(check_custom_template "London")
-        if [ -n "$london_pricing_id" ]; then
-            price_info=$(get_custom_price "$london_pricing_id")
-            if [ -n "$price_info" ]; then
-                USE_CUSTOM_TEMPLATE=true
-                CUSTOM_PRICING_ID="$london_pricing_id"
-                CUSTOM_REGION_NAME="London (GB)"
-                CUSTOM_PRICE=$(echo "$price_info" | cut -d'|' -f1)
-                CUSTOM_CURRENCY=$(echo "$price_info" | cut -d'|' -f2)
-                echo "  London available: $CUSTOM_PRICE $CUSTOM_CURRENCY/month"
-            fi
-        fi
-    fi
-
-    if [ "$USE_CUSTOM_TEMPLATE" = true ]; then
+    # Try to auto-select "Small" template (id=2) by default
+    selected_template=$(echo "$templates" | jq '.[] | select(.name == "Small")' | jq -s 'first')
+    
+    if [ -n "$selected_template" ] && [ "$selected_template" != "null" ]; then
+        template_id=$(echo "$selected_template" | jq -r '.id')
+        template_name=$(echo "$selected_template" | jq -r '.name')
+        template_cpu=$(echo "$selected_template" | jq -r '.cpu')
+        template_ram=$(echo "$selected_template" | jq -r '.memory')
+        template_disk=$(echo "$selected_template" | jq -r '.disk_size')
+        template_cost=$(echo "$selected_template" | jq -r '.cost_plan.amount')
+        template_currency=$(echo "$selected_template" | jq -r '.cost_plan.currency')
+        template_region=$(echo "$selected_template" | jq -r '.region.name')
+        
         echo ""
-        echo "Custom VM configuration selected:"
-        echo "  Region: $CUSTOM_REGION_NAME"
-        echo "  CPU: $DESIRED_CPU cores"
-        echo "  RAM: $((DESIRED_MEMORY / 1024 / 1024 / 1024)) GB"
-        echo "  Disk: $((DESIRED_DISK / 1024 / 1024 / 1024)) GB SSD"
-        echo "  Cost: $CUSTOM_PRICE $CUSTOM_CURRENCY/month"
+        echo "Auto-selected 'Small' template:"
+        echo "  Name: $template_name"
+        echo "  CPU: ${template_cpu} cores"
+        echo "  RAM: $((template_ram / 1024 / 1024 / 1024)) GB"
+        echo "  Disk: $((template_disk / 1024 / 1024 / 1024)) GB"
+        echo "  Region: $template_region"
+        echo "  Cost: $template_cost $template_currency/month"
         echo ""
     else
-        # Fall back to showing available templates
+        # Fall back to showing available templates if Small is not available
         echo ""
-        echo "Custom configuration not available. Please select a template:"
+        echo "'Small' template not available. Please select a template:"
         echo ""
         echo "Available VM Templates:"
         echo "========================================"
@@ -840,6 +873,8 @@ if [ "$SKIP_CREATION" = "false" ]; then
         echo "  Cost: $template_cost $template_currency/month"
         echo ""
     fi
+    # ===== Uncomment the line below to close the else block when re-enabling custom templates =====
+    # fi
 
     # List SSH keys - both local and from API
     echo "Fetching your SSH keys from LNVPS..."
