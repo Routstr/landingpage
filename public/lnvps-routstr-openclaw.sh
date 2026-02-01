@@ -1016,29 +1016,10 @@ if [ "$SKIP_CREATION" = "false" ]; then
         echo "Private key saved to: $key_path"
     fi
 
-    # Get available OS images
+    # Auto-select Debian 13 Server image (id: 6)
+    image_id=6
     echo ""
-    echo "Fetching available OS images..."
-    images_response=$(curl -s "${API_BASE}/image")
-    images=$(echo "$images_response" | jq -r '.data // []')
-
-    if [ -z "$images" ] || [ "$images" = "[]" ] || [ "$images" = "null" ]; then
-        echo "Error: Could not fetch images"
-        exit 1
-    fi
-
-    echo ""
-    echo "Available OS images:"
-    echo "$images" | jq -r '.[] | "  \(.id): \(.distribution) \(.version) (\(.flavour))"'
-    echo ""
-    echo "Enter image ID (or press enter for Ubuntu default):"
-    read image_id
-
-    if [ -z "$image_id" ]; then
-        # Find Ubuntu image as default
-        image_id=$(echo "$images" | jq -r '[.[] | select(.distribution == "ubuntu")] | .[0].id // .[0].id')
-        echo "Using image ID: $image_id"
-    fi
+    echo "Using OS image: Debian 13 Server (image ID: $image_id)"
 
     # Create VM order
     echo ""
