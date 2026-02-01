@@ -42,7 +42,6 @@ echo ""
 install_jq() {
     if ! command -v jq >/dev/null 2>&1; then
         echo "jq not found. Attempting to install..."
-        sleep 10
         if [ "$OS_TYPE" = "mac" ]; then
             if command -v brew >/dev/null 2>&1; then
                 brew install jq
@@ -55,7 +54,17 @@ install_jq() {
             if command -v apt-get >/dev/null 2>&1; then
                 SUDO=""
                 [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
-                $SUDO apt-get update && $SUDO apt-get install -y jq
+                while true; do
+                    if $SUDO apt-get update && $SUDO apt-get install -y jq; then
+                        break
+                    elif [ $? -eq 100 ] || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
+                        echo "apt is locked by another process. Waiting 20 seconds..."
+                        sleep 20
+                    else
+                        echo "apt-get failed for unknown reason."
+                        exit 1
+                    fi
+                done
             elif command -v yum >/dev/null 2>&1; then
                 SUDO=""
                 [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
