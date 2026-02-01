@@ -1229,7 +1229,6 @@ else
     echo "Paying VPS invoice with cdk-cli..."
     echo "$LNVPS_INVOICE" | "$CDK_CLI_BIN" melt --mint-url "$MINT_URL"
 fi
-fi
 
 if [ "$SKIP_CREATION" = "false" ]; then
     # Poll for payment status (only for new VMs)
