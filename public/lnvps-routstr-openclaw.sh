@@ -335,6 +335,150 @@ api_call() {
     fi
 }
 
+# Function to format timestamp
+format_date() {
+    local timestamp="$1"
+    if [ -n "$timestamp" ] && [ "$timestamp" != "null" ]; then
+        if [ "$OS_TYPE" = "mac" ]; then
+             date -r "$timestamp" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$timestamp"
+        else
+             date -d "@$timestamp" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$timestamp"
+        fi
+    else
+        echo "N/A"
+    fi
+}
+
+# Function to calculate days until expiry
+days_until() {
+    local date_str="$1"
+    if [ -n "$date_str" ] && [ "$date_str" != "null" ]; then
+        local expiry_ts=""
+        if [ "$OS_TYPE" = "mac" ]; then
+            # Try to parse ISO format on Mac
+            expiry_ts=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${date_str%%.*}" +%s 2>/dev/null)
+        else
+            expiry_ts=$(date -d "$date_str" +%s 2>/dev/null)
+        fi
+
+        if [ -n "$expiry_ts" ]; then
+            local now=$(date +%s)
+            local diff=$(( (expiry_ts - now) / 86400 ))
+            echo "$diff"
+        else
+            echo "?"
+        fi
+    else
+        echo "?"
+    fi
+}
+
+SKIP_CREATION=false
+
+# Check for existing VMs
+echo "Checking for existing VMs..."
+vms_response=$(api_call "GET" "/vm")
+vms=$(echo "$vms_response" | jq -r '.data // []')
+
+if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
+    echo ""
+    echo "Found existing VMs:"
+    echo "ID    | Status  | IP               | Expires"
+    echo "------|---------|------------------|----------------"
+    
+    echo "$vms" | jq -c '.[]' | while read -r vm; do
+        id=$(echo "$vm" | jq -r '.id')
+        status=$(echo "$vm" | jq -r '.status.state // "unknown"')
+        ip=$(echo "$vm" | jq -r '.ip_assignments[0].ip // "pending"')
+        expires=$(echo "$vm" | jq -r '.expires // null')
+        
+        expiry_str="N/A"
+        if [ -n "$expires" ] && [ "$expires" != "null" ]; then
+             days=$(days_until "$expires")
+             if [ "$days" != "?" ]; then
+                expiry_str="$days days"
+             fi
+        fi
+        
+        printf "%-5s | %-7s | %-16s | %s\n" "$id" "$status" "$ip" "$expiry_str"
+    done
+    
+    echo ""
+    echo -n "Enter VM ID to use existing, or press Enter to create a new one: "
+    read use_vm_id
+    
+    if [ -n "$use_vm_id" ]; then
+        echo "Fetching details for VM $use_vm_id..."
+        vm_details_resp=$(api_call "GET" "/vm/${use_vm_id}")
+        vm_data=$(echo "$vm_details_resp" | jq -r '.data // null')
+        
+        if [ -n "$vm_data" ] && [ "$vm_data" != "null" ]; then
+            echo "Selected VM $use_vm_id"
+            SKIP_CREATION=true
+            vm_id="$use_vm_id"
+            
+            vm_state=$(echo "$vm_data" | jq -r '.status.state // "unknown"')
+            
+            if [ "$vm_state" = "expired" ] || [ "$vm_state" = "stopped" ]; then
+                 echo "VM is $vm_state."
+                 echo -n "Do you want to renew this VM? [Y/n] "
+                 read renew_choice
+                 if [[ "$renew_choice" =~ ^[Yy] ]] || [ -z "$renew_choice" ]; then
+                     echo "Getting renewal invoice..."
+                     renew_resp=$(api_call "GET" "/vm/${vm_id}/renew")
+                     payment=$(echo "$renew_resp" | jq -r '.data // null')
+                     
+                     if [ -n "$payment" ] && [ "$payment" != "null" ]; then
+                         payment_id=$(echo "$payment" | jq -r '.id')
+                         invoice=$(echo "$payment" | jq -r '.data.lightning // .invoice')
+                         amount=$(echo "$payment" | jq -r '.amount')
+                         amount=$((amount / 1000))
+                         
+                         echo ""
+                         echo "Renewal Invoice ($amount sats):"
+                         echo "$invoice"
+                         echo ""
+                         print_qr_code "$invoice"
+                         
+                         echo "Waiting for payment..."
+                         while true; do
+                            sleep 5
+                            chk=$(api_call "GET" "/payment/${payment_id}")
+                            paid=$(echo "$chk" | jq -r '.data.is_paid')
+                            if [ "$paid" = "true" ]; then
+                                echo "Payment received!"
+                                break
+                            fi
+                         done
+                     else
+                         echo "Error: Could not get renewal invoice."
+                         exit 1
+                     fi
+                 else
+                    echo "Cannot proceed with expired VM without renewal."
+                    exit 1
+                 fi
+            fi
+            
+            echo ""
+            echo "To configure this VM, we need the local SSH private key."
+            echo -n "Enter path to SSH private key (default: ~/.ssh/id_rsa): "
+            read user_key_path
+            user_key_path="${user_key_path:-$HOME/.ssh/id_rsa}"
+            user_key_path="${user_key_path/#\~/$HOME}"
+            
+            if [ ! -f "$user_key_path" ]; then
+                echo "Warning: Key file not found at $user_key_path"
+            fi
+            ssh_private_key="$user_key_path"
+            
+        else
+            echo "VM ID not found. Creating new VM."
+        fi
+    fi
+fi
+
+if [ "$SKIP_CREATION" = "false" ]; then
 # Desired custom VM specs
 DESIRED_CPU=2
 DESIRED_MEMORY=2147483648      # 2 GB in bytes
@@ -890,6 +1034,7 @@ else
         
         echo -n "."
     done
+    fi
 
     echo ""
     echo "Paying VPS invoice with cdk-cli..."
