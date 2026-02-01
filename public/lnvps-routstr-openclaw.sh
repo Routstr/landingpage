@@ -1261,6 +1261,23 @@ echo "Username: $vm_user"
 echo ""
 echo "Command to SSH into VPS:"
 echo "ssh -i $ssh_private_key $vm_user@$vm_ip_clean"
+
+# Save VM info to a text file in the current folder
+VM_INFO_FILE="./vm-info.txt"
+cat > "$VM_INFO_FILE" << EOF
+VM READY!
+========================================
+VM ID: $vm_id
+IP Address: $vm_ip_clean
+Username: $vm_user
+
+Command to SSH into VPS:
+ssh -i $ssh_private_key $vm_user@$vm_ip_clean
+
+Generated at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+EOF
+echo ""
+echo "VM info saved to: $VM_INFO_FILE"
 echo ""
 echo "Installing OpenClaw on VPS, this will take a solid 5 mins..."
 if [ -n "$ssh_private_key" ]; then
