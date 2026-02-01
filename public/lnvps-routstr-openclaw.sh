@@ -1123,11 +1123,24 @@ if [ -n "$ssh_private_key" ]; then
     if [ "$OS_TYPE" = "mac" ]; then
         # Mac: Skip cashu token generation and run without --cashu flag
         if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash"; then
+            echo ""
             echo "Error: Failed to configure Routstr on VPS."
+            echo ""
+            echo "This is usually caused by SSH connection timeout while the VPS is still booting."
+            echo "Please wait a minute and run this script again - it will detect your existing VPS."
+            echo ""
             exit 1
         fi
     else
-        ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -fsSL https://openclaw.bot/install.sh | bash -s -- --no-onboard"
+        if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -fsSL https://openclaw.bot/install.sh | bash -s -- --no-onboard"; then
+            echo ""
+            echo "Error: Failed to install OpenClaw on VPS."
+            echo ""
+            echo "This is usually caused by SSH connection timeout while the VPS is still booting."
+            echo "Please wait a minute and run this script again - it will detect your existing VPS."
+            echo ""
+            exit 1
+        fi
 
         echo ""
         echo "Configuring Routstr..."
@@ -1165,14 +1178,35 @@ if [ -n "$ssh_private_key" ]; then
         echo "${CASHU_TOKEN}" > ./cashu_token.txt
 
         if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -L https://routstr.com/routstr-openclaw.sh | bash -s -- --cashu $CASHU_TOKEN"; then
+            echo ""
             echo "Error: Failed to configure Routstr on VPS."
+            echo ""
+            echo "This is usually caused by SSH connection timeout while the VPS is still booting."
+            echo "Please wait a minute and run this script again - it will detect your existing VPS."
+            echo ""
             exit 1
         fi
     fi
 
     echo "Copying nostr config to VPS..."
-    ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "mkdir -p ~/.openclaw/identity/"
-    scp -i "$ssh_private_key" "$NOSTR_CONFIG_FILE" "$vm_user@$vm_ip_clean:~/.openclaw/identity/nostr.config.json"
+    if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "mkdir -p ~/.openclaw/identity/"; then
+        echo ""
+        echo "Error: Failed to create directory on VPS."
+        echo ""
+        echo "This is usually caused by SSH connection timeout while the VPS is still booting."
+        echo "Please wait a minute and run this script again - it will detect your existing VPS."
+        echo ""
+        exit 1
+    fi
+    if ! scp -i "$ssh_private_key" "$NOSTR_CONFIG_FILE" "$vm_user@$vm_ip_clean:~/.openclaw/identity/nostr.config.json"; then
+        echo ""
+        echo "Error: Failed to copy nostr config to VPS."
+        echo ""
+        echo "This is usually caused by SSH connection timeout while the VPS is still booting."
+        echo "Please wait a minute and run this script again - it will detect your existing VPS."
+        echo ""
+        exit 1
+    fi
     
     echo ""
     echo "#######################################################"
