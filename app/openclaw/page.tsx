@@ -35,7 +35,7 @@ export default function OpenClawPage() {
       title: "Fresh VPS with LNVPS",
       subtitle: "Pay for hosting with Bitcoin",
       description:
-        "Get a VPS from LNVPS (pay with Lightning), then run the setup script. Full stack deployment with Routstr pre-configured.",
+        "Get a Linux VPS from LNVPS (pay with Lightning), then run the setup script. Full stack deployment with Routstr pre-configured.",
       icon: Server,
       gradient: "from-orange-500/20 to-amber-500/20",
       borderColor: "border-orange-500/30",
@@ -54,7 +54,7 @@ export default function OpenClawPage() {
     },
     {
       title: "Your Own Machine",
-      subtitle: "macOS, Linux, or WSL2",
+      subtitle: "macOS or Linux",
       description:
         "Already have a machine? Run the setup script to install OpenClaw and configure Routstr as your AI provider.",
       icon: Laptop,
@@ -67,7 +67,7 @@ export default function OpenClawPage() {
         "./setup.sh",
       ],
       features: [
-        "macOS, Linux, Windows (WSL2)",
+        "macOS, Linux",
         "Requires Node.js 22+",
         "Configures Routstr as provider",
         "Runs onboarding wizard",
@@ -83,8 +83,10 @@ export default function OpenClawPage() {
       <section className="pt-24 pb-8 md:pt-32 md:pb-12 border-b border-white/10">
         <div className="px-4 md:px-6 max-w-7xl mx-auto">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-8 tracking-tight text-balance">
-              Routstr <span className="text-gray-600 mx-2">↔</span> OpenClaw
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 tracking-tight text-balance">
+              {/* Routstr <span className="text-gray-600 mx-2">↔</span> OpenClaw */}
+              OpenClaw in {"<"} 5 mins with{" "}
+              <span className="text-orange-400">₿</span>
             </h1>
 
             <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed text-pretty">
@@ -97,7 +99,11 @@ export default function OpenClawPage() {
               >
                 OpenClaw
               </a>{" "}
-              personal AI assistant. Pay per token with Bitcoin.
+              with a{" "}
+              <span className="text-orange-400 font-semibold">
+                single lightning payment
+              </span>{" "}
+              to deploy a VPS and pay for LLMs with Routstr.
             </p>
 
             <div className="flex flex-wrap justify-center gap-6 text-sm font-mono text-gray-500">
