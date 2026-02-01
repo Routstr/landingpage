@@ -1443,6 +1443,11 @@ if [ -n "$ssh_private_key" ]; then
     echo "Then run this command:"
     echo ""
     echo "  openclaw channels add"
+    echo ""
+    echo "-------------------------------------------------------"
+    echo "Consider Supporting Us:"
+    echo "bc1qn0qa6nugljxnaaulmy7ju66x89cxdul3krutate2ma66rrll8luq2aaedu"
+    echo "-------------------------------------------------------"
 else
     echo "Something must've gone wrong, can't find your SSH key, pls try again"
 fi
