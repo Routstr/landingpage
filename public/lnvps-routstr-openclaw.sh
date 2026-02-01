@@ -478,15 +478,121 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
             
             echo ""
             echo "To configure this VM, we need the local SSH private key."
-            echo -n "Enter path to SSH private key (default: ~/.ssh/id_rsa): "
-            read user_key_path
-            user_key_path="${user_key_path:-$HOME/.ssh/id_rsa}"
-            user_key_path="${user_key_path/#\~/$HOME}"
+            echo ""
             
-            if [ ! -f "$user_key_path" ]; then
-                echo "Warning: Key file not found at $user_key_path"
+            # Fetch SSH keys from API
+            echo "Fetching your SSH keys from LNVPS..."
+            existing_ssh_keys_response=$(api_call "GET" "/ssh-key")
+            existing_ssh_keys=$(echo "$existing_ssh_keys_response" | jq -r '.data // []')
+            
+            # Find local SSH private keys (look for .pub files and derive private key paths)
+            existing_local_keys=()
+            existing_key_paths=()
+            if [ -d "$HOME/.ssh" ]; then
+                find "$HOME/.ssh" -maxdepth 1 -name "*.pub" 2>/dev/null > /tmp/lnvps_existing_keys_$$
+                while IFS= read -r pubkey; do
+                    if [ -n "$pubkey" ]; then
+                        priv_key="${pubkey%.pub}"
+                        if [ -f "$priv_key" ]; then
+                            existing_local_keys+=("$pubkey")
+                            existing_key_paths+=("$priv_key")
+                        fi
+                    fi
+                done < /tmp/lnvps_existing_keys_$$
+                rm -f /tmp/lnvps_existing_keys_$$
             fi
-            ssh_private_key="$user_key_path"
+            
+            echo ""
+            echo "=== SSH Key Selection ==="
+            echo ""
+            
+            existing_opt_num=1
+            existing_options_values=()
+            default_option=1
+            
+            # List API keys first (so they become default)
+            if [ -n "$existing_ssh_keys" ] && [ "$existing_ssh_keys" != "[]" ] && [ "$existing_ssh_keys" != "null" ]; then
+                echo "Already uploaded to LNVPS:"
+                echo "$existing_ssh_keys" | jq -r '.[] | "\(.id)|\(.name)"' > /tmp/lnvps_existing_api_keys_$$
+                
+                while IFS= read -r line; do
+                    key_id=$(echo "$line" | cut -d'|' -f1)
+                    key_name=$(echo "$line" | cut -d'|' -f2)
+                    echo "  [$existing_opt_num] $key_name (ID: $key_id)"
+                    existing_options_values[$existing_opt_num]="api:$key_id:$key_name"
+                    existing_opt_num=$((existing_opt_num + 1))
+                done < /tmp/lnvps_existing_api_keys_$$
+                rm -f /tmp/lnvps_existing_api_keys_$$
+                echo ""
+            fi
+            
+            # List local SSH keys
+            if [ ${#existing_local_keys[@]} -gt 0 ]; then
+                echo "Local SSH keys (~/.ssh/):"
+                for i in "${!existing_local_keys[@]}"; do
+                    pubkey="${existing_local_keys[$i]}"
+                    key_name=$(basename "$pubkey" .pub)
+                    key_type=$(awk '{print $1}' "$pubkey" | sed 's/ssh-//')
+                    key_comment=$(awk '{print $3}' "$pubkey")
+                    echo "  [$existing_opt_num] $key_name ($key_type) ${key_comment:+- $key_comment}"
+                    existing_options_values[$existing_opt_num]="local:$pubkey"
+                    existing_opt_num=$((existing_opt_num + 1))
+                done
+                echo ""
+            fi
+            
+            if [ $((existing_opt_num - 1)) -eq 0 ]; then
+                echo "No SSH keys found."
+                echo "Using default: ~/.ssh/id_rsa"
+                ssh_private_key="$HOME/.ssh/id_rsa"
+            else
+                echo -n "Enter your choice [1-$((existing_opt_num-1))] (enter = default $default_option): "
+                read key_choice
+                
+                if [ -z "$key_choice" ]; then
+                    key_choice=$default_option
+                fi
+                
+                if [ -z "${existing_options_values[$key_choice]}" ]; then
+                    echo "Invalid selection, using default."
+                    key_choice=$default_option
+                fi
+                
+                selected_key="${existing_options_values[$key_choice]}"
+                
+                if [[ "$selected_key" == local:* ]]; then
+                    pubkey_path="${selected_key#local:}"
+                    ssh_private_key="${pubkey_path%.pub}"
+                    echo "Using private key: $ssh_private_key"
+                elif [[ "$selected_key" == api:* ]]; then
+                    selected_content="${selected_key#api:}"
+                    api_key_id=$(echo "$selected_content" | cut -d':' -f1)
+                    api_key_name=$(echo "$selected_content" | cut -d':' -f2)
+                    
+                    echo "Using existing SSH key ID: $api_key_id"
+                    
+                    # Check if key exists locally by name
+                    if [ -n "$api_key_name" ] && [ -f "$HOME/.ssh/$api_key_name" ]; then
+                        ssh_private_key="$HOME/.ssh/$api_key_name"
+                        echo "Found local key: $ssh_private_key"
+                    elif [ -f "$HOME/.ssh/$api_key_id" ]; then
+                        ssh_private_key="$HOME/.ssh/$api_key_id"
+                        echo "Found local key: $ssh_private_key"
+                    else
+                        echo ""
+                        echo "Please provide the path to your local SSH private key:"
+                        echo -n "Path (default: ~/.ssh/id_rsa): "
+                        read ssh_private_key
+                        ssh_private_key="${ssh_private_key:-$HOME/.ssh/id_rsa}"
+                        ssh_private_key="${ssh_private_key/#\~/$HOME}"
+                    fi
+                    echo "Using private key: $ssh_private_key"
+                fi
+            fi
+            
+            if [ ! -f "$ssh_private_key" ]; then
+                echo "Warning: Key file not found at $ssh_private_key"
+            fi
             
         else
             echo "VM ID not found. Creating new VM."
@@ -695,21 +801,7 @@ option_num=1
 # Use indexed arrays instead of associative arrays for Bash 3.2 compatibility
 options_values=()
 
-# List local SSH keys
-if [ ${#local_keys[@]} -gt 0 ]; then
-    echo "Local SSH keys (~/.ssh/):"
-    for pubkey in "${local_key_paths[@]}"; do
-        key_name=$(basename "$pubkey" .pub)
-        key_type=$(awk '{print $1}' "$pubkey" | sed 's/ssh-//')
-        key_comment=$(awk '{print $3}' "$pubkey")
-        echo "  [$option_num] $key_name ($key_type) ${key_comment:+- $key_comment}"
-        options_values[$option_num]="local:$pubkey"
-        option_num=$((option_num + 1))
-    done
-    echo ""
-fi
-
-# List API keys
+# List API keys first (so they become default)
 if [ -n "$ssh_keys" ] && [ "$ssh_keys" != "[]" ] && [ "$ssh_keys" != "null" ]; then
     echo "Already uploaded to LNVPS:"
     # Save to temp file to avoid subshell issues with while loop
@@ -723,6 +815,20 @@ if [ -n "$ssh_keys" ] && [ "$ssh_keys" != "[]" ] && [ "$ssh_keys" != "null" ]; t
         option_num=$((option_num + 1))
     done < /tmp/lnvps_api_keys_$$
     rm -f /tmp/lnvps_api_keys_$$
+    echo ""
+fi
+
+# List local SSH keys
+if [ ${#local_keys[@]} -gt 0 ]; then
+    echo "Local SSH keys (~/.ssh/):"
+    for pubkey in "${local_key_paths[@]}"; do
+        key_name=$(basename "$pubkey" .pub)
+        key_type=$(awk '{print $1}' "$pubkey" | sed 's/ssh-//')
+        key_comment=$(awk '{print $3}' "$pubkey")
+        echo "  [$option_num] $key_name ($key_type) ${key_comment:+- $key_comment}"
+        options_values[$option_num]="local:$pubkey"
+        option_num=$((option_num + 1))
+    done
     echo ""
 fi
 
