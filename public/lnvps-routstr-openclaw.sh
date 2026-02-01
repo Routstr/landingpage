@@ -668,7 +668,7 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
     fi
 fi
 
-if [ "$SKIP_CREATION" = "false" ]; then
+# if [ "$SKIP_CREATION" = "false" ]; then
 # Desired custom VM specs
 DESIRED_CPU=2
 DESIRED_MEMORY=2147483648      # 2 GB in bytes
@@ -1228,6 +1228,7 @@ else
     echo ""
     echo "Paying VPS invoice with cdk-cli..."
     echo "$LNVPS_INVOICE" | "$CDK_CLI_BIN" melt --mint-url "$MINT_URL"
+fi
 fi
 
 if [ "$SKIP_CREATION" = "false" ]; then
