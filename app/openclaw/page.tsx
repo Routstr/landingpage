@@ -54,7 +54,7 @@ export default function OpenClawPage() {
     },
     {
       title: "Your Own Machine",
-      subtitle: "macOS or Linux",
+      subtitle: "Only Linux (macOS coming soon)",
       description:
         "Already have a machine? Run the setup script to install OpenClaw and configure Routstr as your AI provider.",
       icon: Laptop,
@@ -67,7 +67,7 @@ export default function OpenClawPage() {
         "./setup.sh",
       ],
       features: [
-        "macOS, Linux",
+        "Linux (macOS coming soon)",
         "Requires Node.js 22+",
         "Configures Routstr as provider",
         "Runs onboarding wizard",
@@ -320,8 +320,8 @@ export default function OpenClawPage() {
               </div>
               <h3 className="text-lg font-bold text-white">Cashu Wallet</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Built-in Cashu e-cash wallet for private, instant payments.
-                Send and receive sats without on-chain transactions.
+                Built-in Cashu e-cash wallet for private, instant payments. Send
+                and receive sats without on-chain transactions.
               </p>
             </div>
             <div className="space-y-4">
@@ -359,8 +359,8 @@ export default function OpenClawPage() {
               </div>
               <h3 className="text-lg font-bold text-white">LLM Top Up</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Ask your LLM to help you topup, and it'll send you a
-                lightning invoice.
+                Ask your LLM to help you topup, and it'll send you a lightning
+                invoice.
               </p>
             </div>
             <div className="space-y-4">
