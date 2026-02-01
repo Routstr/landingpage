@@ -2,6 +2,14 @@
 
 set -e
 
+# Detect if running interactively (stdin is a terminal)
+# When piped via curl | bash, stdin is the script itself, not a terminal
+if [ -t 0 ]; then
+    INTERACTIVE=true
+else
+    INTERACTIVE=false
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CDK_CLI_DIR="$SCRIPT_DIR/temp-routstr"
 CDK_CLI_BIN="$CDK_CLI_DIR/cdk-cli-v0.13.0"
@@ -34,6 +42,7 @@ echo ""
 install_jq() {
     if ! command -v jq >/dev/null 2>&1; then
         echo "jq not found. Attempting to install..."
+        sleep 10
         if [ "$OS_TYPE" = "mac" ]; then
             if command -v brew >/dev/null 2>&1; then
                 brew install jq
@@ -253,7 +262,13 @@ create_cashu_token() {
         echo "Payment not detected yet. Would you like to:"
         echo "1) Continue waiting"
         echo "2) Exit and try again later"
-        read -p "Choice [1/2]: " choice
+        
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Choice [1/2]: " choice </dev/tty
+        else
+            echo "Non-interactive mode: continuing to wait..."
+            choice="1"
+        fi
         
         if [ "$choice" = "1" ]; then
             # Continue polling
@@ -305,57 +320,73 @@ create_cashu_token() {
 
 # If no cashu token provided, offer to create one
 if [ -z "$CASHU_TOKEN" ]; then
-    echo ""
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║           OpenClaw Setup - Cashu Token Required            ║"
-    echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║  No cashu token provided. You can:                         ║"
-    echo "║                                                            ║"
-    echo "║  1) Create a new token by paying a Lightning invoice       ║"
-    echo "║  2) Exit and provide a token manually with --cashu <token> ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
-    echo ""
-    read -p "Would you like to create a cashu token now? [Y/n]: " CREATE_TOKEN
-    
-    if [[ "$CREATE_TOKEN" =~ ^[Nn] ]]; then
+    # In non-interactive mode (piped via curl | bash), we cannot prompt for input
+    if [ "$INTERACTIVE" = false ]; then
         echo ""
-        echo "Usage: $0 --cashu <token>"
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║           OpenClaw Setup - Cashu Token Required            ║"
+        echo "╠════════════════════════════════════════════════════════════╣"
+        echo "║  Running in non-interactive mode (piped execution).        ║"
+        echo "║  Using default amount: 4200 sats                           ║"
+        echo "║                                                            ║"
+        echo "║  To provide a token manually, use:                         ║"
+        echo "║    --cashu <token>                                         ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
         echo ""
-        echo "You can obtain a cashu token from https://cashu.me/"
-        echo "or run this script without arguments to create one interactively."
-        exit 0
+        AMOUNT=4200
+    else
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║           OpenClaw Setup - Cashu Token Required            ║"
+        echo "╠════════════════════════════════════════════════════════════╣"
+        echo "║  No cashu token provided. You can:                         ║"
+        echo "║                                                            ║"
+        echo "║  1) Create a new token by paying a Lightning invoice       ║"
+        echo "║  2) Exit and provide a token manually with --cashu <token> ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        read -p "Would you like to create a cashu token now? [Y/n]: " CREATE_TOKEN </dev/tty
+        
+        if [[ "$CREATE_TOKEN" =~ ^[Nn] ]]; then
+            echo ""
+            echo "Usage: $0 --cashu <token>"
+            echo ""
+            echo "You can obtain a cashu token from https://cashu.me/"
+            echo "or run this script without arguments to create one interactively."
+            exit 0
+        fi
+        
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              Select Amount to Fund Your Wallet             ║"
+        echo "╠════════════════════════════════════════════════════════════╣"
+        echo "║  1) 4200 sats  (Recommended - good for extended use)       ║"
+        echo "║  2) 2100 sats  (Standard)                                  ║"
+        echo "║  3) 1000 sats  (Minimum)                                   ║"
+        echo "║  4) Custom amount                                          ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        read -p "Select option [1-4] (default: 1): " AMOUNT_CHOICE </dev/tty
+        
+        case "$AMOUNT_CHOICE" in
+            2)
+                AMOUNT=2100
+                ;;
+            3)
+                AMOUNT=1000
+                ;;
+            4)
+                read -p "Enter custom amount in sats: " AMOUNT </dev/tty
+                if ! [[ "$AMOUNT" =~ ^[0-9]+$ ]] || [ "$AMOUNT" -lt 100 ]; then
+                    echo "Error: Invalid amount. Please enter a number >= 100"
+                    exit 1
+                fi
+                ;;
+            *)
+                AMOUNT=4200
+                ;;
+        esac
     fi
-    
-    echo ""
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║              Select Amount to Fund Your Wallet             ║"
-    echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║  1) 4200 sats  (Recommended - good for extended use)       ║"
-    echo "║  2) 2100 sats  (Standard)                                  ║"
-    echo "║  3) 1000 sats  (Minimum)                                   ║"
-    echo "║  4) Custom amount                                          ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
-    echo ""
-    read -p "Select option [1-4] (default: 1): " AMOUNT_CHOICE
-    
-    case "$AMOUNT_CHOICE" in
-        2)
-            AMOUNT=2100
-            ;;
-        3)
-            AMOUNT=1000
-            ;;
-        4)
-            read -p "Enter custom amount in sats: " AMOUNT
-            if ! [[ "$AMOUNT" =~ ^[0-9]+$ ]] || [ "$AMOUNT" -lt 100 ]; then
-                echo "Error: Invalid amount. Please enter a number >= 100"
-                exit 1
-            fi
-            ;;
-        *)
-            AMOUNT=4200
-            ;;
-    esac
     
     echo ""
     echo "Setting up cdk-cli for token creation..."
