@@ -392,7 +392,7 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
     
     echo ""
     echo -n "Enter your choice [1-$vm_opt_num] (enter = default 1): "
-    read vm_choice
+    read vm_choice < /dev/tty
     
     if [ -z "$vm_choice" ]; then
         vm_choice=1
@@ -424,7 +424,7 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
                  if [ "$vm_ip" = "pending" ] && [ "$vm_days" = "0" ]; then
                      echo "VM is stopped and requires payment to be activated."
                      echo -n "Do you want to pay for this VM? [Y/n] "
-                     read pay_choice
+                     read pay_choice < /dev/tty
                      if [[ "$pay_choice" =~ ^[Yy] ]] || [ -z "$pay_choice" ]; then
                          echo "Getting payment invoice..."
                          renew_resp=$(api_call "GET" "/vm/${vm_id}/renew")
@@ -465,7 +465,7 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
                  else
                      echo "VM is stopped."
                      echo -n "Do you want to start this VM? [Y/n] "
-                     read start_choice
+                     read start_choice < /dev/tty
                      if [[ "$start_choice" =~ ^[Yy] ]] || [ -z "$start_choice" ]; then
                          echo "Starting VM..."
                          start_resp=$(api_call "PATCH" "/vm/${vm_id}/start")
@@ -480,7 +480,7 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
             elif [ "$vm_state" = "expired" ]; then
                  echo "VM is expired."
                  echo -n "Do you want to renew this VM? [Y/n] "
-                 read renew_choice
+                 read renew_choice < /dev/tty
                  if [[ "$renew_choice" =~ ^[Yy] ]] || [ -z "$renew_choice" ]; then
                      echo "Getting renewal invoice..."
                      renew_resp=$(api_call "GET" "/vm/${vm_id}/renew")
@@ -591,7 +591,7 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
                 ssh_private_key="$HOME/.ssh/id_rsa"
             else
                 echo -n "Enter your choice [1-$((existing_opt_num-1))] (enter = default $default_option): "
-                read key_choice
+                read key_choice < /dev/tty
                 
                 if [ -z "$key_choice" ]; then
                     key_choice=$default_option
@@ -626,7 +626,7 @@ if [ -n "$vms" ] && [ "$vms" != "[]" ] && [ "$vms" != "null" ]; then
                         echo ""
                         echo "Please provide the path to your local SSH private key:"
                         echo -n "Path (default: ~/.ssh/id_rsa): "
-                        read ssh_private_key
+                        read ssh_private_key < /dev/tty
                         ssh_private_key="${ssh_private_key:-$HOME/.ssh/id_rsa}"
                         ssh_private_key="${ssh_private_key/#\~/$HOME}"
                     fi
@@ -826,7 +826,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
         
         echo ""
         echo -n "Enter your choice [1-$template_count]: "
-        read template_choice
+        read template_choice < /dev/tty
         
         if [ -z "$template_choice" ] || [ "$template_choice" -lt 1 ] || [ "$template_choice" -gt "$template_count" ]; then
             echo "Error: Invalid selection"
@@ -921,7 +921,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
 
     echo ""
     echo -n "Enter your choice [1-$((option_num-1))] (enter = default 1): "
-    read ssh_choice
+    read ssh_choice < /dev/tty
 
     if [ -z "$ssh_choice" ]; then
         ssh_choice=1
@@ -974,7 +974,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
             echo ""
             echo "Please provide the path to your local SSH private key:"
             echo -n "Path (default: ~/.ssh/id_rsa): "
-            read ssh_private_key
+            read ssh_private_key < /dev/tty
             ssh_private_key="${ssh_private_key:-$HOME/.ssh/id_rsa}"
             
             # Expand ~ to home directory
@@ -991,7 +991,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
         # Generate new SSH key
         echo ""
         echo -n "Enter key name (default: id_rsa): "
-        read key_name
+        read key_name < /dev/tty
         key_name="${key_name:-id_rsa}"
         
         key_path="$HOME/.ssh/${key_name}"
@@ -1130,7 +1130,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
         echo "  [4] Custom amount"
         echo ""
         echo -n "Enter your choice [1-4] (enter = default 1): "
-        read topup_choice
+        read topup_choice < /dev/tty
 
         if [ -z "$topup_choice" ]; then
             topup_choice=1
@@ -1148,7 +1148,7 @@ if [ "$SKIP_CREATION" = "false" ]; then
                 ;;
             4)
                 echo -n "Enter custom topup amount (sats): "
-                read topup_amount
+                read topup_amount < /dev/tty
                 if [ -z "$topup_amount" ] || ! [[ "$topup_amount" =~ ^[0-9]+$ ]]; then
                     echo "Error: Invalid amount. Using default 4200 sats."
                     topup_amount=4200

@@ -253,7 +253,7 @@ create_cashu_token() {
         echo "Payment not detected yet. Would you like to:"
         echo "1) Continue waiting"
         echo "2) Exit and try again later"
-        read -p "Choice [1/2]: " choice
+        read -p "Choice [1/2]: " choice < /dev/tty
         
         if [ "$choice" = "1" ]; then
             # Continue polling
@@ -315,7 +315,7 @@ if [ -z "$CASHU_TOKEN" ]; then
     echo "║  2) Exit and provide a token manually with --cashu <token> ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo ""
-    read -p "Would you like to create a cashu token now? [Y/n]: " CREATE_TOKEN
+    read -p "Would you like to create a cashu token now? [Y/n]: " CREATE_TOKEN < /dev/tty
     
     if [[ "$CREATE_TOKEN" =~ ^[Nn] ]]; then
         echo ""
@@ -336,7 +336,7 @@ if [ -z "$CASHU_TOKEN" ]; then
     echo "║  4) Custom amount                                          ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo ""
-    read -p "Select option [1-4] (default: 1): " AMOUNT_CHOICE
+    read -p "Select option [1-4] (default: 1): " AMOUNT_CHOICE < /dev/tty
     
     case "$AMOUNT_CHOICE" in
         2)
@@ -346,7 +346,7 @@ if [ -z "$CASHU_TOKEN" ]; then
             AMOUNT=1000
             ;;
         4)
-            read -p "Enter custom amount in sats: " AMOUNT
+            read -p "Enter custom amount in sats: " AMOUNT < /dev/tty
             if ! [[ "$AMOUNT" =~ ^[0-9]+$ ]] || [ "$AMOUNT" -lt 100 ]; then
                 echo "Error: Invalid amount. Please enter a number >= 100"
                 exit 1
