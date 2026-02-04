@@ -1333,9 +1333,26 @@ if [ -n "$ssh_private_key" ]; then
 
     # Apply network fix before installing
     echo "Applying network fix..."
-    if ! ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -fsSL https://routstr.com/lnvps-net-fix.sh | sudo bash"; then
+    max_retries=5
+    retry_count=0
+    net_fix_success=false
+    while [ $retry_count -lt $max_retries ]; do
+        if ssh -i "$ssh_private_key" "$vm_user@$vm_ip_clean" "curl -fsSL https://routstr.com/lnvps-net-fix.sh | sudo bash" 2>&1; then
+            net_fix_success=true
+            break
+        else
+            ssh_exit_code=$?
+            retry_count=$((retry_count + 1))
+            if [ $retry_count -lt $max_retries ]; then
+                echo ""
+                echo "SSH connection failed (VPS may still be starting). Waiting 12 seconds before retry $retry_count/$max_retries..."
+                sleep 12
+            fi
+        fi
+    done
+    if [ "$net_fix_success" = false ]; then
         echo ""
-        echo "Warning: Network fix script failed, continuing anyway..."
+        echo "Warning: Network fix script failed after $max_retries attempts, continuing anyway..."
         echo ""
     fi
 

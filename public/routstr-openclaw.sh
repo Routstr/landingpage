@@ -54,37 +54,33 @@ install_jq() {
             if command -v apt-get >/dev/null 2>&1; then
                 SUDO=""
                 [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+                # Force IPv4 to avoid IPv6 connectivity issues on some cloud providers
+                if [ ! -f /etc/apt/apt.conf.d/99force-ipv4 ]; then
+                    echo 'Acquire::ForceIPv4 "true";' | $SUDO tee /etc/apt/apt.conf.d/99force-ipv4 >/dev/null
+                fi
                 RETRY_COUNT=0
                 MAX_RETRIES=30
+                APT_WAITING_SHOWN=0
                 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
                     APT_FAILED=0
-                    $SUDO apt-get update || APT_FAILED=1
+                    $SUDO apt-get update >/dev/null 2>&1 || APT_FAILED=1
                     if [ $APT_FAILED -eq 0 ]; then
-                        $SUDO apt-get install -y jq && break
+                        # Clear the waiting message if it was shown
+                        [ $APT_WAITING_SHOWN -eq 1 ] && echo ""
+                        $SUDO apt-get install -y jq >/dev/null 2>&1 && break
                     fi
                     
-                    # Check if apt is locked (apt exits with various codes when locked)
-                    LOCK_DETECTED=0
-                    if command -v fuser >/dev/null 2>&1; then
-                        fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 && LOCK_DETECTED=1
-                        fuser /var/lib/apt/lists/lock >/dev/null 2>&1 && LOCK_DETECTED=1
-                        fuser /var/lib/dpkg/lock >/dev/null 2>&1 && LOCK_DETECTED=1
+                    RETRY_COUNT=$((RETRY_COUNT + 1))
+                    if [ $APT_WAITING_SHOWN -eq 0 ]; then
+                        printf "System is installing dependencies, please wait"
+                        APT_WAITING_SHOWN=1
                     fi
-                    # Also check for lock files directly
-                    [ -f /var/lib/dpkg/lock-frontend ] && [ "$(fuser /var/lib/dpkg/lock-frontend 2>/dev/null)" ] && LOCK_DETECTED=1
-                    [ -f /var/lib/apt/lists/lock ] && [ "$(fuser /var/lib/apt/lists/lock 2>/dev/null)" ] && LOCK_DETECTED=1
-                    
-                    if [ $LOCK_DETECTED -eq 1 ]; then
-                        RETRY_COUNT=$((RETRY_COUNT + 1))
-                        echo "apt is locked by another process (attempt $RETRY_COUNT/$MAX_RETRIES). Waiting 20 seconds..."
-                        sleep 20
-                    else
-                        # No lock detected but apt failed - could be a transient error, retry
-                        RETRY_COUNT=$((RETRY_COUNT + 1))
-                        echo "apt-get failed, possibly due to lock race condition (attempt $RETRY_COUNT/$MAX_RETRIES). Retrying in 20 seconds..."
-                        sleep 20
-                    fi
+                    printf "."
+                    sleep 20
                 done
+                
+                # Clear the waiting line if shown
+                [ $APT_WAITING_SHOWN -eq 1 ] && echo ""
                 
                 if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
                     echo "Error: apt-get failed after $MAX_RETRIES attempts."
@@ -509,7 +505,28 @@ else
 fi
 
 # Move contents of skills folder to the target location
+# First try the default npm-global path
 TARGET_SKILLS_DIR="$HOME/.npm-global/lib/node_modules/openclaw/skills/"
+
+# Check if directory exists and has subdirectories
+if [ ! -d "$TARGET_SKILLS_DIR" ] || [ -z "$(find "$TARGET_SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)" ]; then
+    # Fall back to finding skills dir relative to npm location
+    if command -v npm >/dev/null 2>&1; then
+        NPM_PATH=$(command -v npm)
+        NPM_DIR=$(dirname "$NPM_PATH")
+        # NPM_DIR is <node_version>/bin, we need <node_version>/lib/node_modules/openclaw/skills
+        NODE_VERSION_DIR=$(dirname "$NPM_DIR")
+        FALLBACK_SKILLS_DIR="$NODE_VERSION_DIR/lib/node_modules/openclaw/skills/"
+        if [ -d "$FALLBACK_SKILLS_DIR" ] || [ -d "$(dirname "$FALLBACK_SKILLS_DIR")" ]; then
+            TARGET_SKILLS_DIR="$FALLBACK_SKILLS_DIR"
+            mkdir -p "$TARGET_SKILLS_DIR"
+        fi
+    fi
+fi
+
+# Ensure target directory exists
+mkdir -p "$TARGET_SKILLS_DIR"
+
 for skill in skills/*; do
     if [ -e "$skill" ]; then
         skill_name=$(basename "$skill")
