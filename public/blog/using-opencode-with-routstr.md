@@ -64,22 +64,11 @@ You can obtain a Cashu token in two ways:
 3. Copy your Cashu token from the wallet
 
 Ensure you have sufficient balance for your intended usage before proceeding.
-
-### 3. Locate Your OpenCode Config Folder
-
-OpenCode stores its configuration in a platform-specific location:
-
-- **Linux**: `~/.config/opencode`
-- **macOS**: `~/.config/opencode`
-- **Windows**: `%APPDATA%\opencode`
-
-Navigate to this folder in your terminal or file explorer.
-
-### 4. Create the Configuration File
+### 3. Create the Configuration File
 
 > **Note**: OpenCode v0.3.0 includes a patch for seamless integration, running on api.nonkycai.com (community run) and staging.routstr.com (team run). This example uses nonkycai for its competitive pricing.
 
-Create a new file called `opencode.json` in your OpenCode config folder with the following content:
+Create a new file called `opencode.json` in your OpenCode config folder (`~/.config/opencode` on Linux/macOS, `%APPDATA%\opencode` on Windows) with the following content:
 
 ```json
 {
@@ -150,15 +139,6 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
         },
         "gpt-oss-20b": {
           "name": "gpt-oss-20b"
-        },
-        "grok-code-fast-1": {
-          "name": "grok-code-fast-1"
-        },
-        "kimi-linear-48b-a3b-instruct": {
-          "name": "kimi-linear-48b-a3b-instruct"
-        },
-        "gemma-3n-e4b-it": {
-          "name": "gemma-3n-e4b-it"
         }
       }
     }
@@ -172,7 +152,7 @@ Create a new file called `opencode.json` in your OpenCode config folder with the
 - Replace `your-cashu-token-here` with your actual Cashu token
 - The models listed are examples; check your Routstr node for available models
 
-### 5. Launch OpenCode and Select Your Model
+### 4. Launch OpenCode and Select Your Model
 
 Start OpenCode in your terminal or desktop app. To view all available Routstr models, use the `/models` command:
 
@@ -180,9 +160,9 @@ Start OpenCode in your terminal or desktop app. To view all available Routstr mo
 /models
 ```
 
-You'll see all the Routstr models listed under the "routstr" provider. Select the model that best fits your coding task.
+You can also check your node's dashboard (if available) to see recent requests.
 
-### 6. Verify Your Setup
+### 5. Verify Your Setup
 
 To verify that OpenCode is successfully using your Routstr node:
 
