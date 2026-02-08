@@ -66,8 +66,6 @@ You can obtain a Cashu token in two ways:
 Ensure you have sufficient balance for your intended usage before proceeding.
 ### 3. Create the Configuration File
 
-> **Note**: OpenCode v0.3.0 includes a patch for seamless integration, running on api.nonkycai.com (community run) and staging.routstr.com (team run). This example uses nonkycai for its competitive pricing.
-
 Create a new file called `opencode.json` in your OpenCode config folder (`~/.config/opencode` on Linux/macOS, `%APPDATA%\opencode` on Windows) with the following content:
 
 ```json
@@ -137,9 +135,6 @@ Create a new file called `opencode.json` in your OpenCode config folder (`~/.con
         "gpt-oss-120b": {
           "name": "gpt-oss-120b"
         },
-        "gpt-oss-20b": {
-          "name": "gpt-oss-20b"
-        }
       }
     }
   }

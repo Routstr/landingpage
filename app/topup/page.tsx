@@ -21,7 +21,7 @@ const TopUpPage = () => {
   // Form state
   const [apiKey, setApiKey] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cashu" | "lightning">(
-    "cashu"
+    "cashu",
   );
   const [amount, setAmount] = useState("");
   const [cashuToken, setCashuToken] = useState("");
@@ -47,6 +47,7 @@ const TopUpPage = () => {
     async (key: string, providedBaseUrl?: string) => {
       // Define the base URLs to check
       const BASE_URLS = [
+        "https://api.nonkycai.com",
         "https://api.routstr.com",
         "https://ai.redsh1ft.com",
         "https://routstr.otrta.me",
@@ -97,13 +98,13 @@ const TopUpPage = () => {
               console.warn(
                 `API Key invalid for ${url}: ${
                   errorData.detail?.error?.message || "Invalid API Key"
-                }`
+                }`,
               );
             } else {
               console.error(
                 `Error fetching balance from ${url}: ${
                   errorData.detail || `Status ${response.status}`
-                }`
+                }`,
               );
             }
           }
@@ -123,7 +124,7 @@ const TopUpPage = () => {
       }
       setIsCheckingApiKeyBalance(false);
     },
-    []
+    [],
   );
   // API Key display state
   const [showFullApiKey, setShowFullApiKey] = useState(false);
@@ -257,7 +258,7 @@ const TopUpPage = () => {
     const checkPayment = async () => {
       if (attempts >= maxAttempts) {
         toast.error(
-          "Payment not received within timeout. Please check your Lightning invoice and try again."
+          "Payment not received within timeout. Please check your Lightning invoice and try again.",
         );
         return;
       }
@@ -284,7 +285,7 @@ const TopUpPage = () => {
 
           setMintedTokens(token as string);
           toast.success(
-            `Lightning payment received! ${amount} sats minted as Cashu tokens. Topping up your API key...`
+            `Lightning payment received! ${amount} sats minted as Cashu tokens. Topping up your API key...`,
           );
           setLightningInvoice(null);
 
@@ -302,7 +303,7 @@ const TopUpPage = () => {
         paymentCheckRef.current = setTimeout(checkPayment, 5000);
       } else {
         toast.error(
-          "Payment not received within timeout. Please check your Lightning invoice and try again."
+          "Payment not received within timeout. Please check your Lightning invoice and try again.",
         );
       }
     };
@@ -333,7 +334,7 @@ const TopUpPage = () => {
             return;
           }
           toast.info(
-            "Please wait for Lightning payment to complete and tokens to be minted"
+            "Please wait for Lightning payment to complete and tokens to be minted",
           );
           return;
         }
@@ -351,7 +352,7 @@ const TopUpPage = () => {
     try {
       if (!baseUrl) {
         toast.error(
-          "Base URL not determined. Please ensure your API key is valid."
+          "Base URL not determined. Please ensure your API key is valid.",
         );
         setIsProcessing(false);
         return;
@@ -359,7 +360,7 @@ const TopUpPage = () => {
 
       const response = await fetch(
         `${baseUrl}/v1/wallet/topup?cashu_token=${encodeURIComponent(
-          tokenToUse
+          tokenToUse,
         )}`,
         {
           method: "POST",
@@ -367,13 +368,13 @@ const TopUpPage = () => {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `Top up failed with status ${response.status}`
+          errorData.detail || `Top up failed with status ${response.status}`,
         );
       }
       const data = await response.json();
@@ -395,7 +396,7 @@ const TopUpPage = () => {
     } catch (err) {
       console.error("Error during top up:", err);
       toast.error(
-        err instanceof Error ? err.message : "Top up failed. Please try again."
+        err instanceof Error ? err.message : "Top up failed. Please try again.",
       );
     } finally {
       setIsProcessing(false);
@@ -421,7 +422,7 @@ const TopUpPage = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `Refund failed with status ${response.status}`
+          errorData.detail || `Refund failed with status ${response.status}`,
         );
       }
 
@@ -443,12 +444,12 @@ const TopUpPage = () => {
               amount: p.amount,
               secret: p.secret,
               C: p.C,
-            })
+            }),
           ),
         });
         setRefundedToken(token as string);
         toast.success(
-          "Refund completed successfully! Here is your Cashu token."
+          "Refund completed successfully! Here is your Cashu token.",
         );
       } else {
         toast.info("No tokens were refunded or received.");
@@ -459,7 +460,7 @@ const TopUpPage = () => {
       toast.error(
         `Error during refund: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     } finally {
       setIsRefunding(false);
@@ -762,7 +763,7 @@ const TopUpPage = () => {
                               onClick={() =>
                                 copyToClipboard(
                                   lightningInvoice.paymentRequest,
-                                  "Invoice"
+                                  "Invoice",
                                 )
                               }
                               className="text-blue-400 hover:text-blue-300"
