@@ -49,9 +49,73 @@ echo ""
 mkdir -p ~/.openclaw
 mkdir -p ~/.npm-global/lib/node_modules/openclaw/skills
 
+# Function to install jq
+install_jq() {
+    echo "jq not found. Attempting to install jq..."
+    
+    # Detect OS
+    if command -v apt-get &> /dev/null; then
+        # Debian/Ubuntu
+        if sudo apt-get update && sudo apt-get install -y jq; then
+            echo "jq installed successfully via apt-get"
+            return 0
+        fi
+    elif command -v yum &> /dev/null; then
+        # RHEL/CentOS/Fedora
+        if sudo yum install -y jq; then
+            echo "jq installed successfully via yum"
+            return 0
+        fi
+    elif command -v dnf &> /dev/null; then
+        # Fedora
+        if sudo dnf install -y jq; then
+            echo "jq installed successfully via dnf"
+            return 0
+        fi
+    elif command -v brew &> /dev/null; then
+        # macOS
+        if brew install jq; then
+            echo "jq installed successfully via brew"
+            return 0
+        fi
+    elif command -v pacman &> /dev/null; then
+        # Arch Linux
+        if sudo pacman -S --noconfirm jq; then
+            echo "jq installed successfully via pacman"
+            return 0
+        fi
+    elif command -v apk &> /dev/null; then
+        # Alpine
+        if sudo apk add jq; then
+            echo "jq installed successfully via apk"
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
 # Move or merge openclaw.json to ~/.openclaw/
 if [ -f ~/.openclaw/openclaw.json ]; then
     echo "Existing openclaw.json found, merging routstr configuration..."
+    
+    # Check for jq, try to install if not available
+    if ! command -v jq &> /dev/null; then
+        if ! install_jq; then
+            echo ""
+            echo "WARNING: Could not install jq automatically."
+            echo "Please install jq manually and re-run this script:"
+            echo "  - Ubuntu/Debian: sudo apt-get install jq"
+            echo "  - RHEL/CentOS:   sudo yum install jq"
+            echo "  - Fedora:        sudo dnf install jq"
+            echo "  - macOS:         brew install jq"
+            echo "  - Arch:          sudo pacman -S jq"
+            echo ""
+            echo "Backing up and replacing config without merging..."
+            mv ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.backup
+            mv openclaw.json ~/.openclaw/
+        fi
+    fi
     
     if command -v jq &> /dev/null; then
         # Create a temporary merged file
@@ -60,8 +124,11 @@ if [ -f ~/.openclaw/openclaw.json ]; then
         
         # Merge the routstr provider into existing config
         jq --slurpfile new "$NEW_CONFIG" '
-            # Add routstr provider to models.providers
-            .models.providers.routstr = $new[0].models.providers.routstr |
+            # Preserve existing routstr API key if present, otherwise use new one
+            .models.providers.routstr = (
+                $new[0].models.providers.routstr +
+                {apiKey: (.models.providers.routstr.apiKey // $new[0].models.providers.routstr.apiKey)}
+            ) |
             
             # Add/merge agents.defaults.models from the new config
             .agents.defaults.models = (.agents.defaults.models // {}) + $new[0].agents.defaults.models |
@@ -86,11 +153,8 @@ if [ -f ~/.openclaw/openclaw.json ]; then
         mv ~/.openclaw/openclaw.json.tmp ~/.openclaw/openclaw.json
         
         echo "Merged routstr provider and agent models into existing config"
+        echo "Preserved existing routstr API key if present"
         rm openclaw.json
-    else
-        echo "Warning: jq not available, cannot merge configs. Backing up and replacing..."
-        mv ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.backup
-        mv openclaw.json ~/.openclaw/
     fi
 else
     # No existing config, just move the new one
