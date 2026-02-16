@@ -64,6 +64,7 @@ You can obtain a Cashu token in two ways:
 3. Copy your Cashu token from the wallet
 
 Ensure you have sufficient balance for your intended usage before proceeding.
+
 ### 3. Create the Configuration File
 
 Create a new file called `opencode.json` in your OpenCode config folder (`~/.config/opencode` on Linux/macOS, `%APPDATA%\opencode` on Windows) with the following content:
@@ -90,6 +91,9 @@ Create a new file called `opencode.json` in your OpenCode config folder (`~/.con
         "gpt-5.2-pro": {
           "name": "gpt-5.2-pro"
         },
+        "glm-5": {
+          "name": "glm-5"
+        },
         "glm-4.7": {
           "name": "glm-4.7"
         },
@@ -99,8 +103,8 @@ Create a new file called `opencode.json` in your OpenCode config folder (`~/.con
         "kimi-k2.5": {
           "name": "kimi-k2.5"
         },
-        "gpt-5.1-codex": {
-          "name": "gpt-5.1-codex"
+        "gpt-5.2-codex": {
+          "name": "gpt-5.2-codex"
         },
         "claude-sonnet-4.5": {
           "name": "claude-sonnet-4.5"
@@ -111,30 +115,21 @@ Create a new file called `opencode.json` in your OpenCode config folder (`~/.con
         "grok-4.1-fast": {
           "name": "grok-4.1-fast"
         },
-        "venice-uncensored": {
-          "name": "venice-uncensored"
-        },
         "deepseek-v3.2-speciale": {
           "name": "deepseek-v3.2-speciale"
         },
         "deepseek-v3.2": {
           "name": "deepseek-v3.2"
         },
+        "minimax-m2.5": {
+          "name": "minimax-m2.1"
+        },
         "minimax-m2.1": {
           "name": "minimax-m2.1"
         },
-        "qwen3-vl-235b-a22b-thinking": {
-          "name": "qwen3-vl-235b-a22b-thinking"
-        },
-        "claude-opus-4.5": {
-          "name": "claude-opus-4.5"
-        },
-        "gpt-5-mini": {
-          "name": "gpt-5-mini"
-        },
-        "gpt-oss-120b": {
-          "name": "gpt-oss-120b"
-        },
+        "claude-opus-4.6": {
+          "name": "claude-opus-4.6"
+        }
       }
     }
   }
