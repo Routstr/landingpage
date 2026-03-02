@@ -44,6 +44,51 @@ export function Globe({ className }: { className?: string }) {
   const [isHoveringTooltip, setIsHoveringTooltip] = useState(false);
   const [mobileRotationLocked, setMobileRotationLocked] = useState(false);
   const hideTimeoutRef = useRef<TimeoutHandle | null>(null);
+  const suppressNextGlobeClickRef = useRef(false);
+
+  const buildTooltipProvider = (point: ProviderPoint): GlobeTooltipProvider => ({
+    ...point,
+    type: "Routstr Node",
+    status: "online",
+    endpoints: { http: [], tor: [] },
+    models: [],
+    mints: point.mints ?? [],
+    version: "",
+  });
+
+  const getEventClientPosition = (
+    event: unknown
+  ): { x: number; y: number } | null => {
+    if (!event || typeof event !== "object") return null;
+    const eventRecord = event as Record<string, unknown>;
+    const clientX = eventRecord.clientX;
+    const clientY = eventRecord.clientY;
+    if (typeof clientX === "number" && typeof clientY === "number") {
+      return { x: clientX, y: clientY };
+    }
+
+    const touches = eventRecord.touches as
+      | { length: number; [index: number]: { clientX: number; clientY: number } }
+      | undefined;
+    if (touches && touches.length > 0) {
+      const first = touches[0];
+      if (typeof first?.clientX === "number" && typeof first?.clientY === "number") {
+        return { x: first.clientX, y: first.clientY };
+      }
+    }
+
+    const changedTouches = eventRecord.changedTouches as
+      | { length: number; [index: number]: { clientX: number; clientY: number } }
+      | undefined;
+    if (changedTouches && changedTouches.length > 0) {
+      const first = changedTouches[0];
+      if (typeof first?.clientX === "number" && typeof first?.clientY === "number") {
+        return { x: first.clientX, y: first.clientY };
+      }
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -150,6 +195,13 @@ export function Globe({ className }: { className?: string }) {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
       if (target && containerRef.current?.contains(target)) return;
+      if (
+        target &&
+        target instanceof Element &&
+        target.closest("[data-globe-tooltip='true']")
+      ) {
+        return;
+      }
       setMobileRotationLocked(false);
       setSelectedProvider(null);
       setSelectedPos(null);
@@ -216,15 +268,7 @@ export function Globe({ className }: { className?: string }) {
           if (isMobile) return;
           clearHideTimeout();
           if (isProviderPoint(p)) {
-            setSelectedProvider({
-              ...p,
-              type: 'Routstr Node',
-              status: 'online',
-              endpoints: { http: [], tor: [] },
-              models: [],
-              mints: p.mints ?? [],
-              version: ''
-            });
+            setSelectedProvider(buildTooltipProvider(p));
             setSelectedPos({ x: mousePos.x, y: mousePos.y });
             if (globeRef.current) globeRef.current.controls().autoRotate = false;
           } else {
@@ -239,7 +283,31 @@ export function Globe({ className }: { className?: string }) {
             }, 250);
           }
         }}
+        onPointClick={(p: unknown, event: unknown) => {
+          if (!isProviderPoint(p)) return;
+
+          suppressNextGlobeClickRef.current = true;
+          requestAnimationFrame(() => {
+            suppressNextGlobeClickRef.current = false;
+          });
+
+          clearHideTimeout();
+          setSelectedProvider(buildTooltipProvider(p));
+
+          const eventPos = getEventClientPosition(event);
+          if (eventPos) {
+            setSelectedPos(eventPos);
+          } else {
+            setSelectedPos({ x: mousePos.x, y: mousePos.y });
+          }
+
+          if (isMobile) {
+            setMobileRotationLocked(true);
+          }
+          if (globeRef.current) globeRef.current.controls().autoRotate = false;
+        }}
         onGlobeClick={() => {
+          if (suppressNextGlobeClickRef.current) return;
           setSelectedProvider(null);
           setSelectedPos(null);
           if (isMobile) {
