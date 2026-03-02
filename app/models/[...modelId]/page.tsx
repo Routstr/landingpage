@@ -187,6 +187,7 @@ export default function ModelDetailPage() {
 
   const provider = getProviderFromModelName(model.name);
   const displayName = getModelNameWithoutProvider(model.name);
+  const chatModelId = model.id.split("/").pop() || model.id;
   const selectedProvider = providersWithPricing.find((p) => p.provider.id === selectedProviderId)?.provider || providersWithPricing[0]?.provider;
   const providerBaseUrl = selectedProvider?.endpoint_url ? (selectedProvider.endpoint_url.endsWith("/v1") ? selectedProvider.endpoint_url : `${selectedProvider.endpoint_url.replace(/\/$/, "")}/v1`) : "";
 
@@ -241,7 +242,7 @@ export default function ModelDetailPage() {
               </div>
             </div>
             <Button asChild className="w-full sm:w-auto">
-              <Link href={`https://chat.routstr.com/?model=${encodeURIComponent(model.id)}`} target="_blank" rel="noopener noreferrer">
+              <Link href={`https://chat.routstr.com/?model=${encodeURIComponent(chatModelId)}`} target="_blank" rel="noopener noreferrer">
                 Try model
                 <ArrowUpRight className="size-4" />
               </Link>
