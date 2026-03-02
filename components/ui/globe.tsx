@@ -2,17 +2,24 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import {
-  fetchProvidersList,
-  isOnionOnlyProvider,
-  isProviderVisible,
-} from "@/lib/api/providers";
 import GlobeTooltip, { type GlobeTooltipProvider } from "../client/GlobeTooltip";
 import type { GlobeMethods } from "react-globe.gl";
 import dynamic from "next/dynamic";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  fetchProviderPointsFromApiRoute,
+  fetchProviderPointsFromEndpointIpProgressive,
+} from "@/lib/globe/provider-points-client";
+import {
+  isProviderPoint,
+  mergeProviderPoints,
+  type ProviderPoint,
+} from "@/lib/globe/provider-points";
 
 const GlobeComp = dynamic(() => import("react-globe.gl"), { ssr: false });
+const POINT_FETCH_DELAY_MS = 200;
+const POINT_FETCH_CONCURRENCY = 4;
+type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
   const res = await fetch(
@@ -21,54 +28,8 @@ async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unkno
   return res.json();
 }
 
-type Provider = {
-  id: string;
-  name: string;
-  endpoint_url: string;
-  endpoint_urls?: string[];
-  mint_urls?: string[];
-  description?: string;
-  created_at?: number;
-};
-
-type ProviderPoint = {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  description?: string;
-  createdAt?: number;
-  mints?: string[];
-};
-
-function isProviderPoint(value: unknown): value is ProviderPoint {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Record<string, unknown>;
-  return (
-    typeof candidate.id === "string" &&
-    typeof candidate.name === "string" &&
-    typeof candidate.lat === "number" &&
-    typeof candidate.lng === "number"
-  );
-}
-
-function hashToCoords(input: string): { lat: number; lng: number } {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0;
-  }
-  const rng = (n: number) => {
-    return ((hash ^ (n * 2654435761)) >>> 0) / 2 ** 32;
-  };
-  const lat = -60 + rng(1) * 120;
-  const lng = -180 + rng(2) * 360;
-  return { lat, lng };
-}
-
 export function Globe({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const isMobile = useIsMobile();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,48 +43,57 @@ export function Globe({ className }: { className?: string }) {
   
   const [isHoveringTooltip, setIsHoveringTooltip] = useState(false);
   const [mobileRotationLocked, setMobileRotationLocked] = useState(false);
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<TimeoutHandle | null>(null);
 
   useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
+    let pointsFetchTimer: TimeoutHandle | null = null;
     setMounted(true);
     const updateSize = () => {
       const width = window.innerWidth;
-      const targetSize = Math.min(width - 48, 1200); 
+      const targetSize = Math.min(width - 48, 1200);
       setSize(targetSize);
     };
     updateSize();
     window.addEventListener("resize", updateSize);
-    
-    fetchCountriesGeoJson().then((geo) => setHexData(geo.features));
-    
-    fetchProvidersList()
-      .then((providers: Provider[]) => {
+
+    void fetchCountriesGeoJson()
+      .then((geo) => {
         if (!isMounted) return;
-        const mapped = providers
-          .filter((provider) => isProviderVisible(provider))
-          .filter((provider) => !isOnionOnlyProvider(provider))
-          .map((provider) => {
-            const coords = hashToCoords(provider.id);
-            return {
-              id: provider.id,
-              name: provider.name,
-              lat: coords.lat,
-              lng: coords.lng,
-              description: provider.description,
-              createdAt: provider.created_at,
-              mints: provider.mint_urls,
-            };
-          });
-        setPoints(mapped);
+        setHexData(geo.features);
       })
       .catch(() => {
         if (!isMounted) return;
-        setPoints([]);
+        setHexData([]);
       });
+
+    void fetchProviderPointsFromApiRoute()
+      .then((apiPoints) => {
+        if (!isMounted || apiPoints.length === 0) return;
+        setPoints((prev) => mergeProviderPoints(prev, apiPoints));
+      })
+      .catch(() => {
+        // Progressive fallback continues below.
+      });
+
+    // Defer point geolocation work so the globe itself paints first.
+    pointsFetchTimer = setTimeout(() => {
+      void fetchProviderPointsFromEndpointIpProgressive(
+        (point) => {
+          if (!isMounted) return;
+          setPoints((prev) => mergeProviderPoints(prev, [point]));
+        },
+        { signal: abortController.signal, concurrency: POINT_FETCH_CONCURRENCY }
+      ).catch(() => {
+        // Ignore fallback failures and keep any points already plotted.
+      });
+    }, POINT_FETCH_DELAY_MS);
 
     return () => {
       isMounted = false;
+      abortController.abort();
+      if (pointsFetchTimer) clearTimeout(pointsFetchTimer);
       window.removeEventListener("resize", updateSize);
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     };
@@ -149,11 +119,10 @@ export function Globe({ className }: { className?: string }) {
           globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.8 }, 0);
           controls.update();
           
-          // Re-enable damping after snap and set as ready
+          // Re-enable damping after snap
           setTimeout(() => {
             if (globeRef.current) {
               globeRef.current.controls().enableDamping = true;
-              setIsReady(true);
             }
           }, 100);
         }
@@ -209,7 +178,7 @@ export function Globe({ className }: { className?: string }) {
   return (
     <div 
       ref={containerRef}
-      className={`${className} transition-opacity duration-1000 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+      className={className}
       onMouseMove={(e) => {
         setMousePos({ x: e.clientX, y: e.clientY });
       }}

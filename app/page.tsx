@@ -6,6 +6,7 @@ import { LandingHowItWorks } from "@/components/landing/HowItWorks";
 import { LandingBrowseModels } from "@/components/landing/BrowseModels";
 import { LandingTestimonials } from "@/components/landing/Testimonials";
 import { LandingApiExample } from "@/components/landing/ApiExample";
+import { LandingProducts } from "@/components/landing/Products";
 import { LandingCTA } from "@/components/landing/CTA";
 
 export default function Home() {
@@ -14,6 +15,7 @@ export default function Home() {
       <LandingHero />
       <LandingFeatures />
       <LandingHowItWorks />
+      <LandingProducts />
       <LandingApiExample />
       <LandingBrowseModels />
       <LandingTestimonials />

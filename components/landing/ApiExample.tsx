@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { getExampleModelId } from "@/app/data/models";
-import { useModels } from "@/app/contexts/ModelsContext";
 import { getLocalCashuToken, setLocalCashuToken } from "@/utils/storageUtils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,19 +58,6 @@ print(completion.choices[0].message.content)`,
 
 type CodeLanguage = "curl" | "javascript" | "python";
 
-function getMinimumSatsRequired(model: {
-  sats_pricing?: { request?: number; max_cost?: number };
-} | null): number | null {
-  if (!model?.sats_pricing) return null;
-  const requestCost = Number(model.sats_pricing.request ?? 0);
-  const maxCost = Number(model.sats_pricing.max_cost ?? 0);
-  const candidates = [requestCost, maxCost].filter(
-    (value) => Number.isFinite(value) && value > 0
-  );
-  if (candidates.length === 0) return null;
-  return Math.max(...candidates);
-}
-
 const syntaxTokenClasses = {
   command: "text-[#4FC1FF]",
   keyword: "text-[#C586C0]",
@@ -94,13 +80,9 @@ function Tok({
 }
 
 export function LandingApiExample() {
-  const { findModel } = useModels();
   const [activeTab, setActiveTab] = useState<CodeLanguage>("curl");
   const [tokenInput, setTokenInput] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [runError, setRunError] = useState<string | null>(null);
-  const [runOutput, setRunOutput] = useState<string | null>(null);
 
   const STORAGE_BASE_URL = "https://api.routstr.com";
 
@@ -115,11 +97,6 @@ export function LandingApiExample() {
     () => buildCodeExamples(tokenInput),
     [tokenInput]
   );
-  const exampleModel = useMemo(() => findModel(exampleModelId), [findModel]);
-  const minimumSatsRequired = useMemo(
-    () => getMinimumSatsRequired(exampleModel ?? null),
-    [exampleModel]
-  );
 
   const doCopy = async () => {
     try {
@@ -127,100 +104,6 @@ export function LandingApiExample() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {}
-  };
-
-  const runExample = async () => {
-    const trimmedToken = tokenInput.trim();
-    if (!trimmedToken) {
-      setRunOutput(null);
-      setRunError("Add your Cashu token first.");
-      return;
-    }
-
-    setIsRunning(true);
-    setRunError(null);
-    setRunOutput(null);
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-
-    try {
-      const response = await fetch("https://api.routstr.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${trimmedToken}`,
-        },
-        body: JSON.stringify({
-          model: exampleModelId,
-          messages: [{ role: "user", content: "Hello Nostr" }],
-        }),
-        signal: controller.signal,
-      });
-
-      const raw = await response.text();
-      let parsed: unknown = null;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        parsed = raw;
-      }
-
-      if (!response.ok) {
-        const parsedRecord =
-          typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-            ? (parsed as Record<string, unknown>)
-            : null;
-        const message =
-          (parsedRecord?.error as Record<string, unknown> | undefined)?.message ??
-          parsedRecord?.message;
-        const errorMessage =
-          typeof message === "string" && message.trim().length > 0
-            ? message
-            : response.statusText || "Request failed";
-        setRunError(`${response.status} ${errorMessage}`);
-        return;
-      }
-
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        const parsedRecord = parsed as Record<string, unknown>;
-        const choices = Array.isArray(parsedRecord.choices) ? parsedRecord.choices : [];
-        const firstChoice =
-          choices.length > 0 &&
-          typeof choices[0] === "object" &&
-          choices[0] !== null &&
-          !Array.isArray(choices[0])
-            ? (choices[0] as Record<string, unknown>)
-            : null;
-        const messageRecord =
-          firstChoice &&
-          typeof firstChoice.message === "object" &&
-          firstChoice.message !== null &&
-          !Array.isArray(firstChoice.message)
-            ? (firstChoice.message as Record<string, unknown>)
-            : null;
-        const content = messageRecord?.content;
-        if (typeof content === "string" && content.trim().length > 0) {
-          setRunOutput(content);
-          return;
-        }
-        setRunOutput(JSON.stringify(parsedRecord, null, 2));
-        return;
-      }
-
-      setRunOutput(typeof parsed === "string" ? parsed : "Request completed.");
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        setRunError("Request timed out.");
-      } else if (error instanceof Error) {
-        setRunError(error.message || "Request failed.");
-      } else {
-        setRunError("Request failed.");
-      }
-    } finally {
-      clearTimeout(timeout);
-      setIsRunning(false);
-    }
   };
 
   return (
@@ -267,15 +150,6 @@ export function LandingApiExample() {
                 </TabsList>
               </Tabs>
               <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                <Button
-                  onClick={runExample}
-                  variant="outline"
-                  size="xs"
-                  className="h-7 text-[10px]"
-                  disabled={isRunning}
-                >
-                  {isRunning ? "Running..." : "Run"}
-                </Button>
                 <Button onClick={doCopy} variant="ghost" size="xs" className="h-7 text-[10px]">
                   {copied ? "Copied" : "Copy"}
                 </Button>
@@ -290,25 +164,6 @@ export function LandingApiExample() {
                   setLocalCashuToken(STORAGE_BASE_URL, tokenInput || "")
                 }
               />
-              <p className="mt-4 text-[10px] text-muted-foreground">
-                Minimum sats required:{" "}
-                <span className="text-foreground">
-                  {minimumSatsRequired === null
-                    ? "—"
-                    : minimumSatsRequired.toLocaleString(undefined, {
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                  sats
-                </span>
-              </p>
-              {runError ? (
-                <p className="mt-4 text-xs text-destructive">{runError}</p>
-              ) : null}
-              {runOutput ? (
-                <pre className="mt-4 max-h-44 overflow-auto border border-border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">
-                  <code>{runOutput}</code>
-                </pre>
-              ) : null}
             </div>
           </div>
         </div>
