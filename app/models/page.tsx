@@ -27,6 +27,11 @@ export default function ModelsPage() {
   >({});
   const [isLoading, setIsLoading] = useState(true);
 
+  const isUnknownProvider = (name: string) => {
+    const normalized = name.trim().toLowerCase();
+    return normalized === "unknown" || normalized.startsWith("unknown ");
+  };
+
   const normalizeCreated = (value: number | undefined) => {
     if (!value || !Number.isFinite(value)) return 0;
     // Accept both seconds and milliseconds timestamps.
@@ -77,7 +82,14 @@ export default function ModelsPage() {
                 next[model.name] = [
                   ...existing,
                   { name: modelProviderName, price },
-                ].sort((a, b) => a.price - b.price);
+                ].sort((a, b) => {
+                  const aUnknown = isUnknownProvider(a.name);
+                  const bUnknown = isUnknownProvider(b.name);
+                  if (aUnknown !== bUnknown) {
+                    return aUnknown ? 1 : -1;
+                  }
+                  return a.price - b.price;
+                });
               }
             }
             return next;
@@ -104,6 +116,22 @@ export default function ModelsPage() {
       return matchesSearch;
     })
     .sort((a, b) => {
+      const providersA = modelProvidersKV[a.name] || [
+        { name: getProviderFromModelName(a.name), price: 0 },
+      ];
+      const providersB = modelProvidersKV[b.name] || [
+        { name: getProviderFromModelName(b.name), price: 0 },
+      ];
+      const providerAUnknown = providersA.every((provider) =>
+        isUnknownProvider(provider.name)
+      );
+      const providerBUnknown = providersB.every((provider) =>
+        isUnknownProvider(provider.name)
+      );
+      if (providerAUnknown !== providerBUnknown) {
+        return providerAUnknown ? 1 : -1;
+      }
+
       let comparison = 0;
       switch (sortConfig.key) {
         case "name":
@@ -234,9 +262,16 @@ export default function ModelsPage() {
               ))
             ) : filteredModels.length > 0 ? (
               filteredModels.map((model, index) => {
-                const providersData = modelProvidersKV[model.name] || [
+                const providersData = (modelProvidersKV[model.name] || [
                   { name: getProviderFromModelName(model.name), price: 0 },
-                ];
+                ]).sort((a, b) => {
+                  const aUnknown = isUnknownProvider(a.name);
+                  const bUnknown = isUnknownProvider(b.name);
+                  if (aUnknown !== bUnknown) {
+                    return aUnknown ? 1 : -1;
+                  }
+                  return a.price - b.price;
+                });
                 
                 let displayedProviders = "";
                 if (providersData.length <= 2) {

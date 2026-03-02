@@ -73,6 +73,11 @@ export interface Provider {
   content: string;
 }
 
+function isUnknownProviderName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return normalized === "unknown" || normalized.startsWith("unknown ");
+}
+
 // Initial state with empty data
 export let models: Model[] = [];
 export let providers: Provider[] = [];
@@ -432,13 +437,20 @@ export function getPopularModels(
   count: number = 6,
   sourceModels: Model[] = models
 ): Model[] {
-  // Sort by created date (newest first) and return top N
+  // Sort by created date (newest first), but keep Unknown providers at the end.
   return [...sourceModels]
-    .sort(
-      (a, b) =>
-        // Prioritize newest models
-        b.created - a.created
-    )
+    .sort((a, b) => {
+      const providerA =
+        getPrimaryProviderForModel(a.id)?.name ?? getProviderFromModelName(a.name);
+      const providerB =
+        getPrimaryProviderForModel(b.id)?.name ?? getProviderFromModelName(b.name);
+      const aUnknown = isUnknownProviderName(providerA);
+      const bUnknown = isUnknownProviderName(providerB);
+      if (aUnknown !== bUnknown) {
+        return aUnknown ? 1 : -1;
+      }
+      return b.created - a.created;
+    })
     .slice(0, count);
 }
 
