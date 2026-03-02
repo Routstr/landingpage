@@ -110,10 +110,24 @@ function getSeriesColor(model: string, index: number): string {
   return `hsl(${hue} 70% 56%)`;
 }
 
-function formatTooltipTimestamp(label: string): string {
+function formatTooltipTimestamp(
+  label: string,
+  intervalMinutes: number,
+  hoursBack: number
+): string {
   const date = parseBucketDate(label);
   if (!date) {
     return label;
+  }
+  const shouldShowTime = intervalMinutes <= 6 * 60 || hoursBack <= 48;
+  if (shouldShowTime) {
+    return date.toLocaleString([], {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   return date.toLocaleString([], {
     month: "long",
@@ -124,11 +138,37 @@ function formatTooltipTimestamp(label: string): string {
 
 function formatAxisTimestamp(
   timestamp: string,
-  hasMultipleDays: boolean
+  hasMultipleDays: boolean,
+  intervalMinutes: number,
+  hoursBack: number
 ): string {
   const date = parseBucketDate(timestamp);
   if (!date) {
     return "";
+  }
+
+  const shouldShowTime = intervalMinutes <= 6 * 60 || hoursBack <= 48;
+  if (shouldShowTime && hasMultipleDays) {
+    return date.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  if (shouldShowTime) {
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  if (intervalMinutes >= 24 * 60 && hoursBack >= 24 * 180) {
+    return date.toLocaleDateString([], {
+      month: "short",
+      year: "2-digit",
+    });
   }
 
   if (hasMultipleDays) {
@@ -560,7 +600,12 @@ export function TopModelsUsageChart({
                 minTickGap={isMobile ? 14 : 24}
                 tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
                 tickFormatter={(value) =>
-                  formatAxisTimestamp(String(value), hasMultipleDays)
+                  formatAxisTimestamp(
+                    String(value),
+                    hasMultipleDays,
+                    mix.interval_minutes,
+                    mix.hours_back
+                  )
                 }
               />
               <YAxis
@@ -604,7 +649,11 @@ export function TopModelsUsageChart({
                   return (
                     <div className="min-w-[200px] rounded-md border border-border bg-card px-2 py-1.5 text-[11px] shadow-none">
                       <p className="mb-1.5 text-xs font-medium text-foreground">
-                        {formatTooltipTimestamp(String(label || ""))}
+                        {formatTooltipTimestamp(
+                          String(label || ""),
+                          mix.interval_minutes,
+                          mix.hours_back
+                        )}
                       </p>
                       <div className="space-y-1">
                         {rows.map((row) => (
