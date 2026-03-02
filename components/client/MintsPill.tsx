@@ -3,27 +3,11 @@
 import { useMemo, useState } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { Check, ChevronDown, Copy } from 'lucide-react';
 
 export interface MintsPillProps {
   label?: string;
   mints: readonly string[];
-}
-
-function MintIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-white/80">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75h15a2.25 2.25 0 0 0 2.25-2.25V9.75m-17.25 9V8.25A2.25 2.25 0 0 1 4.5 6h15M6 13.5a3 3 0 1 0 6 0 3 3 0 0 0-6 0z" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-    </svg>
-  );
 }
 
 export function MintsPill({ label = 'Mints', mints }: MintsPillProps) {
@@ -45,39 +29,35 @@ export function MintsPill({ label = 'Mints', mints }: MintsPillProps) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex w-full sm:inline-flex sm:w-auto items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm min-w-0"
+          className="flex w-full items-center gap-2.5 text-xs sm:w-auto"
           aria-label={`Show ${label.toLowerCase()}`}
         >
-          <MintIcon />
-          <span className="text-gray-400 shrink-0">{label}:</span>
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <span className="text-white truncate font-mono block" title={preview}>
-              {mints.length === 1 ? preview : `${mints.length} available`}
-            </span>
-          </div>
+          <p className="min-w-[3.75rem] shrink-0 text-[10px] tracking-[0.04em] text-muted-foreground sm:min-w-[4.75rem]">{label}</p>
+          <p className="min-w-0 truncate text-muted-foreground transition-colors hover:text-foreground" title={preview}>
+            {mints.length === 1 ? preview : `${mints.length} mints`}
+          </p>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-96 max-w-[90vw]">
+      <PopoverContent align="start" className="w-[26rem] max-w-[92vw] border-border bg-background p-2 font-mono">
         <div className="space-y-2">
-          <div className="text-sm text-gray-300">Select a mint URL to copy</div>
-          <ul className="space-y-2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Mint URLs</div>
+          <ul className="divide-y divide-border/70">
             {mints.map((url, idx) => (
-              <li key={`${url}-${idx}`} className="flex items-center gap-2">
-                <span className="flex-1 truncate font-mono text-sm" title={url}>{url}</span>
+              <li key={`${url}-${idx}`} className="flex items-center gap-2 py-1.5 first:pt-0">
+                <span className="flex-1 truncate text-xs text-muted-foreground" title={url}>{url}</span>
                 <Button
                   type="button"
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 w-8 p-0 rounded-full shrink-0 leading-none"
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
                   onClick={() => handleCopy(url, idx)}
                   title={copiedIndex === idx ? 'Copied' : 'Copy URL'}
                 >
                   {copiedIndex === idx ? (
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-emerald-400">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
                   ) : (
-                    <CopyIcon />
+                    <Copy className="h-3.5 w-3.5" />
                   )}
                 </Button>
               </li>
@@ -90,5 +70,3 @@ export function MintsPill({ label = 'Mints', mints }: MintsPillProps) {
 }
 
 export default MintsPill;
-
-

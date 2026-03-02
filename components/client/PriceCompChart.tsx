@@ -7,30 +7,28 @@ export interface PriceData {
   providerName: string;
   promptPrice: number;
   completionPrice: number;
-  // Prices in sats/1M tokens usually, but just passed as raw numbers
-  // We can normalize them for the bar width
 }
 
 interface PriceCompChartProps {
   data: PriceData[];
   currencyLabel?: string;
+  unitSuffix?: string;
   className?: string;
 }
 
 export function PriceCompChart({
   data,
   currencyLabel = "sats / 1M tokens",
+  unitSuffix = "",
   className = "",
 }: PriceCompChartProps) {
-  // Determine max value for sealing bars
   const maxValue = useMemo(() => {
     return Math.max(
       ...data.map((d) => Math.max(d.promptPrice, d.completionPrice)),
-      0.000001 // prevent div by zero
+      0.000001
     );
   }, [data]);
 
-  // Sort by lowest total price (cheapest first)
   const sortedData = useMemo(() => {
     return [...data].sort(
       (a, b) =>
@@ -39,15 +37,14 @@ export function PriceCompChart({
   }, [data]);
 
   return (
-    <div className={`w-full overflow-hidden ${className}`}>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-white">Price Comparison</h3>
-        <span className="text-xs text-gray-400 uppercase tracking-wider">
-          {currencyLabel}
-        </span>
-      </div>
+    <div className={`w-full overflow-hidden font-mono ${className}`}>
+      {currencyLabel ? (
+        <div className="mb-4 flex justify-end">
+          <span className="text-[10px] text-muted-foreground">{currencyLabel}</span>
+        </div>
+      ) : null}
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col border-t border-border/30">
         {sortedData.map((d, index) => {
           const promptPercent = (d.promptPrice / maxValue) * 100;
           const completionPercent = (d.completionPrice / maxValue) * 100;
@@ -55,37 +52,36 @@ export function PriceCompChart({
           return (
             <div
               key={d.providerName}
-              className="bg-white/5 border border-white/10 rounded-lg p-3 sm:p-4"
+              className="py-6 border-b border-border/30 group"
             >
-              <div className="flex justify-between items-end mb-2">
-                <span className="font-medium text-white">{d.providerName}</span>
+              <div className="flex justify-between items-baseline mb-4">
+                <span className="max-w-[60vw] truncate text-sm font-bold text-foreground sm:max-w-none">
+                  {d.providerName}
+                </span>
               </div>
 
-              {/* Bars container */}
-              <div className="space-y-2">
-                {/* Prompt Price Bar */}
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="w-16 text-gray-500 shrink-0">Input</span>
-                  <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 text-[10px]">
+                  <span className="w-12 text-muted-foreground shrink-0">input</span>
+                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${Math.max(promptPercent, 1)}%` }} // Ensure at least a sliver
+                      animate={{ width: `${Math.max(promptPercent, 1)}%` }}
                       transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="h-full bg-emerald-500/80 rounded-full"
+                      className="h-full rounded-full bg-primary"
                     />
                   </div>
-                  <span className="w-24 text-right text-gray-300 tabular-nums">
+                  <span className="w-20 text-right text-muted-foreground tabular-nums font-mono">
                     {d.promptPrice.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })}
+                    })}{unitSuffix ? ` ${unitSuffix}` : ""}
                   </span>
                 </div>
 
-                {/* Completion Price Bar */}
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="w-16 text-gray-500 shrink-0">Output</span>
-                  <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div className="flex items-center gap-4 text-[10px]">
+                  <span className="w-12 text-muted-foreground shrink-0">output</span>
+                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.max(completionPercent, 1)}%` }}
@@ -93,14 +89,14 @@ export function PriceCompChart({
                         duration: 0.5,
                         delay: index * 0.1 + 0.1,
                       }}
-                      className="h-full bg-blue-500/80 rounded-full"
+                      className="h-full rounded-full bg-muted-foreground"
                     />
                   </div>
-                  <span className="w-24 text-right text-gray-300 tabular-nums">
+                  <span className="w-20 text-right text-muted-foreground tabular-nums font-mono">
                     {d.completionPrice.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })}
+                    })}{unitSuffix ? ` ${unitSuffix}` : ""}
                   </span>
                 </div>
               </div>

@@ -9,7 +9,6 @@ import Footer from "@/components/Footer";
 import { InfoPill } from "@/components/client/InfoPill";
 import { MintsPill } from "@/components/client/MintsPill";
 import { usePricingView } from "@/app/contexts/PricingContext";
-import { CurrencyTabs } from "@/components/ui/currency-tabs";
 import {
   fetchModels,
   getProviderById,
@@ -21,17 +20,15 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProviderReviews } from "@/components/ProviderReviews";
 import { formatPublicKey } from "@/lib/nostr";
+import { ArrowLeft, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function ProviderPage() {
   const { currency } = usePricingView();
+  const priceUnit = currency === "sats" ? "sats/m" : "usd/m";
   const params = useParams();
   const providerId = (() => {
     const raw = (params?.id as string) || "";
-    try {
-      return decodeURIComponent(raw);
-    } catch {
-      return raw;
-    }
+    try { return decodeURIComponent(raw); } catch { return raw; }
   })();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -40,15 +37,12 @@ export default function ProviderPage() {
   const [sort, setSort] = useState<{
     key: "name" | "price" | "context" | "created";
     direction: "asc" | "desc";
-  }>({ key: "price", direction: "asc" });
+  }>({ key: "created", direction: "desc" });
 
   function requestSort(nextKey: "name" | "price" | "context" | "created") {
     setSort((prev) => {
       if (prev.key === nextKey) {
-        return {
-          key: nextKey,
-          direction: prev.direction === "asc" ? "desc" : "asc",
-        };
+        return { key: nextKey, direction: prev.direction === "asc" ? "desc" : "asc" };
       }
       return { key: nextKey, direction: "asc" };
     });
@@ -59,88 +53,27 @@ export default function ProviderPage() {
     const copy = [...providerModels];
     copy.sort((a, b) => {
       const direction = sort.direction === "asc" ? 1 : -1;
-      if (sort.key === "name") {
-        return a.name.localeCompare(b.name) * direction;
-      }
+      if (sort.key === "name") return a.name.localeCompare(b.name) * direction;
       if (sort.key === "price") {
-        const aVal =
-          currency === "sats"
-            ? a.sats_pricing?.completion ?? 0
-            : a.pricing?.completion ?? 0;
-        const bVal =
-          currency === "sats"
-            ? b.sats_pricing?.completion ?? 0
-            : b.pricing?.completion ?? 0;
+        const aVal = currency === "sats" ? a.sats_pricing?.completion ?? 0 : a.pricing?.completion ?? 0;
+        const bVal = currency === "sats" ? b.sats_pricing?.completion ?? 0 : b.pricing?.completion ?? 0;
         return (aVal - bVal) * direction;
       }
-      if (sort.key === "context") {
-        return (a.context_length - b.context_length) * direction;
-      }
-      // created
+      if (sort.key === "context") return (a.context_length - b.context_length) * direction;
       return (a.created - b.created) * direction;
     });
     return copy;
   }, [providerModels, sort, currency]);
 
-  function SortIcon({
-    active,
-    direction,
-  }: {
-    active: boolean;
-    direction: "asc" | "desc";
-  }) {
-    return (
-      <span
-        aria-hidden
-        className="ml-1 inline-block align-middle text-white/50"
-      >
-        {active ? (
-          direction === "asc" ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-3.5 w-3.5"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 3a1 1 0 01.832.445l4 6a1 1 0 11-1.664 1.11L10 5.882 6.832 10.555a1 1 0 11-1.664-1.11l4-6A1 1 0 0110 3z"
-                clipRule="evenodd"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-3.5 w-3.5"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 17a1 1 0 01-.832-.445l-4-6a1 1 0 111.664-1.11L10 14.118l3.168-4.673a1 1 0 111.664 1.11l-4 6A1 1 0 0110 17z"
-                clipRule="evenodd"
-              />
-            </svg>
-          )
-        ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="h-3.5 w-3.5 opacity-50"
-          >
-            <path d="M10 3l4 6H6l4-6zM6 11h8l-4 6-4-6z" />
-          </svg>
-        )}
-      </span>
-    );
+  function SortIcon({ column }: { column: "name" | "price" | "context" | "created" }) {
+    if (sort.key !== column) return <ChevronsUpDown className="ml-1 h-3 w-3 opacity-30" />;
+    return sort.direction === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />;
   }
 
   useEffect(() => {
     let isActive = true;
     async function load() {
       setIsLoading(true);
-      // Try existing in-memory data first
       let p = getProviderById(providerId);
       if (!p) {
         await fetchModels();
@@ -152,25 +85,17 @@ export default function ProviderPage() {
       setIsLoading(false);
     }
     if (providerId) load();
-    return () => {
-      isActive = false;
-    };
+    return () => { isActive = false; };
   }, [providerId]);
 
   if (!isLoading && !provider) {
     return (
-      <div className="flex min-h-screen flex-col bg-black text-white">
+      <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
         <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Provider Not Found</h1>
-            <p className="text-gray-400 mb-6">
-              The provider you&#39;re looking for doesn&#39;t exist.
-            </p>
-            <Link href="/providers" className="text-white hover:text-gray-300">
-              ← Back to providers
-            </Link>
-          </div>
+        <main className="flex-grow flex flex-col items-start justify-center px-6 md:px-12 max-w-5xl mx-auto w-full text-left">
+          <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Provider Not Found</h1>
+          <p className="text-muted-foreground mb-8">The provider you&#39;re looking for doesn&#39;t exist.</p>
+          <Link href="/providers" className="text-foreground hover:underline underline-offset-4">Back to providers</Link>
         </main>
         <Footer />
       </div>
@@ -180,300 +105,141 @@ export default function ProviderPage() {
   const features = provider ? getProviderFeatures(provider) : [];
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
+    <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
       <Header />
-      <main className="flex-grow">
-        <div className="pt-8 sm:pt-12 pb-12 border-b border-white/5">
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center mb-6">
-                <BackButton
-                  fallbackHref="/providers"
-                  className="text-gray-400 hover:text-white mr-4 flex items-center"
-                  ariaLabel="Go back"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-5 h-5 mr-1"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-                    />
-                  </svg>
-                  Back
-                </BackButton>
+      <main className="flex-grow py-12 md:py-20">
+        <div className="max-w-5xl mx-auto px-6 md:px-12">
+          <BackButton fallbackHref="/providers" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-12">
+            <ArrowLeft className="w-3 h-3" /> Back to Providers
+          </BackButton>
+
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-16">
+            <div className="flex-1">
+              <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">
+                {isLoading ? <Skeleton className="h-10 w-64 bg-border" /> : provider?.name}
+              </h1>
+              {isLoading ? (
+                <div className="mb-8">
+                  <Skeleton className="h-4 w-full bg-border" />
+                </div>
+              ) : (
+                <p className="text-base md:text-lg text-muted-foreground font-light leading-relaxed mb-8">
+                  {provider?.description}
+                </p>
+              )}
+              
+              {!isLoading && (
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {features.map((feature, index) => (
+                    <span key={index} className="px-2 py-0.5 rounded bg-muted border border-border text-[10px] text-muted-foreground">
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col items-start gap-y-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-3">
+                {isLoading ? (
+                  <Skeleton className="h-10 w-full bg-border" />
+                ) : (
+                  provider && (
+                    <>
+                      <InfoPill label="Endpoint" value={provider.endpoint_url} />
+                      {(() => {
+                        const urls = provider.mint_urls && provider.mint_urls.length > 0 ? provider.mint_urls : provider.mint_url ? [provider.mint_url] : [];
+                        return urls.length > 0 ? <MintsPill mints={urls} /> : null;
+                      })()}
+                    </>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col mt-20">
+            <div className="flex items-center justify-between gap-3 mb-8">
+              <h2 className="text-xl font-bold text-white">Models</h2>
+            </div>
+
+            <div className="flex flex-col">
+              <div className="grid grid-cols-12 gap-4 py-3 border-b border-border bg-card/50 px-4 text-[10px] font-bold text-muted-foreground">
+                <div className="col-span-6 cursor-pointer hover:text-muted-foreground" onClick={() => requestSort("name")}>
+                  <div className="inline-flex items-center gap-1">
+                    Model <SortIcon column="name" />
+                  </div>
+                </div>
+                <div className="hidden md:block col-span-2 cursor-pointer hover:text-muted-foreground" onClick={() => requestSort("context")}>
+                  <div className="inline-flex items-center gap-1">
+                    Context <SortIcon column="context" />
+                  </div>
+                </div>
+                <div className="hidden md:block col-span-2 cursor-pointer hover:text-muted-foreground" onClick={() => requestSort("created")}>
+                  <div className="inline-flex items-center gap-1">
+                    Added <SortIcon column="created" />
+                  </div>
+                </div>
+                <div className="col-span-6 md:col-span-2 text-right cursor-pointer hover:text-muted-foreground" onClick={() => requestSort("price")}>
+                  <div className="inline-flex items-center justify-end gap-1 w-full">
+                    Pricing <SortIcon column="price" />
+                  </div>
+                </div>
               </div>
 
               {isLoading ? (
-                <>
-                  <Skeleton className="h-8 sm:h-10 w-56 mb-3 sm:mb-4" />
-                  <Skeleton className="h-5 w-3/4 mb-6 sm:mb-8" />
-                </>
-              ) : (
-                <>
-                  <h1 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">
-                    {provider?.name}
-                  </h1>
-                  <p className="text-base sm:text-xl text-gray-300 mb-6 sm:mb-8">
-                    {provider?.description}
-                  </p>
-                </>
-              )}
-
-              {isLoading ? (
-                <>
-                  <div className="flex flex-wrap gap-4 mb-6">
-                    {[...Array(3)].map((_, idx) => (
-                      <Skeleton key={idx} className="h-6 w-20 rounded-full" />
-                    ))}
+                [...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-4 py-6 border-b border-border/30 px-4 animate-pulse">
+                    <div className="col-span-6 h-4 bg-border rounded w-3/4" />
+                    <div className="hidden md:block col-span-2 h-3 bg-border rounded w-1/2" />
+                    <div className="hidden md:block col-span-2 h-3 bg-border rounded w-1/3" />
+                    <div className="col-span-6 md:col-span-2 h-4 bg-border rounded w-12 ml-auto" />
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3 mb-6">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-8 w-32" />
-                  </div>
-                </>
-              ) : (
-                provider && (
-                  <>
-                    <div className="flex flex-wrap gap-4 mb-6">
-                      {features.map((feature, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-sm"
-                        >
-                          {feature}
+                ))
+              ) : sortedModels.length > 0 ? (
+                sortedModels.map((model) => (
+                  <Link key={model.id} href={`/models/${model.id}`} className="grid grid-cols-12 gap-4 py-5 border-b border-border/30 px-4 hover:bg-card transition-colors group items-center">
+                    <div className="col-span-6">
+                      <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
+                        {model.name}
+                      </span>
+                    </div>
+                    <div className="hidden md:flex col-span-2 text-xs text-muted-foreground font-mono">
+                      {model.context_length >= 1000 ? `${Math.round(model.context_length / 1000)}K` : model.context_length}
+                    </div>
+                    <div className="hidden md:flex col-span-2 text-xs text-muted-foreground">
+                      {model.created ? new Date(model.created * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "—"}
+                    </div>
+                    <div className="col-span-6 md:col-span-2 text-right text-[10px] flex flex-col gap-1">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-muted-foreground font-medium">in</span>
+                        <span className="text-foreground font-mono">
+                          {currency === "sats" ? (model.sats_pricing.prompt * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) : (model.pricing.prompt * 1_000_000).toFixed(2)}
                         </span>
-                      ))}
+                        <span className="text-muted-foreground">{priceUnit}</span>
+                      </div>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-muted-foreground font-medium">out</span>
+                        <span className="text-foreground font-mono">
+                          {currency === "sats" ? (model.sats_pricing.completion * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) : (model.pricing.completion * 1_000_000).toFixed(2)}
+                        </span>
+                        <span className="text-muted-foreground">{priceUnit}</span>
+                      </div>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3 mb-6">
-                      <InfoPill
-                        label="Endpoint"
-                        value={provider.endpoint_url}
-                      />
-                      {(() => {
-                        const urls =
-                          provider.mint_urls && provider.mint_urls.length > 0
-                            ? provider.mint_urls
-                            : provider.mint_url
-                            ? [provider.mint_url]
-                            : [];
-                        return urls.length > 0 ? (
-                          <MintsPill mints={urls} />
-                        ) : null;
-                      })()}
-                    </div>
-                  </>
-                )
+                  </Link>
+                ))
+              ) : (
+                <div className="py-20 text-center text-muted-foreground text-sm border-b border-border/30">No models available for this provider.</div>
               )}
             </div>
           </div>
-        </div>
 
-        <div className="pt-8 sm:pt-12 pb-12">
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold">Models</h2>
-                <CurrencyTabs />
-              </div>
-
-              <div className="border border-white/10 rounded-lg overflow-x-auto">
-                <table className="w-full min-w-[640px]">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th
-                        className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-300"
-                        aria-sort={
-                          sort.key === "name"
-                            ? sort.direction === "asc"
-                              ? "ascending"
-                              : "descending"
-                            : "none"
-                        }
-                      >
-                        <button
-                          type="button"
-                          className="inline-flex items-center hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                          onClick={() => requestSort("name")}
-                          disabled={isLoading}
-                        >
-                          Model
-                          <SortIcon
-                            active={sort.key === "name"}
-                            direction={sort.direction}
-                          />
-                        </button>
-                      </th>
-                      <th
-                        className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-300"
-                        aria-sort={
-                          sort.key === "price"
-                            ? sort.direction === "asc"
-                              ? "ascending"
-                              : "descending"
-                            : "none"
-                        }
-                      >
-                        <button
-                          type="button"
-                          className="inline-flex items-center hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                          onClick={() => requestSort("price")}
-                          disabled={isLoading}
-                        >
-                          Price (
-                          {currency === "sats"
-                            ? "sats per M tokens"
-                            : "USD per M tokens"}
-                          )
-                          <SortIcon
-                            active={sort.key === "price"}
-                            direction={sort.direction}
-                          />
-                        </button>
-                      </th>
-                      <th
-                        className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-300"
-                        aria-sort={
-                          sort.key === "context"
-                            ? sort.direction === "asc"
-                              ? "ascending"
-                              : "descending"
-                            : "none"
-                        }
-                      >
-                        <button
-                          type="button"
-                          className="inline-flex items-center hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                          onClick={() => requestSort("context")}
-                          disabled={isLoading}
-                        >
-                          Context
-                          <SortIcon
-                            active={sort.key === "context"}
-                            direction={sort.direction}
-                          />
-                        </button>
-                      </th>
-                      <th
-                        className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-300"
-                        aria-sort={
-                          sort.key === "created"
-                            ? sort.direction === "asc"
-                              ? "ascending"
-                              : "descending"
-                            : "none"
-                        }
-                      >
-                        <button
-                          type="button"
-                          className="inline-flex items-center hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                          onClick={() => requestSort("created")}
-                          disabled={isLoading}
-                        >
-                          Created
-                          <SortIcon
-                            active={sort.key === "created"}
-                            direction={sort.direction}
-                          />
-                        </button>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {isLoading ? (
-                      [...Array(5)].map((_, i) => (
-                        <tr key={`sk-${i}`} className="bg-black">
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                            <Skeleton className="h-4 w-40" />
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                            <Skeleton className="h-4 w-32" />
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                            <Skeleton className="h-4 w-24" />
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                            <Skeleton className="h-4 w-24" />
-                          </td>
-                        </tr>
-                      ))
-                    ) : sortedModels.length > 0 ? (
-                      sortedModels.map((model) => (
-                        <tr
-                          key={`${providerId}-${model.id}`}
-                          className="bg-black hover:bg-white/5 transition-colors"
-                        >
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-white">
-                            <Link
-                              href={`/models/${model.id}`}
-                              className="hover:text-gray-300"
-                            >
-                              {model.name}
-                            </Link>
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
-                            {currency === "sats"
-                              ? `${
-                                  model.sats_pricing.prompt > 0
-                                    ? (
-                                        model.sats_pricing.prompt * 1_000_000
-                                      ).toFixed(2)
-                                    : "—"
-                                } / ${
-                                  model.sats_pricing.completion > 0
-                                    ? (
-                                        model.sats_pricing.completion *
-                                        1_000_000
-                                      ).toFixed(2)
-                                    : "—"
-                                }`
-                              : `$${(model.pricing.prompt * 1_000_000).toFixed(
-                                  2
-                                )} / $${(
-                                  model.pricing.completion * 1_000_000
-                                ).toFixed(2)}`}
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
-                            {model.context_length.toLocaleString()} tokens
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-300">
-                            {new Date(
-                              model.created * 1000
-                            ).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="px-4 sm:px-6 py-8 text-center text-gray-400"
-                        >
-                          No models available for this provider
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {/* Reviews Section */}
-              {provider ? (
-                <ProviderReviews
-                  providerNpub={formatPublicKey(provider.pubkey)}
-                />
-              ) : null}
-            </div>
+          <div className="mt-20">
+            {provider && <ProviderReviews providerNpub={formatPublicKey(provider.pubkey)} />}
           </div>
         </div>
       </main>
-      <Footer />
+      <div className="max-w-5xl mx-auto w-full">
+        <Footer />
+      </div>
     </div>
   );
 }

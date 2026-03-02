@@ -2,405 +2,175 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
+  const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  // Prevent background scroll when mobile menu is open
   useEffect(() => {
-    if (mobileMenuOpen) {
-      const previousOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = previousOverflow;
-      };
-    }
+    if (!mobileMenuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, [mobileMenuOpen]);
 
-  const panelVariants = {
-    hidden: { opacity: 0, y: -12 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "spring" as const, stiffness: 500, damping: 40 },
-    },
-    exit: { opacity: 0, y: -12, transition: { duration: 0.2 } },
-  };
-
-  const listVariants = {
-    hidden: {},
-    show: {
-      transition: { staggerChildren: 0.06, delayChildren: 0.04 },
-    },
-    exit: {},
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: -6 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "spring" as const, stiffness: 600, damping: 40 },
-    },
-    exit: { opacity: 0, y: -6, transition: { duration: 0.12 } },
-  };
-
   return (
-    <header className="py-4 bg-black w-full max-w-7xl mx-auto">
-      <div className="flex items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-8">
+    <header className="w-full bg-background z-[100] relative font-mono">
+      <div className="mx-auto flex min-h-[72px] w-full max-w-5xl items-center justify-between px-4 sm:min-h-[80px] sm:px-6 md:px-12">
+        <div className="flex items-center gap-6 sm:gap-10">
           <Link href="/" className="flex items-center">
-            <span className="text-xl sm:text-2xl font-bold text-white">
+            <span className="text-xl font-bold tracking-tight text-foreground">
               Routstr
             </span>
           </Link>
-          <nav className="hidden md:flex">
-            <ul className="flex space-x-6">
-              <li>
-                <Link
-                  href="/models"
-                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors"
-                >
-                  Models
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/providers"
-                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors"
-                >
-                  Providers
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/blog"
-                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors"
-                >
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="https://chat.routstr.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
-                >
-                  Chat
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 7L7 17M17 7h-6m6 0v6"
-                    />
-                  </svg>
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://docs.routstr.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
-                >
-                  Docs
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 7L7 17M17 7h-6m6 0v6"
-                    />
-                  </svg>
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/topup"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm md:text-base text-gray-400 hover:text-white transition-colors inline-flex items-center gap-1"
-                >
-                  Top-Up
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 7L7 17M17 7h-6m6 0v6"
-                    />
-                  </svg>
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              </li>
-            </ul>
+          
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="/models" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Models
+            </Link>
+            <Link href="/providers" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Providers
+            </Link>
+            <Link href="/stats" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Stats
+            </Link>
+            <Link href="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Blog
+            </Link>
+            <a
+              href="https://chat.routstr.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Chat
+              <ArrowUpRight className="h-3 w-3" />
+            </a>
+            <a
+              href="https://docs.routstr.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Docs
+              <ArrowUpRight className="h-3 w-3" />
+            </a>
+            <Link href="/topup" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Top-Up
+            </Link>
           </nav>
         </div>
-        <div className="flex items-center gap-4">
-          <a
-            href="https://github.com/routstr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden md:inline-flex items-center gap-2 px-3 py-0.5 rounded-md border border-white/10 bg-white/5 text-sm text-white hover:bg-white/10 transition-all"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-              className="text-amber-400"
-            >
-              <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
-            </svg>
-            Star on GitHub
-          </a>
 
-          {/* Mobile menu button */}
-          <motion.button
-            className="md:hidden text-white p-2"
-            onClick={toggleMobileMenu}
-            aria-label="Toggle mobile menu"
-            whileTap={{ scale: 0.95 }}
-            animate={{ rotate: mobileMenuOpen ? 90 : 0 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        <div className="hidden md:flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-8 border-border bg-muted px-3 text-xs font-medium text-foreground hover:bg-muted"
           >
-            {mobileMenuOpen ? (
+            <a href="https://github.com/routstr" target="_blank" rel="noopener noreferrer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                className="w-6 h-6"
+                width="14"
+                height="14"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+                className="text-amber-400"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+                <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
               </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            )}
-          </motion.button>
+              Star on github
+              <ArrowUpRight className="h-3 w-3" />
+            </a>
+          </Button>
         </div>
+
+        <button
+          className="md:hidden inline-flex h-10 w-10 items-center justify-center text-foreground"
+          onClick={toggleMobileMenu}
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-6 w-6">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
       </div>
 
       {/* Mobile menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            key="mobile-menu"
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            variants={panelVariants}
-            className="fixed inset-0 z-[100] md:hidden bg-black px-6 py-6 h-[100dvh] w-screen overflow-y-auto"
-            style={{ backgroundColor: "#000000" }}
-            role="dialog"
-            aria-modal="true"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed inset-x-0 top-[72px] z-50 max-h-[calc(100vh-72px)] overflow-y-auto bg-background px-4 py-5 sm:top-[80px] sm:max-h-[calc(100vh-80px)] sm:px-6 md:hidden"
           >
-            <motion.button
+            <div className="flex flex-col gap-5">
+              <Link href="/models" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Models</Link>
+              <Link href="/providers" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Providers</Link>
+              <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Stats</Link>
+              <Link href="/blog" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Blog</Link>
+              <Link href="/topup" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Top-Up
+              </Link>
+            </div>
+
+            <div className="my-5 h-px bg-border" />
+
+            <a
+              href="https://chat.routstr.com"
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={closeMobileMenu}
-              aria-label="Close menu"
-              className="absolute right-4 top-4 text-white p-2"
-              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 text-base font-medium text-foreground"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                className="w-6 h-6"
+              Chat
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <a
+              href="https://docs.routstr.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={closeMobileMenu}
+              className="inline-flex items-center gap-2 text-base font-medium text-foreground"
+            >
+              Docs
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <div className="flex flex-col gap-4 pt-4">
+              <Button
+                variant="outline"
+                asChild
+                className="h-11 w-full border-border bg-muted text-sm font-medium text-foreground hover:bg-muted"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </motion.button>
-            <motion.ul variants={listVariants} className="space-y-6 pt-14">
-              <motion.li variants={itemVariants}>
-                <Link
-                  href="/#features"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors block py-1"
-                >
-                  Features
-                </Link>
-              </motion.li>
-              <motion.li variants={itemVariants}>
-                <Link
-                  href="/models"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors block py-1"
-                >
-                  Models
-                </Link>
-              </motion.li>
-              <motion.li variants={itemVariants}>
-                <Link
-                  href="/providers"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors block py-1"
-                >
-                  Providers
-                </Link>
-              </motion.li>
-              <motion.li variants={itemVariants}>
-                <Link
-                  href="/blog"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors block py-1"
-                >
-                  Blog
-                </Link>
-              </motion.li>
-              <motion.li variants={itemVariants}>
                 <a
-                  href="https://chat.routstr.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors flex items-center gap-1 py-1"
-                >
-                  Chat
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 7L7 17M17 7h-6m6 0v6"
-                    />
-                  </svg>
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              </motion.li>
-              <motion.li variants={itemVariants}>
-                <a
-                  href="https://docs.routstr.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors flex items-center gap-1 py-1"
-                >
-                  Docs
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 7L7 17M17 7h-6m6 0v6"
-                    />
-                  </svg>
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              </motion.li>
-              <motion.li variants={itemVariants}>
-                <a
-                  href="/topup"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors flex items-center gap-1 py-1"
-                >
-                  Top-Up
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 7L7 17M17 7h-6m6 0v6"
-                    />
-                  </svg>
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              </motion.li>
-              <motion.li variants={itemVariants}>
-                <Link
                   href="https://github.com/routstr"
-                  onClick={closeMobileMenu}
-                  className="text-base text-gray-300 hover:text-white transition-colors block py-1"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  GitHub
-                </Link>
-              </motion.li>
-            </motion.ul>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                    className="text-amber-400"
+                  >
+                    <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
+                  </svg>
+                  Star on github
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -2,43 +2,21 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Check, Copy } from 'lucide-react';
 
 export interface InfoPillProps {
   label: string;
   value: string;
 }
 
-function PillIcon({ label }: { label: string }) {
-  const key = label.toLowerCase();
-  if (key.includes('endpoint')) {
-    return (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-white/80">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75A2.25 2.25 0 0 1 6 4.5h12a2.25 2.25 0 0 1 2.25 2.25v2.25A2.25 2.25 0 0 1 18 11.25H6A2.25 2.25 0 0 1 3.75 9V6.75zM3.75 15.75A2.25 2.25 0 0 1 6 13.5h12a2.25 2.25 0 0 1 2.25 2.25v2.25A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18v-2.25z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h.008v.008H7.5V8.25zM7.5 17.25h.008v.008H7.5v-.008z" />
-      </svg>
-    );
-  }
-  if (key.includes('mint')) {
-    return (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-white/80">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75h15a2.25 2.25 0 0 0 2.25-2.25V9.75m-17.25 9V8.25A2.25 2.25 0 0 1 4.5 6h15M6 13.5a3 3 0 1 0 6 0 3 3 0 0 0-6 0z" />
-      </svg>
-    );
-  }
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-white/80">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75 3.75 12l4.5 5.25M15.75 17.25 20.25 12 15.75 6.75" />
-    </svg>
-  );
-}
-
 export function InfoPill({ label, value }: InfoPillProps) {
   const [isCopied, setIsCopied] = useState(false);
+  const displayValue = value || '-';
 
   function handleCopy() {
-    if (!value) return;
+    if (!displayValue) return;
     navigator.clipboard
-      .writeText(value)
+      .writeText(displayValue)
       .then(() => {
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 1200);
@@ -47,36 +25,26 @@ export function InfoPill({ label, value }: InfoPillProps) {
   }
 
   return (
-    <div className="flex w-full sm:inline-flex sm:w-auto items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm min-w-0">
-      <PillIcon label={label} />
-      <span className="text-gray-400 shrink-0">{label}:</span>
-      <div className="min-w-0 flex-1 overflow-hidden">
-        <span className="text-white truncate font-mono block" title={value}>
-          {value}
-        </span>
-      </div>
+    <div className="flex w-full items-center gap-2.5 text-xs sm:w-auto sm:max-w-[28rem]">
+      <p className="min-w-[3.75rem] shrink-0 text-[10px] tracking-[0.04em] text-muted-foreground sm:min-w-[4.75rem]">{label}</p>
+      <p className="min-w-0 truncate text-muted-foreground transition-colors hover:text-foreground" title={displayValue}>
+        {displayValue}
+      </p>
       <Button
         type="button"
-        variant="secondary"
-        size="sm"
+        variant="ghost"
+        size="icon"
         onClick={handleCopy}
-        className="h-7 px-2 py-0 rounded-full ml-1 shrink-0"
+        className="h-6 w-6 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
         aria-label={`Copy ${label.toLowerCase()}`}
         title={isCopied ? 'Copied' : `Copy ${label.toLowerCase()}`}
       >
         {isCopied ? (
-          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-emerald-400">
-            <path d="M5 13l4 4L19 7" />
-          </svg>
+          <Check className="h-3.5 w-3.5 text-emerald-400" />
         ) : (
-          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-          </svg>
+          <Copy className="h-3.5 w-3.5" />
         )}
       </Button>
     </div>
   );
 }
-
-

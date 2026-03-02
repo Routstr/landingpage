@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, LogOut } from 'lucide-react';
-import { CashuMint, CashuWallet, MintQuoteState } from '@cashu/cashu-ts';
+import { Mint, Wallet, MintQuoteState } from '@cashu/cashu-ts';
 import { Model } from '@/app/data/models';
 import QRCode from 'react-qr-code';
 import { useNostr } from '@/context/NostrContext';
@@ -69,7 +69,7 @@ const SettingsModal = ({
   const [tokenToImport, setTokenToImport] = useState('');
   const [sendAmount, setSendAmount] = useState('');
   const [generatedToken, setGeneratedToken] = useState('');
-  const [cashuWallet, setCashuWallet] = useState<CashuWallet | null>(null);
+  const [cashuWallet, setCashuWallet] = useState<Wallet | null>(null);
   const [isAutoChecking, setIsAutoChecking] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -89,8 +89,8 @@ const SettingsModal = ({
 
     const initWallet = async () => {
       try {
-        const mint = new CashuMint(mintUrl);
-        const wallet = new CashuWallet(mint);
+        const mint = new Mint(mintUrl);
+        const wallet = new Wallet(mint);
         await wallet.loadMint();
         if (isMounted) setCashuWallet(wallet);
 
@@ -329,7 +329,7 @@ const SettingsModal = ({
                 value={mintInvoice}
                 size={220}
                 level="M"
-                fgColor="#FFFFFF"
+                fgColor="white"
                 bgColor="transparent"
               />
             </div>

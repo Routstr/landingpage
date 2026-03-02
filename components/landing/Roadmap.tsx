@@ -37,7 +37,7 @@ const roadmapItems: RoadmapItem[] = [
 
 export function LandingRoadmap() {
   return (
-    <div className="w-full max-w-7xl mx-auto py-20 md:py-32 px-4 md:px-8 bg-black">
+    <div className="w-full max-w-5xl mx-auto py-20 md:py-32 px-4 md:px-8 bg-black">
       {/* Header */}
       <div className="text-center mb-16">
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4">

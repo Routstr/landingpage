@@ -10,9 +10,13 @@ import React, {
 } from "react";
 import { Model, Provider, PerRequestLimits } from "@/app/data/models";
 import {
-  filterStagingEndpoints,
-  shouldHideProvider,
-} from "@/lib/staging-filter";
+  fetchProvidersList,
+  getPrimaryHttpEndpoint,
+  getProviderNonStagingEndpoints,
+  isProviderVisible,
+  normalizeEndpointForFetch,
+  type ProviderApiRecord,
+} from "@/lib/api/providers";
 
 interface ModelsState {
   models: Model[];
@@ -104,39 +108,14 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "FETCH_START" });
 
     try {
-      let response;
+      let list: ProviderApiRecord[] = [];
       try {
-        response = await fetch("https://api.routstr.com/v1/providers/");
+        list = await fetchProvidersList();
       } catch {
         // Fetch blocked (e.g., by browser extension) - silently fail
         dispatch({ type: "FETCH_ERROR", payload: "Network request blocked" });
         return;
       }
-      if (!response.ok) {
-        throw new Error(`Failed to fetch providers: ${response.status}`);
-      }
-      const data = await response.json();
-
-      const list: Array<{
-        id: string;
-        pubkey: string;
-        created_at: number;
-        kind: number;
-        endpoint_url: string;
-        endpoint_urls?: string[];
-        name: string;
-        description: string;
-        mint_url?: string | null;
-        mint_urls?: string[];
-        version: string;
-        content: string;
-      }> = Array.isArray(data.providers) ? data.providers : [];
-
-      const normalizeForFetch = (urlOrHost: string): string => {
-        if (!urlOrHost) return "";
-        const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
-        return hasProtocol ? urlOrHost : `https://${urlOrHost}`;
-      };
 
       const fetchWithTimeout = async (
         url: string,
@@ -169,21 +148,10 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 
       await Promise.all(
         list
-          .filter((p) => {
-            const endpoints =
-              Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
-                ? p.endpoint_urls!
-                : [p.endpoint_url].filter(Boolean);
-            const nameOrTag = `${p.name || ""}`.toLowerCase();
-            const looksLikeStaging = nameOrTag.includes("staging");
-            return !shouldHideProvider(endpoints) && !looksLikeStaging;
-          })
-          .map(async (p) => {
-            const nonStaging = filterStagingEndpoints(p.endpoint_urls || []);
-            const http = nonStaging.filter(
-              (u) => typeof u === "string" && !u.includes(".onion")
-            );
-            const primary = (http[0] || p.endpoint_url || "").trim();
+          .filter(isProviderVisible)
+          .map(async (p: ProviderApiRecord) => {
+            const nonStaging = getProviderNonStagingEndpoints(p);
+            const primary = getPrimaryHttpEndpoint(p);
 
             const providerObj: Provider = {
               id: p.id,
@@ -209,7 +177,7 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 
             if (!primary) return; // skip if no usable endpoint
             try {
-              const base = normalizeForFetch(primary).replace(/\/$/, "");
+              const base = normalizeEndpointForFetch(primary).replace(/\/$/, "");
               const modelsUrl = `${base}/v1/models`;
               const r = await fetchWithTimeout(
                 modelsUrl,

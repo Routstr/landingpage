@@ -8,9 +8,13 @@ export interface PerRequestLimits {
 }
 
 import {
-  filterStagingEndpoints,
-  shouldHideProvider,
-} from "@/lib/staging-filter";
+  fetchProvidersList,
+  getPrimaryHttpEndpoint,
+  getProviderNonStagingEndpoints,
+  isProviderVisible,
+  normalizeEndpointForFetch,
+  type ProviderApiRecord,
+} from "@/lib/api/providers";
 
 export interface Model {
   id: string;
@@ -69,23 +73,6 @@ export interface Provider {
   content: string;
 }
 
-interface ApiProviderListResponse {
-  providers: Array<{
-    id: string;
-    pubkey: string;
-    created_at: number;
-    kind: number;
-    endpoint_url: string;
-    endpoint_urls?: string[];
-    name: string;
-    description: string;
-    mint_url?: string | null;
-    mint_urls?: string[];
-    version: string;
-    content: string;
-  }>;
-}
-
 // Initial state with empty data
 export let models: Model[] = [];
 export let providers: Provider[] = [];
@@ -102,29 +89,10 @@ export async function fetchModels(
   onProgress?: (provider: Provider, models: Model[]) => void
 ): Promise<void> {
   try {
-    const response = await fetch("https://api.routstr.com/v1/providers/");
-    if (!response.ok) {
-      throw new Error(`Failed to fetch providers: ${response.status}`);
-    }
-    const data: ApiProviderListResponse = await response.json();
-    const list = Array.isArray(data.providers) ? data.providers : [];
+    const list = await fetchProvidersList();
 
     // staging filtering based on endpoints and name
-    const visible = list.filter((p) => {
-      const endpoints =
-        Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
-          ? p.endpoint_urls!
-          : [p.endpoint_url].filter(Boolean);
-      const nameOrTag = `${p.name || ""}`.toLowerCase();
-      const looksLikeStaging = nameOrTag.includes("staging");
-      return !shouldHideProvider(endpoints) && !looksLikeStaging;
-    });
-
-    const normalizeForFetch = (urlOrHost: string): string => {
-      if (!urlOrHost) return "";
-      const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
-      return hasProtocol ? urlOrHost : `https://${urlOrHost}`;
-    };
+    const visible = list.filter(isProviderVisible);
 
     const fetchWithTimeout = async (
       url: string,
@@ -155,12 +123,9 @@ export async function fetchModels(
     const modelMap = new Map<string, Model>();
 
     await Promise.all(
-      visible.map(async (p) => {
-        const nonStaging = filterStagingEndpoints(p.endpoint_urls || []);
-        const http = nonStaging.filter(
-          (u) => typeof u === "string" && !u.includes(".onion")
-        );
-        const primary = (http[0] || p.endpoint_url || "").trim();
+      visible.map(async (p: ProviderApiRecord) => {
+        const nonStaging = getProviderNonStagingEndpoints(p);
+        const primary = getPrimaryHttpEndpoint(p);
 
         // Normalize mint URLs
         const mintUrls = Array.isArray(p.mint_urls)
@@ -177,7 +142,7 @@ export async function fetchModels(
         let fetchedVersion = p.version;
 
         if (primary) {
-          const base = normalizeForFetch(primary).replace(/\/$/, "");
+          const base = normalizeEndpointForFetch(primary).replace(/\/$/, "");
 
           // Fetch models and info in parallel
           const modelsUrl = `${base}/v1/models`;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useParams } from "next/navigation";
 import BackButton from "@/components/BackButton";
 import Link from "next/link";
@@ -14,51 +14,66 @@ import {
   fetchModels as fetchModelsDirect,
 } from "@/app/data/models";
 import { useModels } from "@/app/contexts/ModelsContext";
+import { usePricingView } from "@/app/contexts/PricingContext";
 
-import { Card } from "@/components/ui/card";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  ChevronsUpDown as ChevronsUpDownIcon,
-  Check as CheckIcon,
+  ArrowLeft,
+  ArrowUpRight,
+  Copy,
+  Check
 } from "lucide-react";
 
-import { InfoPill } from "@/components/client/InfoPill";
 import { PriceCompChart } from "@/components/client/PriceCompChart";
 import ReactMarkdown from "react-markdown";
 import { ModelReviews } from "@/components/ModelReviews";
 import { getLocalCashuToken, setLocalCashuToken } from "@/utils/storageUtils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Define types for code examples
 type CodeLanguage = "curl" | "javascript" | "python";
 
-// Helper to decode all path segments for display
+const codeTokenClasses = {
+  command: "text-[#4FC1FF]",
+  keyword: "text-[#C586C0]",
+  string: "text-[#CE9178]",
+  property: "text-[#9CDCFE]",
+  symbol: "text-[#D4D4D4]",
+  value: "text-[#DCDCAA]",
+  plain: "text-[#D4D4D4]",
+} as const;
+
+type CodeTokenKind = keyof typeof codeTokenClasses;
+
+function CodeTok({
+  kind,
+  children,
+}: {
+  kind: CodeTokenKind;
+  children: ReactNode;
+}) {
+  return <span className={codeTokenClasses[kind]}>{children}</span>;
+}
+
 function decodeSegments(segments: string[]): string[] {
   return segments.map((s) => decodeURIComponent(s));
 }
 
-// Removed EndpointData
-
 export default function ModelDetailPage() {
   const params = useParams();
-
-  const { models, loading, error, findModel } = useModels();
-  // State for provider data with pricing included (for chart)
-  const [providersWithPricing, setProvidersWithPricing] = useState<
-    { provider: Provider; model: Model }[]
-  >([]);
+  const { currency } = usePricingView();
+  const { loading, error, findModel } = useModels();
+  const [providersWithPricing, setProvidersWithPricing] = useState<{ provider: Provider; model: Model }[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [pricingLoading, setPricingLoading] = useState(true);
-
   const [apiSelectorOpen, setApiSelectorOpen] = useState(false);
 
-  // Handle the catch-all route by joining the path segments
   const modelIdParts = params.modelId as string[];
-
-  // Decoded for display and for model lookup
   const decodedModelIdParts = decodeSegments(modelIdParts);
   const decodedModelId = decodedModelIdParts.join("/");
 
@@ -68,26 +83,20 @@ export default function ModelDetailPage() {
   const [tokenInput, setTokenInput] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
   const [descExpanded, setDescExpanded] = useState<boolean>(false);
-  const priceSkeletonWidths = [34, 42, 58, 47, 39];
+  const [idCopied, setIdCopied] = useState(false);
 
-  // Compute storage base URL from current provider selection (fallback to default)
   const storageBaseUrl = (() => {
-    const selected =
-      providersWithPricing.find((p) => p.provider.id === selectedProviderId)
-        ?.provider || providersWithPricing[0]?.provider;
+    const selected = providersWithPricing.find((p) => p.provider.id === selectedProviderId)?.provider || providersWithPricing[0]?.provider;
     const base = selected?.endpoint_url || "";
     if (!base) return "https://api.routstr.com";
     return base.replace(/\/v1$/, "");
   })();
 
-  // Always call this hook (no conditional returns before), but no-op if base is empty
   useEffect(() => {
     try {
       const existing = getLocalCashuToken(storageBaseUrl) || "";
       setTokenInput(existing);
-    } catch {
-      // no-op
-    }
+    } catch {}
   }, [storageBaseUrl]);
 
   useEffect(() => {
@@ -95,58 +104,35 @@ export default function ModelDetailPage() {
     async function loadModelData() {
       setPricingLoading(true);
       try {
-        // 1. Try to find the model in the existing context (fastest)
         const foundModel = findModel(decodedModelId);
-
-        // If found immediately, set it so the page renders instantly
         if (foundModel) {
           setModel(foundModel);
           setNotFound(false);
         }
 
-        // 2. Perform direct incremental fetch to populate/update providers and pricing
         await fetchModelsDirect((provider, newlyFetchedModels) => {
           if (!active) return;
-          // Check if this provider has the model we are looking for
-          // The API returns models with IDs. We need to match `decodedModelId`.
-          const modelInProvider = newlyFetchedModels.find(
-            (m) => m.id === decodedModelId
-          );
+          const modelInProvider = newlyFetchedModels.find((m) => m.id === decodedModelId);
 
           if (modelInProvider) {
-            // If we haven't found the "main" model details yet, set them now
             setModel((prev) => prev || modelInProvider);
             setNotFound(false);
-
-            // Add this provider + pricing to our list
             setProvidersWithPricing((prev) => {
-              // Avoid duplicates
               if (prev.some((p) => p.provider.id === provider.id)) return prev;
-
               const newEntry = { provider, model: modelInProvider };
               const next = [...prev, newEntry];
-
-              // Keep sorted by cheapest completion price
-              return next.sort((a, b) => {
-                const pA = a.model.sats_pricing?.completion ?? 0;
-                const pB = b.model.sats_pricing?.completion ?? 0;
-                return pA - pB;
-              });
+              return next.sort((a, b) => (a.model.sats_pricing?.completion ?? 0) - (b.model.sats_pricing?.completion ?? 0));
             });
-
-            // Set default selected provider if none
             setSelectedProviderId((prev) => prev || provider.id);
           }
         });
 
-        // After fetch completes, if we still don't have a model, set notFound
         setModel((prev) => {
           if (!prev && active) setNotFound(true);
           return prev;
         });
       } catch (error) {
         console.error("Error loading model data:", error);
-        // If we still don't have a model after error
         setModel((prev) => {
           if (!prev && active) setNotFound(true);
           return prev;
@@ -155,911 +141,351 @@ export default function ModelDetailPage() {
         if (active) setPricingLoading(false);
       }
     }
-
     loadModelData();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [decodedModelId, findModel]);
 
-  // Show skeleton only when we have no model data at all and context is still loading
   if (loading && !model) {
     return (
-      <main className="flex min-h-screen flex-col bg-black text-white">
+      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
         <Header />
-        <div className="container mx-auto px-4 py-12">
-          <div className="max-w-7xl mx-auto">
-            {/* Back link skeleton */}
-            <div className="h-6 w-32 bg-zinc-800 rounded-md mb-6 animate-pulse"></div>
-
-            {/* Hero section skeleton */}
-            <div className="mb-6 md:mb-10 bg-gradient-to-r from-black to-zinc-900 rounded-xl p-4 md:p-8 border border-zinc-800">
-              <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-6 mb-3 md:mb-6">
-                <div className="w-full md:w-2/3">
-                  <div className="h-10 w-64 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
-                  <div className="h-6 w-40 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
-                </div>
-                <div className="h-10 w-32 bg-zinc-800 rounded-md animate-pulse self-start"></div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="h-4 bg-zinc-800 rounded-md animate-pulse w-full"></div>
-                <div className="h-4 bg-zinc-800 rounded-md animate-pulse w-5/6"></div>
-                <div className="h-4 bg-zinc-800 rounded-md animate-pulse w-4/6"></div>
-              </div>
-            </div>
-
-            {/* Stats skeleton */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-black/50 border border-zinc-800 rounded-lg p-4"
-                >
-                  <div className="h-3 w-20 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
-                  <div className="h-6 w-16 bg-zinc-800 rounded-md mb-1 animate-pulse"></div>
-                  <div className="h-3 w-24 bg-zinc-800 rounded-md animate-pulse"></div>
-                </div>
-              ))}
-            </div>
-
-            {/* Technical specs skeleton */}
-            <div className="p-6 bg-black/50 border border-zinc-800 rounded-lg mb-10">
-              <div className="h-6 w-48 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
-              <div className="space-y-3">
-                {[...Array(8)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="border-b border-zinc-700 py-3 flex justify-between"
-                  >
-                    <div className="h-4 w-32 bg-zinc-800 rounded-md animate-pulse"></div>
-                    <div className="h-4 w-48 bg-zinc-800 rounded-md animate-pulse"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Price Comparison Chart skeleton */}
-            <div className="mb-12">
-              <div className="h-6 w-48 bg-zinc-800 rounded-md mb-6 animate-pulse"></div>
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-24 h-4 bg-zinc-800 rounded animate-pulse shrink-0"></div>
-                    <div className="flex-1 h-8 bg-zinc-800/50 rounded animate-pulse relative overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 left-0 bg-zinc-800 rounded"
-                        style={{
-                          width: `${priceSkeletonWidths[i % priceSkeletonWidths.length]}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="w-20 h-4 bg-zinc-800 rounded animate-pulse shrink-0"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* API integration skeleton */}
-            <div className="bg-black/50 border border-zinc-800 p-6 mb-12">
-              <div className="h-6 w-36 bg-zinc-800 rounded-md mb-4 animate-pulse"></div>
-              <div className="h-4 w-full bg-zinc-800 rounded-md mb-6 animate-pulse"></div>
-
-              <div className="flex space-x-1 mb-4 border-b border-zinc-700">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-8 w-24 bg-zinc-800 rounded-t-lg animate-pulse"
-                  ></div>
-                ))}
-              </div>
-
-              <div className="bg-black/70 rounded-lg p-4 border border-zinc-700 h-48 animate-pulse"></div>
-
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded bg-black/30 p-3 border border-zinc-800"
-                  >
-                    <div className="h-4 w-32 bg-zinc-800 rounded-md mb-2 animate-pulse"></div>
-                    <div className="h-3 w-full bg-zinc-800 rounded-md animate-pulse"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="px-6 md:px-12 py-12 max-w-5xl mx-auto w-full">
+           <div className="h-4 bg-border rounded w-24 mb-12 animate-pulse" />
+           <div className="h-10 bg-border rounded w-1/2 mb-4 animate-pulse" />
+           <div className="h-4 bg-border rounded w-1/4 mb-12 animate-pulse" />
+           <div className="space-y-4">
+             <div className="h-4 bg-border rounded w-full animate-pulse" />
+             <div className="h-4 bg-border rounded w-5/6 animate-pulse" />
+           </div>
         </div>
-        <Footer />
+        <div className="max-w-5xl mx-auto w-full mt-auto">
+          <Footer />
+        </div>
       </main>
     );
   }
 
-  if (error) {
+  if (error || notFound) {
     return (
-      <main className="flex min-h-screen flex-col bg-black text-white">
+      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
         <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl sm:text-4xl font-bold mb-4">
-              Error Loading Models
-            </h1>
-            <p className="text-base sm:text-xl text-gray-300 mb-6">{error}</p>
-            <Link href="/models" className="text-white underline">
-              Back to models
-            </Link>
-          </div>
+        <div className="flex-1 flex flex-col items-start justify-center px-6 md:px-12 max-w-5xl mx-auto w-full">
+          <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">{error ? "Error" : "Model not found"}</h1>
+          <p className="text-muted-foreground mb-8">{error || "The model you're looking for doesn't exist."}</p>
+          <Button asChild variant="outline">
+            <Link href="/models">Back to models</Link>
+          </Button>
         </div>
-        <Footer />
+        <div className="max-w-5xl mx-auto w-full mt-auto">
+          <Footer />
+        </div>
       </main>
     );
   }
 
-  if (notFound) {
-    return (
-      <main className="flex min-h-screen flex-col bg-black text-white">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl sm:text-4xl font-bold mb-4">
-              Model Not Found
-            </h1>
-            <p className="text-base sm:text-xl text-gray-300 mb-6">
-              The model you&apos;re looking for doesn&apos;t exist or is not
-              available.
-            </p>
-            <Link href="/models" className="text-white underline">
-              View all models
-            </Link>
-
-            <div className="mt-8 p-4 bg-gray-900 border border-white/10 rounded-md text-left text-xs overflow-auto max-w-xl mx-auto">
-              <p>Looking for model with ID: {decodedModelId}</p>
-              <p>Path segments: {decodedModelIdParts.join(" → ")}</p>
-              <p>Total models available: {models.length}</p>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </main>
-    );
-  }
-
-  // Guard against transient state where model isn't set yet
-  if (!model) {
-    return null;
-  }
+  if (!model) return null;
 
   const provider = getProviderFromModelName(model.name);
-  const selectedProvider =
-    providersWithPricing.find((p) => p.provider.id === selectedProviderId)
-      ?.provider || providersWithPricing[0]?.provider;
-  const providerBaseUrl = (() => {
-    const base = selectedProvider?.endpoint_url || "";
-    if (!base) return "";
-    return base.endsWith("/v1") ? base : `${base.replace(/\/$/, "")}/v1`;
-  })();
+  const displayName = getModelNameWithoutProvider(model.name);
+  const selectedProvider = providersWithPricing.find((p) => p.provider.id === selectedProviderId)?.provider || providersWithPricing[0]?.provider;
+  const providerBaseUrl = selectedProvider?.endpoint_url ? (selectedProvider.endpoint_url.endsWith("/v1") ? selectedProvider.endpoint_url : `${selectedProvider.endpoint_url.replace(/\/$/, "")}/v1`) : "";
+
+  const copyModelId = () => {
+    navigator.clipboard.writeText(model.id);
+    setIdCopied(true);
+    setTimeout(() => setIdCopied(false), 2000);
+  };
 
   const doCopy = async () => {
     try {
       const tokenForCode = (tokenInput ?? "").trim();
       let code = "";
       if (activeTab === "curl") {
-        code = `curl -X POST ${
-          providerBaseUrl || "https://api.routstr.com/v1"
-        }/chat/completions \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${tokenForCode}" \\\n  -d '{\n    "model": "${
-          model?.id
-        }",\n    "messages": [\n      { "role": "user", "content": "Hello Nostr" }\n    ]\n  }'\n`;
+        code = `curl -X POST ${providerBaseUrl || "https://api.routstr.com/v1"}/chat/completions \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${tokenForCode}" \\\n  -d '{\n    "model": "${model?.id}",\n    "messages": [\n      { "role": "user", "content": "Hello Nostr" }\n    ]\n  }'\n`;
       } else if (activeTab === "javascript") {
-        code = `import OpenAI from 'openai';\n\nconst openai = new OpenAI({\n  baseURL: '${
-          providerBaseUrl || "https://api.routstr.com/v1"
-        }',\n  apiKey: '${tokenForCode}'\n});\n\nasync function main() {\n  const completion = await openai.chat.completions.create({\n    model: '${
-          model?.id
-        }',\n    messages: [\n      { role: 'user', content: 'Hello Nostr' }\n    ]\n  });\n  console.log(completion.choices[0].message);\n}\n\nmain();\n`;
+        code = `import OpenAI from 'openai';\n\nconst openai = new OpenAI({\n  baseURL: '${providerBaseUrl || "https://api.routstr.com/v1"}',\n  apiKey: '${tokenForCode}'\n});\n\nasync function main() {\n  const completion = await openai.chat.completions.create({\n    model: '${model?.id}',\n    messages: [\n      { role: 'user', content: 'Hello Nostr' }\n    ]\n  });\n  console.log(completion.choices[0].message);\n}\n\nmain();\n`;
       } else {
-        code = `from openai import OpenAI\n\nclient = OpenAI(\n    base_url="${
-          providerBaseUrl || "https://api.routstr.com/v1"
-        }",\n    api_key="${tokenForCode}"\n)\n\ncompletion = client.chat.completions.create(\n    model="${
-          model?.id
-        }",\n    messages=[\n        {"role": "user", "content": "Hello Nostr"}\n    ]\n)\nprint(completion.choices[0].message.content)\n`;
+        code = `from openai import OpenAI\n\nclient = OpenAI(\n    base_url="${providerBaseUrl || "https://api.routstr.com/v1"}",\n    api_key="${tokenForCode}"\n)\n\ncompletion = client.chat.completions.create(\n    model="${model?.id}",\n    messages=[\n        {"role": "user", "content": "Hello Nostr"}\n    ]\n)\nprint(completion.choices[0].message.content)\n`;
       }
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {}
   };
-  const displayName = getModelNameWithoutProvider(model.name);
-
-  // API code examples for this specific model
-  const codeExamples = {
-    curl: `curl -X POST ${
-      providerBaseUrl || "https://api.routstr.com/v1"
-    }/chat/completions \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer cashuBpGFteCJodHRwczovL21p..." \\
-  -d '{
-    "model": "${model.id}",
-    "messages": [
-      {
-        "role": "user", 
-        "content": "Hello Nostr"
-      }
-    ]
-  }'`,
-
-    javascript: `import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  baseURL: '${providerBaseUrl || "https://api.routstr.com/v1"}',
-  apiKey: 'cashuBpGFteCJodHRwczovL21p...' 
-});
-
-async function main() {
-  const completion = await openai.chat.completions.create({
-    model: '${model.id}',
-    messages: [
-      { role: 'user', content: 'Hello Nostr' }
-    ]
-  });
-  console.log(completion.choices[0].message);
-}
-
-main();`,
-
-    python: `from openai import OpenAI
-
-client = OpenAI(
-    base_url="${providerBaseUrl || "https://api.routstr.com/v1"}",
-    api_key="cashuBpGFteCJodHRwczovL21p..." 
-)
-
-completion = client.chat.completions.create(
-    model="${model.id}",
-    messages=[
-        {"role": "user", "content": "Hello Nostr"}
-    ]
-)
-print(completion.choices[0].message.content)`,
-  };
-
-  // Format date from timestamp
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   return (
-    <main className="flex min-h-screen flex-col bg-black text-white">
+    <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
       <Header />
 
-      <section className="py-12 bg-black">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <div className="max-w-7xl mx-auto">
-            <BackButton
-              fallbackHref="/models"
-              className="text-gray-300 hover:text-white flex items-center gap-2 mb-6"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-                />
-              </svg>
-              Back
-            </BackButton>
+      <section className="py-12 md:py-20">
+        <div className="max-w-5xl mx-auto px-6 md:px-12">
+          <BackButton fallbackHref="/models" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-12">
+            <ArrowLeft className="w-3 h-3" /> Back to models
+          </BackButton>
 
-            {/* Hero section */}
-            <div className="mb-6 md:mb-10 bg-gradient-to-r from-black to-zinc-900 rounded-xl p-4 md:p-8 border border-zinc-800">
-              <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-6 mb-3 md:mb-6">
-                <div>
-                  <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2 text-white">
-                    {displayName}
-                  </h1>
-                  <p className="text-base md:text-xl text-gray-300 mb-2 md:mb-4">
-                    by {provider}
-                  </p>
-                  <div className="mb-4">
-                    <InfoPill label="Model ID" value={model.id} />
-                  </div>
+          <div className="mb-16 flex flex-col items-start justify-between gap-8 md:flex-row">
+            <div className="flex-1">
+              <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-2 tracking-tight">{displayName}</h1>
+              <p className="text-base md:text-lg text-muted-foreground mb-6 font-light italic leading-relaxed">by {provider}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex max-w-full items-center gap-2 break-all rounded border border-border bg-muted px-3 py-1 text-[10px] font-mono text-muted-foreground">
+                  <span className="text-muted-foreground">ID:</span> {model.id}
                 </div>
-                <a
-                  href={`https://chat.routstr.com/?model=${encodeURIComponent(
-                    model.id
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-2 md:py-3 bg-white text-black rounded-md font-medium hover:bg-gray-200 transition-colors self-start"
+                <button 
+                  onClick={copyModelId}
+                  className="p-1.5 rounded border border-border bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Copy model ID"
                 >
-                  Try It Now
-                </a>
+                  {idCopied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                </button>
               </div>
+            </div>
+            <Button asChild className="w-full sm:w-auto">
+              <Link href={`https://chat.routstr.com/?model=${encodeURIComponent(model.id)}`} target="_blank" rel="noopener noreferrer">
+                Try model
+                <ArrowUpRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
 
-              <div
-                id="model-description"
-                className="prose prose-invert max-w-none relative transition-all"
-                style={{
-                  maxHeight: descExpanded ? ("none" as const) : "10.5rem",
-                  overflow: descExpanded ? "visible" : "hidden",
-                  WebkitMaskImage: descExpanded
-                    ? undefined
-                    : "linear-gradient(to bottom, black 65%, transparent 100%)",
-                  maskImage: descExpanded
-                    ? undefined
-                    : "linear-gradient(to bottom, black 65%, transparent 100%)",
-                }}
+          <div className="w-full space-y-24">
+            {/* Description */}
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-6">Description</h2>
+              <div 
+                className={`prose prose-sm md:prose-base prose-invert max-w-none text-muted-foreground leading-relaxed transition-all relative ${!descExpanded ? 'max-h-48 overflow-hidden [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)]' : ''}`}
               >
-                <ReactMarkdown
-                  components={{
-                    a: (props) => (
-                      <a
-                        {...props}
-                        className="underline hover:text-gray-300 transition-colors"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      />
-                    ),
-                  }}
-                >
-                  {model.description}
-                </ReactMarkdown>
+                <ReactMarkdown>{model.description || "No description available for this model."}</ReactMarkdown>
               </div>
-              {model.description && model.description.length > 240 && (
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={() => setDescExpanded((v) => !v)}
-                    className="inline-flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white hover:bg-white/10"
-                    aria-expanded={descExpanded}
-                    aria-controls="model-description"
-                  >
-                    {descExpanded ? "Show less" : "Show more"}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="h-3.5 w-3.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d={descExpanded ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"}
-                      />
-                    </svg>
-                  </button>
-                </div>
+              {model.description && model.description.length > 300 && (
+                <button onClick={() => setDescExpanded(!descExpanded)} className="text-xs text-foreground hover:underline mt-4">
+                  {descExpanded ? "Show less" : "Read full description"}
+                </button>
               )}
             </div>
-            {/* Providers offering this model */}
-            {/* Providers offering this model */}
-            {/* Providers offering this model */}
-            <div className="mb-12">
-              {pricingLoading && providersWithPricing.length === 0 ? (
-                // Loading skeleton for price comparison
-                <div className="w-full">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="h-6 w-40 bg-zinc-800 rounded animate-pulse"></div>
-                    <div className="h-4 w-28 bg-zinc-800 rounded animate-pulse"></div>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-white/5 border border-white/10 rounded-lg p-4"
-                      >
-                        <div className="flex justify-between items-end mb-2">
-                          <div className="h-5 w-32 bg-zinc-800 rounded animate-pulse"></div>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-3 text-xs">
-                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
-                            <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-zinc-700 rounded-full animate-pulse"
-                                style={{ width: `${30 + i * 20}%` }}
-                              ></div>
-                            </div>
-                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs">
-                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
-                            <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-zinc-700 rounded-full animate-pulse"
-                                style={{ width: `${40 + i * 15}%` }}
-                              ></div>
-                            </div>
-                            <div className="w-16 h-3 bg-zinc-700 rounded animate-pulse"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : providersWithPricing.length > 0 ? (
-                <PriceCompChart
-                  data={providersWithPricing.map((entry) => {
-                    const pricing = entry.model.sats_pricing;
 
-                    return {
-                      providerName: entry.provider.name,
-                      promptPrice: (pricing?.prompt || 0) * 1_000_000,
-                      completionPrice: (pricing?.completion || 0) * 1_000_000,
-                    };
-                  })}
-                  currencyLabel="sats / 1M tokens"
+            {/* Pricing Comparison */}
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-8">Price Comparison</h2>
+              {pricingLoading && providersWithPricing.length === 0 ? (
+                <div className="space-y-4 animate-pulse">
+                  {[1, 2, 3].map(i => <div key={i} className="h-12 bg-muted rounded border border-border" />)}
+                </div>
+              ) : (
+                <PriceCompChart
+                  data={providersWithPricing.map((entry) => ({
+                    providerName: entry.provider.name,
+                    promptPrice:
+                      currency === "sats"
+                        ? (entry.model.sats_pricing?.prompt || 0) * 1_000_000
+                        : (entry.model.pricing?.prompt || 0) * 1_000_000,
+                    completionPrice:
+                      currency === "sats"
+                        ? (entry.model.sats_pricing?.completion || 0) * 1_000_000
+                        : (entry.model.pricing?.completion || 0) * 1_000_000,
+                  }))}
+                  currencyLabel={currency === "sats" ? "sats / 1M tokens" : "usd / 1M tokens"}
+                  unitSuffix={currency === "sats" ? "sats/m" : "usd/m"}
                 />
-              ) : null}
+              )}
             </div>
 
-            {/* Endpoints table removed */}
-
-            {/* Model Details */}
-            <Card className="p-6 bg-black/50 border border-white/10 rounded-lg mb-10">
-              <h2 className="text-xl font-bold mb-4 text-white">
-                Technical Specifications
-              </h2>
-              <table className="w-full">
-                <tbody>
-                  <tr className="border-b border-white/10">
-                    <td className="py-3 text-gray-300">Model ID</td>
-                    <td className="py-3 font-medium text-white">{model.id}</td>
-                  </tr>
-                  <tr className="border-b border-white/10">
-                    <td className="py-3 text-gray-300">Provider</td>
-                    <td className="py-3 font-medium text-white">{provider}</td>
-                  </tr>
-                  <tr className="border-b border-white/10">
-                    <td className="py-3 text-gray-300">Created</td>
-                    <td className="py-3 font-medium text-white">
-                      {formatDate(model.created)}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-white/10">
-                    <td className="py-3 text-gray-300">Context length</td>
-                    <td className="py-3 font-medium text-white">
-                      {model.context_length.toLocaleString()} tokens
-                    </td>
-                  </tr>
-                  <tr className="border-b border-white/10">
-                    <td className="py-3 text-gray-300">Modality</td>
-                    <td className="py-3 font-medium text-white">
-                      {model.architecture.modality}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-white/10">
-                    <td className="py-3 text-gray-300">Input Modalities</td>
-                    <td className="py-3 font-medium text-white">
-                      {model.architecture.input_modalities.join(", ")}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-white/10">
-                    <td className="py-3 text-gray-300">Output Modalities</td>
-                    <td className="py-3 font-medium text-white">
-                      {model.architecture.output_modalities.join(", ")}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 text-gray-300">Tokenizer</td>
-                    <td className="py-3 font-medium text-white">
-                      {model.architecture.tokenizer}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </Card>
-
-            {/* API Section */}
-            <Card className="bg-black/50 border border-white/10 p-6 mb-12">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h2 className="text-xl font-bold text-white">
-                  API Integration
-                </h2>
-                {providersWithPricing.length > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Provider</span>
-                    <Popover
-                      open={apiSelectorOpen}
-                      onOpenChange={setApiSelectorOpen}
-                    >
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="inline-flex w-full sm:w-56 items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 sm:py-1.5 text-left text-sm text-white hover:bg-white/10"
-                          aria-label="Select provider for API base URL"
+            {/* Integration */}
+            <div>
+              <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-xl font-bold text-foreground">Integration</h2>
+                {providersWithPricing.length > 1 && (
+                  <Popover open={apiSelectorOpen} onOpenChange={setApiSelectorOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        className="h-7 border-border bg-transparent text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        {selectedProvider?.name || "Select provider"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="bg-background border-border p-1 w-48">
+                      {providersWithPricing.map(p => (
+                        <button 
+                          key={p.provider.id} 
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-muted text-muted-foreground hover:text-foreground rounded"
+                          onClick={() => { setSelectedProviderId(p.provider.id); setApiSelectorOpen(false); }}
                         >
-                          <span className="truncate">
-                            {selectedProvider?.name || "Select provider"}
-                          </span>
-                          <ChevronsUpDownIcon className="ml-2 h-4 w-4 opacity-70" />
+                          {p.provider.name}
                         </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[90vw] sm:w-56 p-2 sm:p-1 bg-black text-white border-white/10">
-                        <div
-                          role="listbox"
-                          aria-label="Select provider"
-                          className="max-h-[60vh] sm:max-h-64 overflow-y-auto"
-                        >
-                          {providersWithPricing.map((entry) => {
-                            const p = entry.provider;
-                            const isActive = p.id === selectedProviderId;
-                            return (
-                              <button
-                                key={p.id}
-                                type="button"
-                                role="option"
-                                aria-selected={isActive}
-                                onClick={() => {
-                                  setSelectedProviderId(p.id);
-                                  setApiSelectorOpen(false);
-                                }}
-                                className={`flex w-full items-center gap-2 rounded px-3 py-3 sm:py-2 text-left text-sm hover:bg-white/10 ${
-                                  isActive ? "bg-white/10" : ""
-                                }`}
-                              >
-                                <CheckIcon
-                                  className={`h-4 w-4 ${
-                                    isActive ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                <span className="truncate">{p.name}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                ) : null}
+                      ))}
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
-              <p className="text-sm text-gray-200 mb-6">
-                Access{" "}
-                <span className="font-semibold text-white">{displayName}</span>{" "}
-                with a simple API call using your Cashu token for
-                authentication.
-              </p>
 
-              {/* Language tabs */}
-              <div className="flex space-x-1 mb-4 border-b border-white/10 overflow-x-auto">
-                {(Object.keys(codeExamples) as CodeLanguage[]).map((lang) => (
-                  <button
-                    key={lang}
-                    className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg whitespace-nowrap ${
-                      activeTab === lang
-                        ? "text-white bg-white/10 border-b-2 border-white"
-                        : "text-gray-300 hover:text-white hover:bg-white/5"
-                    }`}
-                    onClick={() => setActiveTab(lang)}
+              <div className="flex flex-col overflow-hidden rounded border border-border bg-card">
+                <div className="flex flex-col gap-2 border-b border-border px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={(value) => setActiveTab(value as CodeLanguage)}
+                    className="w-full sm:w-auto"
                   >
-                    {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                  </button>
+                    <TabsList variant="line" className="h-8 w-full justify-start overflow-x-auto whitespace-nowrap sm:w-auto">
+                      {(["curl", "javascript", "python"] as CodeLanguage[]).map((lang) => (
+                        <TabsTrigger
+                          key={lang}
+                          value={lang}
+                          className="h-7 text-xs capitalize"
+                        >
+                          {lang}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={doCopy}
+                    className="h-7 self-end text-[10px] text-muted-foreground hover:bg-transparent hover:text-foreground sm:self-auto"
+                  >
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                </div>
+                <div className="p-4 overflow-x-auto min-h-[200px] bg-black/20">
+                  <pre className="text-xs leading-relaxed text-[#D4D4D4] font-mono">
+                    {activeTab === 'curl' && (
+                      <code>
+                        <CodeTok kind="command">curl</CodeTok>{" "}
+                        <CodeTok kind="plain">-X POST</CodeTok>{" "}
+                        <CodeTok kind="string">{providerBaseUrl || "https://api.routstr.com/v1"}/chat/completions</CodeTok>{" "}
+                        <CodeTok kind="symbol">\</CodeTok><br/>
+                        {"  "}<CodeTok kind="plain">-H</CodeTok>{" "}
+                        <CodeTok kind="string">{"\"Content-Type: application/json\""}</CodeTok>{" "}
+                        <CodeTok kind="symbol">\</CodeTok><br/>
+                        {"  "}<CodeTok kind="plain">-H</CodeTok>{" "}
+                        <CodeTok kind="string">{'"Authorization: Bearer "'}</CodeTok>
+                        <Input
+                          value={tokenInput} 
+                          onChange={e => setTokenInput(e.target.value)} 
+                          onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          placeholder="token"
+                        />
+                        <CodeTok kind="string">{'"'}</CodeTok>{" "}
+                        <CodeTok kind="symbol">\</CodeTok><br/>
+                        {"  "}<CodeTok kind="plain">-d</CodeTok>{" "}
+                        <CodeTok kind="string">{"'{"}</CodeTok><br/>
+                        {"    "}<CodeTok kind="property">{"\"model\": "}</CodeTok>
+                        <CodeTok kind="string">{`"${model.id}"`}</CodeTok>,<br/>
+                        {"    "}<CodeTok kind="property">{"\"messages\": ["}</CodeTok><br/>
+                        {"      "}<CodeTok kind="symbol">{`{`}</CodeTok>{" "}
+                        <CodeTok kind="property">{"\"role\": "}</CodeTok>
+                        <CodeTok kind="string">{"\"user\""}</CodeTok>,{" "}
+                        <CodeTok kind="property">{"\"content\": "}</CodeTok>
+                        <CodeTok kind="string">{"\"Hello\""}</CodeTok>{" "}
+                        <CodeTok kind="symbol">{`}`}</CodeTok><br/>
+                        {"    "}<CodeTok kind="property">]</CodeTok><br/>
+                        {"  "}<CodeTok kind="string">{"}'"}</CodeTok>
+                      </code>
+                    )}
+                    {activeTab === 'javascript' && (
+                      <code>
+                        <CodeTok kind="keyword">import</CodeTok>{" "}
+                        <CodeTok kind="value">OpenAI</CodeTok>{" "}
+                        <CodeTok kind="keyword">from</CodeTok>{" "}
+                        <CodeTok kind="string">{"'openai'"}</CodeTok>;<br/><br/>
+                        <CodeTok kind="keyword">const</CodeTok>{" "}
+                        <CodeTok kind="plain">openai</CodeTok> ={" "}
+                        <CodeTok kind="keyword">new</CodeTok>{" "}
+                        <CodeTok kind="value">OpenAI</CodeTok>(<CodeTok kind="symbol">{`{`}</CodeTok><br/>
+                        {"  "}<CodeTok kind="property">baseURL</CodeTok>:{" "}
+                        <CodeTok kind="string">{`'${providerBaseUrl || "https://api.routstr.com/v1"}'`}</CodeTok>,<br/>
+                        {"  "}<CodeTok kind="property">apiKey</CodeTok>:{" "}
+                        <CodeTok kind="string">{"'"}</CodeTok>
+                        <Input
+                          value={tokenInput} 
+                          onChange={e => setTokenInput(e.target.value)} 
+                          onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          placeholder="token"
+                        />
+                        <CodeTok kind="string">{"'"}</CodeTok><br/>
+                        <CodeTok kind="symbol">{`}`}</CodeTok>);<br/><br/>
+                        <CodeTok kind="keyword">async function</CodeTok>{" "}
+                        <CodeTok kind="value">main</CodeTok>(){" "}
+                        <CodeTok kind="symbol">{`{`}</CodeTok><br/>
+                        {"  "}<CodeTok kind="keyword">const</CodeTok>{" "}
+                        <CodeTok kind="plain">res</CodeTok> ={" "}
+                        <CodeTok kind="keyword">await</CodeTok>{" "}
+                        <CodeTok kind="plain">openai.chat.completions.create</CodeTok>(<CodeTok kind="symbol">{`{`}</CodeTok><br/>
+                        {"    "}<CodeTok kind="property">model</CodeTok>:{" "}
+                        <CodeTok kind="string">{`'${model.id}'`}</CodeTok>,<br/>
+                        {"    "}<CodeTok kind="property">messages</CodeTok>: [<CodeTok kind="symbol">{`{`}</CodeTok>{" "}
+                        <CodeTok kind="property">role</CodeTok>: <CodeTok kind="string">{"'user'"}</CodeTok>,{" "}
+                        <CodeTok kind="property">content</CodeTok>: <CodeTok kind="string">{"'Hello'"}</CodeTok>{" "}
+                        <CodeTok kind="symbol">{`}`}</CodeTok>]<br/>
+                        {"  "}<CodeTok kind="symbol">{`}`}</CodeTok>);<br/>
+                        <CodeTok kind="symbol">{`}`}</CodeTok>
+                      </code>
+                    )}
+                    {activeTab === 'python' && (
+                      <code>
+                        <CodeTok kind="keyword">from</CodeTok>{" "}
+                        <CodeTok kind="plain">openai</CodeTok>{" "}
+                        <CodeTok kind="keyword">import</CodeTok>{" "}
+                        <CodeTok kind="value">OpenAI</CodeTok><br/><br/>
+                        <CodeTok kind="plain">client</CodeTok> = <CodeTok kind="value">OpenAI</CodeTok>(<br/>
+                        {"    "}<CodeTok kind="property">base_url</CodeTok>=<CodeTok kind="string">{`"${providerBaseUrl || "https://api.routstr.com/v1"}"`}</CodeTok>,<br/>
+                        {"    "}<CodeTok kind="property">api_key</CodeTok>=<CodeTok kind="string">{`"`}</CodeTok>
+                        <Input
+                          value={tokenInput} 
+                          onChange={e => setTokenInput(e.target.value)} 
+                          onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          placeholder="token"
+                        />
+                        <CodeTok kind="string">{`"`}</CodeTok><br/>
+                        )<br/><br/>
+                        <CodeTok kind="plain">res</CodeTok> = <CodeTok kind="plain">client.chat.completions.create</CodeTok>(<br/>
+                        {"    "}<CodeTok kind="property">model</CodeTok>=<CodeTok kind="string">{`"${model.id}"`}</CodeTok>,<br/>
+                        {"    "}<CodeTok kind="property">messages</CodeTok>=[<CodeTok kind="symbol">{`{`}</CodeTok><CodeTok kind="property">{"\"role\""}</CodeTok>: <CodeTok kind="string">{"\"user\""}</CodeTok>, <CodeTok kind="property">{"\"content\""}</CodeTok>: <CodeTok kind="string">{"\"Hello\""}</CodeTok><CodeTok kind="symbol">{`}`}</CodeTok>]<br/>
+                        )
+                      </code>
+                    )}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Technical Specifications */}
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-8">Technical Specifications</h2>
+              <div className="space-y-0 border-t border-border">
+                {[
+                  { label: "Created", value: new Date(model.created * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
+                  { label: "Context Length", value: `${model.context_length.toLocaleString()} tokens` },
+                  { label: "Modality", value: model.architecture.modality },
+                  { label: "Tokenizer", value: model.architecture.tokenizer },
+                ].map((spec, i) => (
+                  <div key={i} className="flex justify-between py-4 border-b border-border/50 text-sm">
+                    <span className="text-muted-foreground">{spec.label}</span>
+                    <span className="text-foreground font-mono">{spec.value}</span>
+                  </div>
                 ))}
               </div>
+            </div>
 
-              {/* Code example with inline token inputs and copy */}
-              <div className="relative group bg-black/70 rounded-lg border border-white/10">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    doCopy();
-                  }}
-                  className="absolute top-1.5 sm:top-2 right-2 inline-flex items-center gap-1 rounded bg-black/80 border border-white/20 px-2 py-1 text-[10px] sm:text-xs text-white shadow-md hover:bg-black/90 sm:bg-white/10 sm:border-white/10 sm:hover:bg-white/20"
-                  aria-label="Copy code"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-3 w-3"
-                  >
-                    <rect
-                      x="9"
-                      y="9"
-                      width="13"
-                      height="13"
-                      rx="2"
-                      ry="2"
-                    ></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                  {copied ? "Copied" : "Copy"}
-                </button>
-
-                <div className="p-3 sm:p-4 pr-10 overflow-x-auto">
-                  {activeTab === "curl" ? (
-                    <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
-                      <code>
-                        <span className="text-[#61afef]">curl</span>
-                        {" -X POST "}
-                        <span className="text-[#61afef]">
-                          {providerBaseUrl || "https://api.routstr.com/v1"}
-                          /chat/completions
-                        </span>
-                        {" \\\n"}
-                        <span className="text-[#abb2bf]">{"  -H "}</span>
-                        <span className="text-[#98c379]">
-                          {'"Content-Type: application/json"'}
-                        </span>
-                        {" \\\n"}
-                        <span className="text-[#abb2bf]">{"  -H "}</span>
-                        <span className="text-[#98c379]">
-                          {'"Authorization: Bearer '}
-                        </span>
-                        <input
-                          value={tokenInput}
-                          onChange={(e) => setTokenInput(e.target.value)}
-                          onBlur={() =>
-                            setLocalCashuToken(storageBaseUrl, tokenInput || "")
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onTouchStart={(e) => e.stopPropagation()}
-                          placeholder="cashu..."
-                          className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
-                        />
-                        <span className="text-[#98c379]">{'"'}</span>
-                        {" \\\n"}
-                        {"  -d "}
-                        <span className="text-[#98c379]">{"'"}</span>
-                        {"{"}
-                        <span className="text-[#98c379]">{""}</span>
-                        {"}"}
-                        {"\n"}
-                        {'    "model": "'}
-                        <span className="text-[#98c379]">{model.id}</span>
-                        {'",'}
-                        {"\n"}
-                        {'    "messages": ['}
-                        {"\n"}
-                        {'      { "role": "user", "content": "'}
-                        <span className="text-[#98c379]">{"Hello Nostr"}</span>
-                        {'" }'}
-                        {"\n"}
-                        {"    ]"}
-                        {"\n"}
-                        {"  }"}
-                        <span className="text-[#98c379]">{"'"}</span>
-                        {"\n"}
-                      </code>
-                    </pre>
-                  ) : activeTab === "javascript" ? (
-                    <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
-                      <code>
-                        <span className="text-[#61afef]">import</span>{" "}
-                        <span className="text-white">OpenAI</span>{" "}
-                        <span className="text-[#61afef]">from</span>{" "}
-                        <span className="text-[#98c379]">{"'openai'"}</span>
-                        <span className="text-[#abb2bf]">;</span>
-                        {"\n\n"}
-                        <span className="text-[#61afef]">const</span>{" "}
-                        <span className="text-white">openai</span>{" "}
-                        <span className="text-[#abb2bf]">=</span>{" "}
-                        <span className="text-[#61afef]">new</span>{" "}
-                        <span className="text-white">OpenAI</span>
-                        <span className="text-[#abb2bf]">({"\n"}</span>
-                        {"  "}
-                        <span className="text-[#e5c07b]">baseURL</span>
-                        <span className="text-[#abb2bf]">: </span>
-                        <span className="text-[#98c379]">
-                          {"'"}
-                          {providerBaseUrl || "https://api.routstr.com/v1"}
-                          {"'"}
-                        </span>
-                        <span className="text-[#abb2bf]">,{"\n"}</span>
-                        {"  "}
-                        <span className="text-[#e5c07b]">apiKey</span>
-                        <span className="text-[#abb2bf]">: </span>
-                        <span className="text-[#98c379]">{"'"}</span>
-                        <input
-                          value={tokenInput}
-                          onChange={(e) => setTokenInput(e.target.value)}
-                          onBlur={() =>
-                            setLocalCashuToken(storageBaseUrl, tokenInput || "")
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onTouchStart={(e) => e.stopPropagation()}
-                          placeholder="cashu..."
-                          className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
-                        />
-                        <span className="text-[#98c379]">{"'"}</span>
-                        {"\n"}
-                        <span className="text-[#abb2bf]">{"});\n\n"}</span>
-                        <span className="text-[#61afef]">async</span>{" "}
-                        <span className="text-[#61afef]">function</span>{" "}
-                        <span className="text-white">main</span>
-                        <span className="text-[#abb2bf]">(){"\n"}</span>
-                        {"  "}
-                        <span className="text-[#61afef]">const</span>{" "}
-                        <span className="text-white">completion</span>{" "}
-                        <span className="text-[#abb2bf]">=</span>{" "}
-                        <span className="text-[#61afef]">await</span>{" "}
-                        <span className="text-white">openai</span>
-                        <span className="text-[#abb2bf]">
-                          .chat.completions.create(
-                        </span>
-                        <span className="text-[#abb2bf]">{"{"}</span>
-                        {"\n"}
-                        {"    "}
-                        <span className="text-[#e5c07b]">model</span>
-                        <span className="text-[#abb2bf]">: </span>
-                        <span className="text-[#98c379]">{"'"}</span>
-                        <span className="text-[#98c379]">{model.id}</span>
-                        <span className="text-[#98c379]">{"'"}</span>
-                        <span className="text-[#abb2bf]">,{"\n"}</span>
-                        {"    "}
-                        <span className="text-[#e5c07b]">messages</span>
-                        <span className="text-[#abb2bf]">: [</span>
-                        {"\n"}
-                        {"      "}
-                        <span className="text-[#abb2bf]">{"{ "}</span>
-                        <span className="text-[#e5c07b]">role</span>
-                        <span className="text-[#abb2bf]">: </span>
-                        <span className="text-[#98c379]">{"'user'"}</span>
-                        <span className="text-[#abb2bf]">, </span>
-                        <span className="text-[#e5c07b]">content</span>
-                        <span className="text-[#abb2bf]">: </span>
-                        <span className="text-[#98c379]">
-                          {"'Hello Nostr'"}
-                        </span>
-                        <span className="text-[#abb2bf]">{" }\n"}</span>
-                        {"    "}
-                        <span className="text-[#abb2bf]">]</span>
-                        {"\n"}
-                        <span className="text-[#abb2bf]"> {"});\n"}</span>
-                        {"  "}
-                        <span className="text-white">console</span>
-                        <span className="text-[#abb2bf]">.log(</span>
-                        <span className="text-white">completion</span>
-                        <span className="text-[#abb2bf]">.choices[</span>
-                        <span className="text-[#c678dd]">0</span>
-                        <span className="text-[#abb2bf]">].message);</span>
-                        {"\n"}
-                        <span className="text-[#abb2bf]">{"}\n\n"}</span>
-                        <span className="text-white">main</span>
-                        <span className="text-[#abb2bf]">();</span>
-                      </code>
-                    </pre>
-                  ) : (
-                    <pre className="text-xs sm:text-sm leading-6 whitespace-pre font-mono text-white">
-                      <code>
-                        <span className="text-[#61afef]">from</span>{" "}
-                        <span className="text-white">openai</span>{" "}
-                        <span className="text-[#61afef]">import</span>{" "}
-                        <span className="text-white">OpenAI</span>
-                        {"\n\n"}
-                        <span className="text-white">client</span>{" "}
-                        <span className="text-[#abb2bf]">=</span>{" "}
-                        <span className="text-white">OpenAI</span>
-                        <span className="text-[#abb2bf]">(</span>
-                        {"\n"}
-                        {"    "}
-                        <span className="text-[#e5c07b]">base_url</span>
-                        <span className="text-[#abb2bf]">=</span>
-                        <span className="text-[#98c379]">
-                          {'"'}
-                          {providerBaseUrl || "https://api.routstr.com/v1"}
-                          {'"'}
-                        </span>
-                        <span className="text-[#abb2bf]">,{"\n"}</span>
-                        {"    "}
-                        <span className="text-[#e5c07b]">api_key</span>
-                        <span className="text-[#abb2bf]">=</span>
-                        <span className="text-[#98c379]">{'"'}</span>
-                        <input
-                          value={tokenInput}
-                          onChange={(e) => setTokenInput(e.target.value)}
-                          onBlur={() =>
-                            setLocalCashuToken(storageBaseUrl, tokenInput || "")
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onTouchStart={(e) => e.stopPropagation()}
-                          placeholder="cashu..."
-                          className="inline-block align-middle min-w-0 w-[9ch] sm:w-[16ch] max-w-[50vw] bg-transparent border border-white/10 rounded px-2 py-0.5 text-[10px] sm:text-xs text-[#98c379] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-white/20"
-                        />
-                        <span className="text-[#98c379]">{'"'}</span>
-                        {"\n"}
-                        <span className="text-[#abb2bf]">){"\n\n"}</span>
-                        <span className="text-white">completion</span>{" "}
-                        <span className="text-[#abb2bf]">=</span>{" "}
-                        <span className="text-white">client</span>
-                        <span className="text-[#abb2bf]">
-                          .chat.completions.create(
-                        </span>
-                        {"\n"}
-                        {"    "}
-                        <span className="text-[#e5c07b]">model</span>
-                        <span className="text-[#abb2bf]">=</span>
-                        <span className="text-[#98c379]">{'"'}</span>
-                        <span className="text-[#98c079]">{model.id}</span>
-                        <span className="text-[#98c379]">{'"'}</span>
-                        <span className="text-[#abb2bf]">,{"\n"}</span>
-                        {"    "}
-                        <span className="text-[#e5c07b]">messages</span>
-                        <span className="text-[#abb2bf]">=[</span>
-                        {"\n"}
-                        {"        "}
-                        <span className="text-[#abb2bf]">{"{ "}</span>
-                        <span className="text-[#98c379]">{"role"}</span>
-                        <span className="text-[#abb2bf]">: </span>
-                        <span className="text-[#98c379]">{"user"}</span>
-                        <span className="text-[#abb2bf]">, </span>
-                        <span className="text-[#98c379]">{"content"}</span>
-                        <span className="text-[#abb2bf]">: </span>
-                        <span className="text-[#98c379]">{"Hello Nostr"}</span>
-                        <span className="text-[#abb2bf]">{" }\n"}</span>
-                        {"    "}
-                        <span className="text-[#abb2bf]">]</span>
-                        {"\n"}
-                        <span className="text-[#abb2bf]">){"\n"}</span>
-                        <span className="text-[#61afef]">print</span>
-                        <span className="text-[#abb2bf]">(</span>
-                        <span className="text-white">completion</span>
-                        <span className="text-[#abb2bf]">.choices[</span>
-                        <span className="text-[#c678dd]">0</span>
-                        <span className="text-[#abb2bf]">
-                          ].message.content)
-                        </span>
-                      </code>
-                    </pre>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div className="rounded bg-black/30 p-3 border border-white/5">
-                  <span className="block font-medium text-white mb-1">
-                    OpenAI Compatible
-                  </span>
-                  <span className="text-gray-300">
-                    Drop-in replacement for OpenAI clients
-                  </span>
-                </div>
-                <div className="rounded bg-black/30 p-3 border border-white/5">
-                  <span className="block font-medium text-white mb-1">
-                    Cashu Tokens
-                  </span>
-                  <span className="text-gray-300">
-                    Pay with Lightning via Cashu ecash
-                  </span>
-                </div>
-                <div className="rounded bg-black/30 p-3 border border-white/5">
-                  <span className="block font-medium text-white mb-1">
-                    Privacy First
-                  </span>
-                  <span className="text-gray-300">
-                    No accounts, no tracking, just API tokens
-                  </span>
-                </div>
-              </div>
-            </Card>
-
-            {/* Model Reviews Section */}
-            <ModelReviews
-              modelId={model.id}
-              providersForModel={providersWithPricing.map((p) => p.provider)}
-            />
+            {/* Model Reviews */}
+            <div>
+              <ModelReviews
+                modelId={model.id}
+                providersForModel={providersWithPricing.map((p) => p.provider)}
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      <Footer />
+      <div className="max-w-5xl mx-auto w-full">
+        <Footer />
+      </div>
     </main>
   );
 }
