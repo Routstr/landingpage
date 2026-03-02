@@ -1,23 +1,20 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
+import { PageContainer, SiteShell } from "@/components/layout/site-shell";
 import { fetchModels, Provider } from "@/app/data/models";
-
-function Skeleton({ className }: { className: string }) {
-  return <div className={`animate-pulse bg-white/10 rounded ${className}`} />;
-}
+import { Input } from "@/components/ui/input";
 
 export default function ProvidersPage() {
   const [items, setItems] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     let active = true;
     (async () => {
       setIsLoading(true);
-      setItems([]); // Clear items on start
+      setItems([]);
 
       await fetchModels((provider) => {
         if (!active) return;
@@ -40,128 +37,87 @@ export default function ProvidersPage() {
     );
   }, [items]);
 
-  return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
-      <Header />
+  const filteredItems = useMemo(() => {
+    if (!searchTerm) return sortedItems;
+    const lowerSearch = searchTerm.toLowerCase();
+    return sortedItems.filter((item) =>
+      item.name?.toLowerCase().includes(lowerSearch) ||
+      item.pubkey?.toLowerCase().includes(lowerSearch) ||
+      item.description?.toLowerCase().includes(lowerSearch)
+    );
+  }, [sortedItems, searchTerm]);
 
-      <main className="flex-grow">
-        <div className="pt-8 sm:pt-16 pb-16 bg-black">
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <div className="max-w-7xl mx-auto">
-              <h1 className="text-2xl sm:text-4xl font-bold mb-6">Providers</h1>
-              <p className="text-base sm:text-xl text-gray-400 mb-10">
-                Browse {items.length} providers available through Routstr&apos;s
-                decentralized marketplace.
+  return (
+    <SiteShell contentClassName="py-12 md:py-20">
+      <PageContainer>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-12">
+            <div className="text-left">
+              <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Providers</h1>
+              <p className="text-base md:text-lg text-muted-foreground max-w-xl font-light leading-relaxed">
+                Explore the {items.length} hardware providers powering the decentralized Routstr marketplace.
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="pt-0 pb-16">
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
+          {/* Search */}
+          <div className="mb-12">
+            <Input
+              type="text"
+              placeholder="Search providers..."
+              className="h-10 max-w-md border-border bg-transparent font-mono text-sm text-foreground placeholder:text-muted-foreground"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <div className="grid grid-cols-12 gap-4 py-3 border-b border-border bg-card/50 px-4 text-[10px] font-bold text-muted-foreground">
+              <div className="col-span-8 md:col-span-8">Provider Name</div>
+              <div className="hidden md:block col-span-2">Models</div>
+              <div className="hidden md:block col-span-2">Version</div>
+            </div>
+
             {isLoading && items.length === 0 ? (
-              <div className="max-w-7xl mx-auto border border-white/10 rounded-lg overflow-hidden">
-                <ul className="divide-y divide-white/10">
-                  {[...Array(8)].map((_, i) => (
-                    <li key={i} className="p-4 sm:p-6">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-3 mb-2">
-                            <Skeleton className="h-6 w-48" />
-                            <Skeleton className="h-5 w-5 shrink-0" />
-                          </div>
-                          <Skeleton className="h-4 w-full mb-4" />
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {[...Array(3)].map((_, idx) => (
-                              <Skeleton
-                                key={idx}
-                                className="h-6 w-16 rounded-full"
-                              />
-                            ))}
-                          </div>
-                          <Skeleton className="h-3 w-3/4" />
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              [...Array(8)].map((_, i) => (
+                <div key={i} className="grid grid-cols-12 gap-4 py-6 border-b border-border/30 px-4 animate-pulse">
+                  <div className="col-span-8 md:col-span-8 h-4 bg-border rounded w-3/4" />
+                  <div className="hidden md:block col-span-2 h-3 bg-border rounded w-1/2" />
+                  <div className="hidden md:block col-span-2 h-3 bg-border rounded w-1/3" />
+                </div>
+              ))
+            ) : filteredItems.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground text-sm font-mono">
+                No providers found.
               </div>
             ) : (
-              <div className="max-w-7xl mx-auto border border-white/10 rounded-lg overflow-hidden">
-                <ul className="divide-y divide-white/10">
-                  {sortedItems.map((provider) => {
-                    const modelCount = provider.supported_models?.length || 0;
-                    return (
-                      <li key={provider.id}>
-                        <Link
-                          href={`/providers/${encodeURIComponent(provider.id)}`}
-                          className="block p-4 sm:p-6 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                          aria-label={`View ${provider.name}`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-3 mb-2">
-                                <h3 className="text-lg sm:text-xl font-bold text-white truncate">
-                                  {provider.name}
-                                </h3>
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={1.5}
-                                  stroke="currentColor"
-                                  className="w-5 h-5 text-white/70 shrink-0"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                                  />
-                                </svg>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2 mb-3">
-                                <span className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-gray-300">
-                                  {modelCount}{" "}
-                                  {modelCount === 1 ? "model" : "models"}
-                                </span>
-                                {provider.version && (
-                                  <span className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-gray-300">
-                                    v{provider.version}
-                                  </span>
-                                )}
-                              </div>
-
-                              <p className="text-gray-400 mb-4">
-                                {provider.description}
-                              </p>
-                              <div className="mt-auto">
-                                <div className="text-sm text-gray-500">
-                                  <span className="text-gray-400 font-medium">
-                                    models:
-                                  </span>{" "}
-                                  {provider.supported_models
-                                    ?.slice(0, 3)
-                                    .join(", ")}
-                                  {provider.supported_models &&
-                                    provider.supported_models.length > 3 &&
-                                    "..."}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              filteredItems.map((provider) => {
+                const modelCount = provider.supported_models?.length || 0;
+                return (
+                  <Link
+                    key={provider.id}
+                    href={`/providers/${encodeURIComponent(provider.id)}`}
+                    className="grid grid-cols-12 gap-4 py-6 border-b border-border/30 px-4 hover:bg-card transition-colors group items-center"
+                  >
+                    <div className="col-span-8 md:col-span-8 flex flex-col justify-center min-w-0">
+                      <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
+                        {provider.name}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground truncate mt-0.5">
+                        {provider.description || "Decentralized AI provider node."}
+                      </span>
+                    </div>
+                    <div className="hidden md:flex col-span-2 text-xs text-muted-foreground">
+                      {modelCount} {modelCount === 1 ? "model" : "models"}
+                    </div>
+                    <div className="hidden md:flex col-span-2 text-xs text-muted-foreground">
+                      {provider.version ? `v${provider.version}` : "—"}
+                    </div>
+                  </Link>
+                );
+              })
             )}
           </div>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+      </PageContainer>
+    </SiteShell>
   );
 }

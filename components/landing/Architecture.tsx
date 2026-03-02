@@ -24,7 +24,7 @@ export function LandingArchitecture() {
 
   return (
     <div className="w-full bg-black border-t border-white/[0.03]">
-      <div className="max-w-7xl mx-auto py-20 md:py-32 px-4 md:px-8">
+      <div className="max-w-5xl mx-auto py-20 md:py-32 px-4 md:px-8">
         
         {/* Header */}
         <div className="text-center mb-14 max-w-3xl mx-auto">

@@ -1,40 +1,57 @@
 "use client";
 
-import createGlobe, { COBEOptions } from "cobe";
-import { useMotionValue, useSpring } from "motion/react";
-import { useEffect, useRef } from "react";
-
-import { cn } from "@/lib/utils";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
 import {
-  filterStagingEndpoints,
-  shouldHideProvider,
-} from "@/lib/staging-filter";
+  fetchProvidersList,
+  isOnionOnlyProvider,
+  isProviderVisible,
+} from "@/lib/api/providers";
+import GlobeTooltip, { type GlobeTooltipProvider } from "../client/GlobeTooltip";
+import type { GlobeMethods } from "react-globe.gl";
+import dynamic from "next/dynamic";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-// Type definitions
-interface COBEState {
-  phi: number;
-  width: number;
-  height: number;
-  markers: { location: [number, number]; size: number }[];
+const GlobeComp = dynamic(() => import("react-globe.gl"), { ssr: false });
+
+async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
+  const res = await fetch(
+    "https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson"
+  );
+  return res.json();
 }
 
-// Lightweight provider typing for marker plotting
 type Provider = {
   id: string;
   name: string;
   endpoint_url: string;
   endpoint_urls?: string[];
+  mint_urls?: string[];
+  description?: string;
+  created_at?: number;
 };
 
 type ProviderPoint = {
   id: string;
   name: string;
-  endpoint: string;
   lat: number;
   lng: number;
+  description?: string;
+  createdAt?: number;
+  mints?: string[];
 };
 
-// Deterministic fallback lat/lng generator (fast, no network lookups)
+function isProviderPoint(value: unknown): value is ProviderPoint {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.lat === "number" &&
+    typeof candidate.lng === "number"
+  );
+}
+
 function hashToCoords(input: string): { lat: number; lng: number } {
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
@@ -44,370 +61,241 @@ function hashToCoords(input: string): { lat: number; lng: number } {
   const rng = (n: number) => {
     return ((hash ^ (n * 2654435761)) >>> 0) / 2 ** 32;
   };
-  const lat = -60 + rng(1) * 120; // visible band, avoid poles
+  const lat = -60 + rng(1) * 120;
   const lng = -180 + rng(2) * 360;
   return { lat, lng };
 }
 
-function extractHost(urlOrHost: string): string | null {
-  try {
-    const hasProtocol = /^(https?:)?\/\//i.test(urlOrHost);
-    const u = new URL(hasProtocol ? urlOrHost : `https://${urlOrHost}`);
-    return u.hostname;
-  } catch {
-    if (/^[a-z0-9.-]+$/i.test(urlOrHost)) return urlOrHost;
-    return null;
-  }
-}
+export function Globe({ className }: { className?: string }) {
+  const [mounted, setMounted] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const isMobile = useIsMobile();
+  const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hexData, setHexData] = useState<Record<string, unknown>[]>([]);
+  const [points, setPoints] = useState<ProviderPoint[]>([]);
+  const [size, setSize] = useState(600);
+  
+  const [selectedProvider, setSelectedProvider] = useState<GlobeTooltipProvider | null>(null);
+  const [selectedPos, setSelectedPos] = useState<{ x: number; y: number } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  
+  const [isHoveringTooltip, setIsHoveringTooltip] = useState(false);
+  const [mobileRotationLocked, setMobileRotationLocked] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-// Geolocation cache to reduce duplicate lookups
-const geolocationCache = new Map<
-  string,
-  { lat: number; lng: number; city?: string; country?: string }
->();
-
-async function geolocateHost(host: string): Promise<{
-  lat: number;
-  lng: number;
-  city?: string;
-  country?: string;
-} | null> {
-  if (host.endsWith(".onion")) return null;
-  if (geolocationCache.has(host)) return geolocationCache.get(host)!;
-  try {
-    // Resolve hostname to IPv4 via Google DNS-over-HTTPS
-    let dnsRes;
-    try {
-      dnsRes = await fetch(
-        `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`,
-      );
-    } catch {
-      // Fetch blocked (e.g., by browser extension) - silently fail
-      return null;
-    }
-    if (!dnsRes.ok) return null;
-    const dnsData = await dnsRes.json();
-    const ip = Array.isArray(dnsData?.Answer)
-      ? (dnsData.Answer.find((a: { type: number }) => a.type === 1)?.data ??
-        null)
-      : null;
-    if (!ip) return null;
-
-    // Try ipwho.is (HTTPS)
-    try {
-      const resIpwho = await fetch(`https://ipwho.is/${ip}`);
-      if (resIpwho.ok) {
-        const dataIpwho = await resIpwho.json();
-        if (
-          dataIpwho?.success &&
-          typeof dataIpwho.latitude === "number" &&
-          typeof dataIpwho.longitude === "number"
-        ) {
-          const value = {
-            lat: dataIpwho.latitude,
-            lng: dataIpwho.longitude,
-            city: dataIpwho.city,
-            country: dataIpwho.country,
-          };
-          geolocationCache.set(host, value);
-          return value;
-        }
-      }
-    } catch {
-      // Silently fail - fallback to next method or hash coords
-    }
-
-    // Optional ip-api.com over HTTP only when page is HTTP to avoid mixed content
-    try {
-      if (
-        typeof window !== "undefined" &&
-        window.location.protocol === "http:"
-      ) {
-        const resIpApi = await fetch(`http://ip-api.com/json/${ip}`);
-        if (resIpApi.ok) {
-          const dataIpApi = await resIpApi.json();
-          if (
-            typeof dataIpApi.lat === "number" &&
-            typeof dataIpApi.lon === "number"
-          ) {
-            const value = {
-              lat: dataIpApi.lat,
-              lng: dataIpApi.lon,
-              city: dataIpApi.city,
-              country: dataIpApi.country,
+  useEffect(() => {
+    let isMounted = true;
+    setMounted(true);
+    const updateSize = () => {
+      const width = window.innerWidth;
+      const targetSize = Math.min(width - 48, 1200); 
+      setSize(targetSize);
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    
+    fetchCountriesGeoJson().then((geo) => setHexData(geo.features));
+    
+    fetchProvidersList()
+      .then((providers: Provider[]) => {
+        if (!isMounted) return;
+        const mapped = providers
+          .filter((provider) => isProviderVisible(provider))
+          .filter((provider) => !isOnionOnlyProvider(provider))
+          .map((provider) => {
+            const coords = hashToCoords(provider.id);
+            return {
+              id: provider.id,
+              name: provider.name,
+              lat: coords.lat,
+              lng: coords.lng,
+              description: provider.description,
+              createdAt: provider.created_at,
+              mints: provider.mint_urls,
             };
-            geolocationCache.set(host, value);
-            return value;
-          }
-        }
-      }
-    } catch {
-      // Silently fail
-    }
-  } catch {
-    // Outer catch for any unexpected errors
-  }
-  return null;
-}
-
-function normalizeLng(lng: number): number {
-  let x = lng;
-  while (x > 180) x -= 360;
-  while (x < -180) x += 360;
-  return x;
-}
-
-function clampLat(lat: number): number {
-  return Math.max(-89.999, Math.min(89.999, lat));
-}
-
-function disambiguateOverlappingPoints(
-  points: ProviderPoint[],
-): ProviderPoint[] {
-  const groups = new Map<string, ProviderPoint[]>();
-  const keyFor = (p: ProviderPoint) =>
-    `${p.lat.toFixed(3)}|${p.lng.toFixed(3)}`;
-  for (const p of points) {
-    const k = keyFor(p);
-    const arr = groups.get(k) ?? [];
-    arr.push(p);
-    groups.set(k, arr);
-  }
-
-  const adjusted: ProviderPoint[] = [];
-  for (const arr of Array.from(groups.values())) {
-    if (arr.length === 1) {
-      adjusted.push(arr[0]);
-      continue;
-    }
-    arr.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-    const n = arr.length;
-    const baseRadiusDeg = 0.12;
-    const radiusDeg = Math.min(0.25, baseRadiusDeg + Math.min(0.08, n * 0.01));
-
-    arr.forEach((p, i) => {
-      const angle = (2 * Math.PI * i) / n;
-      const latRad = (p.lat * Math.PI) / 180;
-      const scaleLng = Math.max(0.3, Math.cos(latRad));
-      const dLat = radiusDeg * Math.cos(angle);
-      const dLng = (radiusDeg * Math.sin(angle)) / scaleLng;
-      adjusted.push({
-        ...p,
-        lat: clampLat(p.lat + dLat),
-        lng: normalizeLng(p.lng + dLng),
+          });
+        setPoints(mapped);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setPoints([]);
       });
-    });
-  }
-  return adjusted;
-}
-
-const MOVEMENT_DAMPING = 1400;
-
-const GLOBE_CONFIG: COBEOptions = {
-  width: 600,
-  height: 600,
-  onRender: () => {},
-  // Cap device pixel ratio to 1 for much better scroll performance
-  devicePixelRatio: 1,
-  phi: 0,
-  theta: 0.3,
-  dark: 0,
-  diffuse: 0.4,
-  // Reduced samples for better performance
-  mapSamples: 1600,
-  mapBrightness: 1.2,
-  baseColor: [1, 1, 1],
-  markerColor: [251 / 255, 100 / 255, 21 / 255],
-  glowColor: [1, 1, 1],
-  markers: [],
-};
-
-export function Globe({
-  className,
-  config = GLOBE_CONFIG,
-}: {
-  className?: string;
-  config?: COBEOptions;
-}) {
-  const markersRef = useRef<{ location: [number, number]; size: number }[]>([]);
-  const phiRef = useRef(0);
-  const widthRef = useRef(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointerInteracting = useRef<number | null>(null);
-  const pointerInteractionMovement = useRef(0);
-
-  const r = useMotionValue(0);
-  const rs = useSpring(r, {
-    mass: 1,
-    damping: 30,
-    stiffness: 100,
-  });
-
-  const updatePointerInteraction = (value: number | null) => {
-    pointerInteracting.current = value;
-    if (canvasRef.current) {
-      canvasRef.current.style.cursor = value !== null ? "grabbing" : "grab";
-    }
-  };
-
-  const updateMovement = (clientX: number) => {
-    if (pointerInteracting.current !== null) {
-      const delta = clientX - pointerInteracting.current;
-      pointerInteractionMovement.current = delta;
-      r.set(r.get() + delta / MOVEMENT_DAMPING);
-    }
-  };
-
-  useEffect(() => {
-    const onResize = () => {
-      if (canvasRef.current) {
-        widthRef.current = Math.min(canvasRef.current.offsetWidth, 700);
-      }
-    };
-
-    window.addEventListener("resize", onResize);
-    onResize();
-    let globe: ReturnType<typeof createGlobe> | null = null;
-    let isVisible = true;
-
-    // Pause rendering when not visible using Intersection Observer
-    const observer = new IntersectionObserver(
-      (entries) => {
-        isVisible = entries[0]?.isIntersecting ?? true;
-      },
-      { threshold: 0.1 },
-    );
-
-    if (canvasRef.current) {
-      observer.observe(canvasRef.current);
-    }
-
-    // Use fixed DPR of 1 for smooth scrolling performance
-    const dpr = 1;
-
-    try {
-      globe = createGlobe(canvasRef.current!, {
-        ...config,
-        devicePixelRatio: dpr,
-        width: widthRef.current * dpr,
-        height: widthRef.current * dpr,
-        onRender: (state) => {
-          // Skip rendering when not visible
-          if (!isVisible) return;
-
-          // Slower rotation for smoother performance
-          if (!pointerInteracting.current) phiRef.current += 0.001;
-          state.phi = phiRef.current + rs.get();
-          state.width = widthRef.current * dpr;
-          state.height = widthRef.current * dpr;
-          // draw provider markers gathered asynchronously
-          (state as COBEState).markers = markersRef.current;
-        },
-      });
-    } catch (e) {
-      console.error("Globe Error: createGlobe call failed.", e);
-      console.error(
-        "Globe Error Details: Canvas at time of error:",
-        canvasRef.current,
-      );
-      return;
-    }
-
-    setTimeout(() => (canvasRef.current!.style.opacity = "1"), 0);
 
     return () => {
-      observer.disconnect();
-      if (globe) {
-        globe.destroy();
-      }
-      window.removeEventListener("resize", onResize);
-    };
-  }, [rs, config]);
-
-  // Fetch providers and geolocate to plot accurate markers like the full-screen globe
-  useEffect(() => {
-    let aborted = false;
-    (async () => {
-      try {
-        const res = await fetch("https://api.routstr.com/v1/providers/");
-        if (!res.ok) return;
-        const data = (await res.json()) as { providers?: Provider[] };
-        const providersRaw = data.providers ?? [];
-        // Filter out providers with staging endpoints
-        const providers = providersRaw.filter((p) => {
-          const endpoints =
-            Array.isArray(p.endpoint_urls) && p.endpoint_urls.length > 0
-              ? p.endpoint_urls
-              : [p.endpoint_url].filter(Boolean);
-          return !shouldHideProvider(endpoints);
-        });
-        // Map providers to points using geolocation with fallback to hashed coords
-        const points = (
-          await Promise.all(
-            providers.map(async (p) => {
-              const httpEndpoints = filterStagingEndpoints([p.endpoint_url]);
-              // Only plot if at least one non-staging endpoint exists
-              if (httpEndpoints.length === 0) return null;
-
-              const host = extractHost(p.endpoint_url);
-              let latlng: { lat: number; lng: number } | null = null;
-              if (host) {
-                const geo = await geolocateHost(host);
-                if (geo) latlng = { lat: geo.lat, lng: geo.lng };
-              }
-              if (!latlng) {
-                const key = host ?? p.id;
-                latlng = hashToCoords(key);
-              }
-              return {
-                id: p.id,
-                name: p.name,
-                endpoint: httpEndpoints[0],
-                lat: latlng.lat,
-                lng: latlng.lng,
-              };
-            }),
-          )
-        ).filter((p): p is ProviderPoint => p !== null);
-        const adjusted = disambiguateOverlappingPoints(points);
-        const markers = adjusted.map((pt) => ({
-          location: [pt.lat, pt.lng] as [number, number],
-          size: 0.06,
-        }));
-        if (!aborted) {
-          markersRef.current = markers;
-        }
-      } catch {
-        // Silent fail on homepage; keep globe responsive without markers
-      }
-    })();
-    return () => {
-      aborted = true;
+      isMounted = false;
+      window.removeEventListener("resize", updateSize);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     };
   }, []);
 
-  return (
-    <div
-      className={cn(
-        "relative mx-auto aspect-[1/1] w-full max-w-[700px]",
-        className,
-      )}
-    >
-      <canvas
-        className={cn(
-          "size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]",
-        )}
-        ref={canvasRef}
-        onPointerDown={(e) => {
-          pointerInteracting.current = e.clientX;
-          updatePointerInteraction(e.clientX);
-        }}
-        onPointerUp={() => updatePointerInteraction(null)}
-        onPointerOut={() => updatePointerInteraction(null)}
-        onMouseMove={(e) => updateMovement(e.clientX)}
-        onTouchMove={(e) =>
-          e.touches[0] && updateMovement(e.touches[0].clientX)
+  useEffect(() => {
+    if (!mounted) return;
+
+    const checkRef = setInterval(() => {
+      if (globeRef.current) {
+        const controls = globeRef.current.controls();
+        if (controls) {
+          clearInterval(checkRef);
+          
+          // Configure controls
+          controls.autoRotate = true;
+          controls.autoRotateSpeed = -1.0; // Reverse direction
+          controls.enableDamping = false; // Disable damping initially to prevent 'slide'
+          controls.minDistance = 150;
+          controls.maxDistance = 500;
+          
+          // Snap view with smaller zoom (larger altitude)
+          globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.8 }, 0);
+          controls.update();
+          
+          // Re-enable damping after snap and set as ready
+          setTimeout(() => {
+            if (globeRef.current) {
+              globeRef.current.controls().enableDamping = true;
+              setIsReady(true);
+            }
+          }, 100);
         }
+      }
+    }, 100);
+
+    return () => {
+      clearInterval(checkRef);
+    };
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileRotationLocked(false);
+      return;
+    }
+    if (!globeRef.current) return;
+    const controls = globeRef.current.controls();
+    if (controls) controls.autoRotate = !mobileRotationLocked;
+  }, [isMobile, mobileRotationLocked]);
+
+  useEffect(() => {
+    if (!isMobile || !mobileRotationLocked) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (target && containerRef.current?.contains(target)) return;
+      setMobileRotationLocked(false);
+      setSelectedProvider(null);
+      setSelectedPos(null);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [isMobile, mobileRotationLocked]);
+
+  const globeMaterial = useMemo(
+    () => new THREE.MeshBasicMaterial({ color: 0x141414 }),
+    []
+  );
+
+  const clearHideTimeout = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`${className} transition-opacity duration-1000 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+      onMouseMove={(e) => {
+        setMousePos({ x: e.clientX, y: e.clientY });
+      }}
+      onMouseEnter={() => {
+        if (isMobile) return;
+        if (globeRef.current) globeRef.current.controls().autoRotate = false;
+      }}
+      onMouseLeave={() => {
+        if (isMobile) return;
+        if (globeRef.current && !selectedProvider && !isHoveringTooltip) {
+          globeRef.current.controls().autoRotate = true;
+        }
+      }}
+    >
+      <GlobeComp
+        ref={globeRef}
+        width={size}
+        height={size}
+        backgroundColor="rgba(0,0,0,0)"
+        globeMaterial={globeMaterial}
+        hexPolygonsData={hexData}
+        hexPolygonResolution={3}
+        hexPolygonMargin={0.3}
+        hexPolygonUseDots
+        hexPolygonColor={() => "rgba(255, 255, 255, 0.15)"}
+        pointsData={points}
+        pointLat="lat"
+        pointLng="lng"
+        pointRadius={0.4}
+        pointAltitude={0.01}
+        pointColor={() => "#e5e5e5"}
+        pointLabel={() => ""}
+        showAtmosphere={false}
+        onPointHover={(p: unknown) => {
+          if (isMobile) return;
+          clearHideTimeout();
+          if (isProviderPoint(p)) {
+            setSelectedProvider({
+              ...p,
+              type: 'Routstr Node',
+              status: 'online',
+              endpoints: { http: [], tor: [] },
+              models: [],
+              mints: p.mints ?? [],
+              version: ''
+            });
+            setSelectedPos({ x: mousePos.x, y: mousePos.y });
+            if (globeRef.current) globeRef.current.controls().autoRotate = false;
+          } else {
+            hideTimeoutRef.current = setTimeout(() => {
+              if (!isHoveringTooltip) {
+                setSelectedProvider(null);
+                setSelectedPos(null);
+                if (globeRef.current && !containerRef.current?.matches(':hover')) {
+                  globeRef.current.controls().autoRotate = true;
+                }
+              }
+            }, 250);
+          }
+        }}
+        onGlobeClick={() => {
+          setSelectedProvider(null);
+          setSelectedPos(null);
+          if (isMobile) {
+            setMobileRotationLocked(true);
+            if (globeRef.current) globeRef.current.controls().autoRotate = false;
+            return;
+          }
+          if (globeRef.current) globeRef.current.controls().autoRotate = true;
+        }}
+      />
+      <GlobeTooltip 
+        provider={selectedProvider} 
+        position={selectedPos}
+        onMouseEnter={() => {
+          setIsHoveringTooltip(true);
+          clearHideTimeout();
+        }}
+        onMouseLeave={() => {
+          setIsHoveringTooltip(false);
+          setSelectedProvider(null);
+          setSelectedPos(null);
+          if (globeRef.current && !containerRef.current?.matches(':hover')) {
+            globeRef.current.controls().autoRotate = true;
+          }
+        }}
       />
     </div>
   );

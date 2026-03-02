@@ -1,34 +1,33 @@
 "use client";
 import React from "react";
-import { motion } from "framer-motion";
-import { HiArrowRight } from "react-icons/hi2";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export function LandingCTA() {
   return (
-    <div className="w-full bg-black border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-20 flex flex-col md:flex-row justify-between items-center w-full md:px-8">
-        <div className="flex flex-col">
-            <motion.h2 className="text-white text-2xl text-center md:text-left md:text-3xl lg:text-4xl font-bold mx-auto md:mx-0 max-w-xl ">
-            Start building with <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Routstr</span> today.
-            </motion.h2>
-            <p className="max-w-md mt-4 text-center md:text-left text-base md:text-lg mx-auto md:mx-0 text-neutral-400">
-            Join the decentralized AI revolution. Connect your models, earn Bitcoin, or build censorship-resistant AI apps.
-            </p>
-        </div>
-        <div className="flex flex-col md:flex-row gap-4 mt-8 md:mt-0">
-            <Link href="/models" className="flex space-x-2 items-center group text-base px-6 py-3 rounded-lg bg-white text-black font-semibold shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset] hover:bg-gray-200 transition-colors">
-                <span>Explore Models</span>
-                <HiArrowRight className="text-black group-hover:translate-x-1 stroke-[1px] h-3 w-3 mt-0.5 transition-transform duration-200" />
+    <div className="w-full relative">
+      <div className="py-24 max-w-5xl mx-auto px-6 md:px-12 flex flex-col items-start text-left">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-6">
+          Join the decentralized AI revolution
+        </h2>
+        <p className="text-muted-foreground text-base max-w-3xl leading-relaxed mb-10">
+          Connect your models, monetize your hardware with Bitcoin micropayments, or build censorship-resistant AI apps using our open routing protocol.
+        </p>
+        
+        <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:flex sm:gap-4">
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/models">
+              Explore Models
             </Link>
-             <Link href="https://docs.routstr.com" className="flex space-x-2 items-center group text-base px-6 py-3 rounded-lg border border-white/20 text-white font-semibold hover:bg-white/10 transition-colors">
-                <span>Read Docs</span>
+          </Button>
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="https://docs.routstr.com" target="_blank" rel="noreferrer">
+              Read Docs
             </Link>
+          </Button>
         </div>
-        </div>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   );
 }
-
-

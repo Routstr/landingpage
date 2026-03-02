@@ -2,49 +2,53 @@
 
 import React from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 
-interface ProviderLocation {
+export interface GlobeTooltipProvider {
   id: string;
   name: string;
+  description?: string;
+  createdAt?: number;
+  mints?: string[];
   city?: string;
   country?: string;
-  lat?: number;
-  lng?: number;
-  type: 'Routstr Node';
-  status: 'online' | 'offline' | 'maintenance';
-  description: string;
-  createdAt: number;
-  providerId: string;
-  pubkey: string;
-  endpoints: { http: string[]; tor: string[] };
-  models: string[];
-  mints: string[];
-  version: string;
+  type?: string;
+  status?: string;
+  endpoints?: {
+    http: string[];
+    tor: string[];
+  };
+  models?: string[];
+  version?: string;
 }
 
 interface GlobeTooltipProps {
-  provider: ProviderLocation | null;
+  provider: GlobeTooltipProvider | null;
   position: { x: number; y: number } | null;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export default function GlobeTooltip({ provider, position }: GlobeTooltipProps) {
+export default function GlobeTooltip({ provider, position, onMouseEnter, onMouseLeave }: GlobeTooltipProps) {
   const [isVisible, setIsVisible] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
   
   React.useEffect(() => {
+    setMounted(true);
     if (provider && position) {
       setIsVisible(true);
       return () => setIsVisible(false);
     }
   }, [provider, position]);
 
-  if (!provider || !position) return null;
+  if (!provider || !position || !mounted) return null;
 
   function truncateMiddle(value: string, max = 28) {
+    if (!value) return "";
     if (value.length <= max) return value;
     const part = Math.floor((max - 3) / 2);
     return `${value.slice(0, part)}...${value.slice(-part)}`;
   }
-
 
   function formatDate(unix?: number) {
     if (!unix) return undefined;
@@ -57,164 +61,84 @@ export default function GlobeTooltip({ provider, position }: GlobeTooltipProps) 
     }
   }
 
-  return (
+  const tooltipContent = (
     <div
-      className="fixed z-[200] pointer-events-none"
+      className="fixed z-[9999] pointer-events-none"
       style={{
         left: position.x + 15,
         top: position.y - 10,
         transform: 'translateY(-50%)',
       }}
     >
-      <div className={`max-w-md transition-all duration-200 ease-out ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+      <div className={`max-w-xs transition-all duration-200 ease-out ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
         <div
-          className="bg-gradient-to-br from-cyan-400/30 via-purple-500/20 to-fuchsia-400/30 p-px rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.6)] pointer-events-auto"
+          className="bg-background border border-border rounded-lg shadow-[0_20px_50px_rgba(0,0,0,1)] pointer-events-auto p-4 font-mono"
           data-globe-tooltip="true"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
         >
-          <div className="rounded-xl bg-neutral-950/80 backdrop-blur-xl ring-1 ring-white/10 p-4">
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-white font-semibold text-sm tracking-tight">{provider.name}</h3>
-                {provider.city && provider.country ? (
-                  <p className="text-gray-300/90 text-xs">{provider.city}, {provider.country}</p>
-                ) : null}
-              </div>
-              {provider.providerId ? (
-                <Link
-                  href={`/providers/${encodeURIComponent(provider.providerId)}`}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="shrink-0 inline-flex items-center gap-1 rounded-md bg-white/10 border border-white/15 px-2 py-1 text-[10px] text-white hover:bg-white/15 transition-colors"
-                >
-                  View
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                  </svg>
-                </Link>
-              ) : null}
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-foreground font-bold text-xs tracking-tight truncate">{provider.name}</h3>
+              <p className="text-muted-foreground text-[10px] leading-relaxed mt-1 line-clamp-2">
+                {provider.description || "Decentralized AI inference provider node."}
+              </p>
+              {provider.city && provider.country && (
+                <p className="text-muted-foreground text-[9px] mt-1">{provider.city}, {provider.country}</p>
+              )}
             </div>
+            {provider.id ? (
+              <Link
+                href={`/providers/${encodeURIComponent(provider.id)}`}
+                className="shrink-0 inline-flex items-center gap-1 rounded bg-muted border border-border px-2 py-0.5 text-[9px] text-foreground hover:bg-muted transition-colors"
+              >
+                View
+              </Link>
+            ) : null}
+          </div>
 
-            <div className="space-y-2 text-xs">
-              {provider.createdAt ? (
-                <div className="flex justify-between">
-                  <span className="text-gray-400/80">Created</span>
-                  <span className="text-white/95">{formatDate(provider.createdAt)}</span>
-                </div>
-              ) : null}
-            </div>
-
-            {(provider.providerId || provider.version) && (
-              <div className="border-t border-white/10 mt-3 pt-3 text-[11px] flex items-center justify-between gap-3">
-                <div className="text-gray-300/90 flex items-center gap-2">
-                  <span className="text-gray-400/80">Provider ID</span>
-                  {provider.providerId && (
-                    <code className="font-mono text-[10px] text-gray-300/90 bg-white/5 px-1.5 py-0.5 rounded">
-                      {truncateMiddle(provider.providerId, 32)}
-                    </code>
-                  )}
-                </div>
-                {provider.version && (
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium text-indigo-300 bg-indigo-400/15 ring-1 ring-indigo-300/25">
-                    v{provider.version}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {provider.pubkey && (
-              <div className="mt-2 text-[11px]">
-                <div className="text-gray-400/80 mb-1">Pubkey</div>
-                <div className="font-mono text-[10px] text-gray-200 bg-white/5 px-2 py-1 rounded">
-                  {truncateMiddle(provider.pubkey, 40)}
-                </div>
-              </div>
-            )}
-
-            {(provider.endpoints.http.length > 0 || provider.endpoints.tor.length > 0) && (
-              <div className="mt-2 text-[11px] grid gap-1">
-                {provider.endpoints.http.length > 0 ? (
-                  <div className="flex items-start gap-2">
-                    <span className="text-gray-400/80 shrink-0">HTTP</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {provider.endpoints.http.slice(0, 3).map((u, i) => (
-                        <div key={`http-${i}`} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 ring-1 ring-white/10">
-                          <span className="text-cyan-200 font-mono text-[10px]" title={u}>
-                            {truncateMiddle(u, 30)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {provider.endpoints.tor.length > 0 ? (
-                  <div className="flex items-start gap-2">
-                    <span className="text-gray-400/80 shrink-0">Tor</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {provider.endpoints.tor.slice(0, 3).map((u, i) => (
-                        <span key={`tor-${i}`} className="px-1.5 py-0.5 rounded bg-white/5 text-gray-200/90 font-mono text-[10px]">
-                          {truncateMiddle(u, 30)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            {provider.models.length > 0 ? (
-              <div className="mt-2 text-[11px]">
-                <div className="text-gray-400/80 mb-1">Models</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {provider.models.slice(0, 6).map((m) => (
-                    <Link
-                      key={m}
-                      href={`/models/${encodeURIComponent(m)}`}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="px-1.5 py-0.5 rounded-md bg-white/5 text-gray-100/95 text-[10px] ring-1 ring-white/10 hover:bg-white/10 transition-colors"
-                    >
-                      <span className="underline/0 hover:underline">{m}</span>
-                    </Link>
-                  ))}
-                  {provider.models!.length > 6 ? (
-                    <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-gray-300 text-[10px] ring-1 ring-white/10">
-                      +{provider.models!.length - 6} more
-                    </span>
-                  ) : null}
-                </div>
+          <div className="space-y-1 text-[10px] mt-3 pt-3 border-t border-border">
+            {provider.createdAt ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Created</span>
+                <span className="text-muted-foreground">{formatDate(provider.createdAt)}</span>
               </div>
             ) : null}
-
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status</span>
+              <span className="text-green-500 font-bold">Online</span>
+            </div>
             {provider.mints && provider.mints.length > 0 && (
-              <div className="mt-2 text-[11px]">
-                <div className="text-gray-400/80 mb-1">Mints</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {provider.mints.slice(0, 6).map((mint, i) => (
-                    <div key={`mint-${i}`} className="inline-flex items-center gap-1 bg-emerald-400/10 ring-1 ring-emerald-400/20 px-2 py-1 rounded">
-                      <span className="font-mono text-[10px] text-emerald-200" title={mint}>
-                        {truncateMiddle(mint, 40)}
-                      </span>
-                    </div>
-                  ))}
-                  {provider.mints.length > 6 ? (
-                    <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-gray-300 text-[10px] ring-1 ring-white/10">
-                      +{provider.mints.length - 6} more
-                    </span>
-                  ) : null}
-                </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Mints</span>
+                <span className="text-muted-foreground">{provider.mints.length} active</span>
               </div>
             )}
-
-            <div className="border-t border-white/10 mt-3 pt-3">
-              <p className="text-gray-300/90 text-[11px] leading-relaxed">
-                {provider.description}
-              </p>
-            </div>
           </div>
+
+          {provider.mints && provider.mints.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="text-muted-foreground mb-1.5 text-[9px]">Supporting Mints</div>
+              <div className="flex flex-wrap gap-1">
+                {provider.mints.slice(0, 2).map((mint: string, i: number) => (
+                  <div key={i} className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] text-muted-foreground truncate max-w-[120px]">
+                    {truncateMiddle(mint, 20)}
+                  </div>
+                ))}
+                {provider.mints.length > 2 && (
+                  <div className="px-1.5 py-0.5 rounded bg-muted border border-border text-[9px] text-muted-foreground">
+                    +{provider.mints.length - 2}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
+
+  return createPortal(tooltipContent, document.body);
 }

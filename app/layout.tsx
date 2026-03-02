@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ModelsProvider } from "./contexts/ModelsContext";
 import { NostrProvider } from "@/context/NostrContext";
 import { PricingProvider } from "./contexts/PricingContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -72,7 +72,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -84,7 +83,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black min-h-screen`}
+        className={`${inter.variable} ${geistMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground`}
       >
         <ModelsProvider>
           <NostrProvider>

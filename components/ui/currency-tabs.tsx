@@ -1,6 +1,8 @@
 'use client';
 
 import { usePricingView } from '@/app/contexts/PricingContext';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 interface CurrencyTabsProps {
   className?: string;
@@ -10,29 +12,19 @@ export function CurrencyTabs({ className = '' }: CurrencyTabsProps) {
   const { currency, setCurrency } = usePricingView();
 
   return (
-    <div className={`inline-flex bg-white/5 rounded-lg p-0.5 ${className}`}>
-      <button
-        type="button"
-        onClick={() => setCurrency('sats')}
-        className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
-          currency === 'sats'
-            ? 'bg-white text-black'
-            : 'text-white hover:bg-white/10'
-        }`}
-      >
-        Sats
-      </button>
-      <button
-        type="button"
-        onClick={() => setCurrency('usd')}
-        className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
-          currency === 'usd'
-            ? 'bg-white text-black'
-            : 'text-white hover:bg-white/10'
-        }`}
-      >
-        USD
-      </button>
-    </div>
+    <Tabs
+      value={currency}
+      onValueChange={(value) => setCurrency(value as 'sats' | 'usd')}
+      className={cn('w-auto', className)}
+    >
+      <TabsList variant="line" className="h-8">
+        <TabsTrigger value="sats" className="h-7 text-xs">
+          sats
+        </TabsTrigger>
+        <TabsTrigger value="usd" className="h-7 text-xs">
+          usd
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
   );
 }

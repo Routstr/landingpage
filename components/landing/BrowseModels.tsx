@@ -1,16 +1,14 @@
 "use client";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { CurrencyTabs } from "@/components/ui/currency-tabs";
 import { usePricingView } from "@/app/contexts/PricingContext";
 import { useModels } from "@/app/contexts/ModelsContext";
-import { getPopularModels, getProviderFromModelName } from "@/app/data/models";
+import { getPopularModels } from "@/app/data/models";
 import { useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
 
 interface DisplayModel {
   id: string;
   name: string;
-  provider: string;
   promptPrice: string;
   completionPrice: string;
   context: string;
@@ -19,6 +17,7 @@ interface DisplayModel {
 
 export function LandingBrowseModels() {
   const { currency } = usePricingView();
+  const priceUnit = currency === "sats" ? "sats/m" : "usd/m";
   const { models, loading: modelsLoading } = useModels();
   const [displayModels, setDisplayModels] = useState<DisplayModel[]>([]);
 
@@ -31,7 +30,6 @@ export function LandingBrowseModels() {
     }
 
     const formattedModels = current.map((model) => {
-      const provider = getProviderFromModelName(model.name);
       const modelName =
         model.name.split("/").length > 1
           ? model.name.split("/")[1]
@@ -40,33 +38,39 @@ export function LandingBrowseModels() {
       const promptPrice =
         currency === "sats"
           ? model.sats_pricing.prompt > 0
-            ? 1 / model.sats_pricing.prompt
+            ? model.sats_pricing.prompt * 1_000_000
             : 0
           : model.pricing.prompt * 1_000_000;
       const completionPrice =
         currency === "sats"
           ? model.sats_pricing.completion > 0
-            ? 1 / model.sats_pricing.completion
+            ? model.sats_pricing.completion * 1_000_000
             : 0
           : model.pricing.completion * 1_000_000;
 
       const formatPrice = (num: number) => {
         if (currency === "sats") {
-          if (num < 0.0001) return num.toExponential(2);
-          return num.toFixed(
-            Math.min(4, Math.max(1, 6 - Math.floor(Math.log10(num) + 1)))
-          );
+          return num.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+          });
         }
         return num.toFixed(2);
+      };
+
+      const formatContext = (length: number) => {
+        if (!length) return "N/A";
+        if (length >= 1000000) return `${(length / 1000000).toFixed(0)}M`;
+        if (length >= 1000) return `${(length / 1000).toFixed(0)}K`;
+        return length.toString();
       };
 
       return {
         id: model.id,
         name: modelName,
-        provider: provider,
         promptPrice: formatPrice(promptPrice),
         completionPrice: formatPrice(completionPrice),
-        context: "128K tokens",
+        context: formatContext(model.context_length),
         created: model.created,
       };
     });
@@ -74,195 +78,102 @@ export function LandingBrowseModels() {
   }, [currency, models]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-20 md:py-32 px-4 md:px-8 bg-black">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
-        <div>
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4">
-            Browse Models
-          </h2>
-          <p className="text-base md:text-lg lg:text-xl text-neutral-400 max-w-xl">
-            Access a wide range of AI models through independent providers with
-            transparent pricing and performance metrics
-          </p>
+    <div className="w-full relative">
+      <div className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+          <div>
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              Browse Models
+            </h2>
+            <p className="text-muted-foreground text-sm max-w-xl">
+              Access leading open source AI models through independent providers.
+            </p>
+          </div>
         </div>
-        <div className="flex-shrink-0">
-          <CurrencyTabs />
-        </div>
-      </div>
 
-      {/* Models Grid */}
-      <div className="relative">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col mt-8">
+          <div className="grid grid-cols-12 gap-4 py-3 border-b border-border bg-card/50 px-4 text-[10px] font-bold text-muted-foreground">
+            <div className="col-span-6 md:col-span-6 lg:col-span-6">Model</div>
+            <div className="hidden lg:block col-span-2">Context</div>
+            <div className="hidden md:block col-span-2">Added</div>
+            <div className="col-span-6 md:col-span-4 lg:col-span-2 text-right">Pricing (in/out)</div>
+          </div>
+
           {modelsLoading ? (
-            // Skeleton loading UI
-            Array(6)
-              .fill(0)
-              .map((_, index) => (
-                <ModelCardSkeleton key={index} index={index} />
-              ))
+            [...Array(6)].map((_, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-12 gap-4 py-6 border-b border-border/30 px-4 animate-pulse"
+              >
+                <div className="col-span-6 md:col-span-6 lg:col-span-6 flex items-center">
+                  <div className="h-4 bg-border rounded w-3/4" />
+                </div>
+                <div className="hidden lg:block col-span-2 flex items-center">
+                  <div className="h-3 bg-border rounded w-1/2" />
+                </div>
+                <div className="hidden md:block col-span-2 flex items-center">
+                  <div className="h-3 bg-border rounded w-1/2" />
+                </div>
+                <div className="col-span-6 md:col-span-4 lg:col-span-2 flex flex-col justify-center items-end gap-2">
+                  <div className="h-3 bg-border rounded w-16" />
+                  <div className="h-3 bg-border rounded w-16" />
+                </div>
+              </div>
+            ))
           ) : displayModels.length > 0 ? (
-            displayModels.map((model, index) => (
-              <ModelCard
+            displayModels.map((model) => (
+              <Link
                 key={model.id}
-                model={model}
-                index={index}
-                currency={currency}
-              />
+                href={`/models/${model.id}`}
+                className="grid grid-cols-12 gap-4 py-5 border-b border-border/30 px-4 hover:bg-card transition-colors group"
+              >
+                <div className="col-span-6 md:col-span-6 lg:col-span-6 flex items-center">
+                  <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate">
+                    {model.name}
+                  </span>
+                </div>
+                <div className="hidden lg:flex col-span-2 items-center text-xs text-muted-foreground font-mono">
+                  {model.context}
+                </div>
+                <div className="hidden md:flex col-span-2 items-center text-xs text-muted-foreground">
+                  {new Date(model.created * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </div>
+                <div className="col-span-6 md:col-span-4 lg:col-span-2 text-right text-[10px] flex flex-col justify-center gap-1">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span className="text-muted-foreground font-medium">in</span>
+                    <span className="text-foreground font-mono">
+                      {model.promptPrice}
+                    </span>
+                    <span className="text-muted-foreground">{priceUnit}</span>
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span className="text-muted-foreground font-medium">out</span>
+                    <span className="text-foreground font-mono">
+                      {model.completionPrice}
+                    </span>
+                    <span className="text-muted-foreground">{priceUnit}</span>
+                  </div>
+                </div>
+              </Link>
             ))
           ) : (
-            <div className="text-center py-16 col-span-full">
-              <p className="text-neutral-400">
-                No models available at the moment. Please check back later.
-              </p>
+            <div className="text-center py-12">
+              <p className="text-xs text-muted-foreground">No models available at the moment.</p>
             </div>
           )}
         </div>
 
-        {/* Fade effect at bottom */}
-        {displayModels.length > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent pointer-events-none" />
-        )}
-      </div>
-
-      {/* View All Link */}
-      <div className="mt-12 text-center relative z-10">
-        <Link
-          href="/models"
-          className="group inline-flex items-center gap-3 text-white hover:text-neutral-300 font-medium text-lg transition-colors"
-        >
-          View all models
-          <motion.svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="w-5 h-5"
-            initial={{ x: 0 }}
-            whileHover={{ x: 5 }}
+        <div className="mt-8">
+          <Link
+            href="/models"
+            className="inline-flex items-center gap-2 text-sm text-foreground hover:text-white transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-            />
-          </motion.svg>
-        </Link>
+            View all models
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   );
 }
-
-const ModelCard = ({
-  model,
-  index,
-  currency,
-}: {
-  model: DisplayModel;
-  index: number;
-  currency: string;
-}) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-    >
-      <Link href={`/models/${model.id}`} className="block group">
-        <div className="relative bg-neutral-900 border border-white/10 rounded-xl p-5 md:p-6 hover:border-white/20 transition-colors duration-300 hover:bg-neutral-900/80">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg md:text-xl font-bold text-white truncate group-hover:text-white/90">
-                {model.name}
-              </h3>
-              <div className="flex items-center gap-2 mt-1 text-sm md:text-base">
-                <span className="text-neutral-500">{model.provider}</span>
-                <span className="text-neutral-600">•</span>
-                <span className="text-neutral-600">
-                  {new Date(model.created * 1000).toLocaleDateString(
-                    undefined,
-                    {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    }
-                  )}
-                </span>
-              </div>
-
-              {/* Pricing row */}
-              <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3">
-                <div className="text-sm">
-                  <span className="text-neutral-500">Input: </span>
-                  <span className="font-mono text-white">
-                    {currency === "sats"
-                      ? model.promptPrice
-                      : `$${model.promptPrice}`}
-                  </span>
-                  <span className="text-neutral-600 ml-1">
-                    {currency === "sats" ? "tokens/sat" : "/M tokens"}
-                  </span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-neutral-500">Output: </span>
-                  <span className="font-mono text-white">
-                    {currency === "sats"
-                      ? model.completionPrice
-                      : `$${model.completionPrice}`}
-                  </span>
-                  <span className="text-neutral-600 ml-1">
-                    {currency === "sats" ? "tokens/sat" : "/M tokens"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Arrow indicator */}
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors group-hover:translate-x-0.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  );
-};
-
-const ModelCardSkeleton = ({ index }: { index: number }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      className="bg-neutral-900 border border-white/10 rounded-xl p-5 md:p-6 animate-pulse"
-    >
-      <div className="flex justify-between items-start">
-        <div className="w-full">
-          <div className="h-6 bg-white/5 rounded w-1/3 mb-3" />
-          <div className="h-4 bg-white/5 rounded w-1/4 mb-4" />
-          <div className="flex gap-6 mt-3">
-            <div className="h-4 bg-white/5 rounded w-32" />
-            <div className="h-4 bg-white/5 rounded w-32" />
-          </div>
-        </div>
-        <div className="w-10 h-10 rounded-full bg-white/5 flex-shrink-0" />
-      </div>
-    </motion.div>
-  );
-};
-
-export default LandingBrowseModels;

@@ -88,7 +88,7 @@ export function LandingLogos() {
 
   return (
     <div className="relative z-20 py-10 md:py-20 px-4 md:px-8 bg-black">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <h2 className="text-center text-xl md:text-2xl font-bold font-sans text-white mb-8">
           Access Top Tier Models
         </h2>

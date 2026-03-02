@@ -17,138 +17,51 @@ interface RoadmapTimelineProps {
 
 const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
   items,
-  alternating = true,
   showTheme = false
 }) => {
   return (
-    <div className="relative">
-      {/* Vertical line */}
-      {alternating ? (
-        <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-white/70"></div>
-      ) : (
-        <div className="absolute left-4 md:left-8 top-0 bottom-0 w-0.5 bg-white/70"></div>
-      )}
+    <div className="relative font-mono">
+      <div className="absolute bottom-0 left-2 top-0 w-px bg-border/30 sm:left-0"></div>
 
-      {/* Timeline items */}
-      {items.map((item, index) => {
-        // For alternating timeline, even items go on left, odd on right
-        const isEvenItem = index % 2 === 0;
-
-        if (alternating) {
-          return (
-            <div
-              key={item.id || `roadmap-${index}`}
-              className="flex flex-col md:flex-row mb-12 relative"
-            >
-              {/* Center dot - mobile and desktop */}
-              <div className="absolute left-4 md:left-1/2 top-0 w-8 h-8 rounded-full bg-white/10 border-2 border-white/70 transform -translate-x-1/2 flex items-center justify-center z-10">
-                <div className="w-2 h-2 rounded-full bg-white"></div>
-              </div>
-
-              {/* Left side content - only visible on desktop for even items */}
-              <div className={`hidden md:block md:w-1/2 ${isEvenItem ? 'md:pr-12 md:text-right' : 'md:pr-12 md:text-right'}`}>
-                {isEvenItem && (
-                  <>
-                    <div className="font-bold text-white text-xl mb-2">{item.timeframe}</div>
-                    {showTheme && item.theme && <div className="text-gray-400 mb-2">{item.theme}</div>}
-                    <div className="text-gray-300">{item.description}</div>
-
-                    {item.detailed && item.milestones && (
-                      <ul className="space-y-2 text-gray-300 mt-3 text-sm list-disc md:list-none">
-                        {item.milestones.map((milestone, i) => (
-                          <li key={i} className="md:text-right">{milestone}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Right side content - for all items on mobile, only odd items on desktop */}
-              <div className={`pl-12 md:pl-0 ${!isEvenItem ? 'md:w-1/2 md:pl-12 md:text-left' : 'md:w-1/2 md:pl-12 md:text-left'}`}>
-                {/* Mobile content for even items */}
-                {isEvenItem && (
-                  <div className="md:hidden">
-                    <div className="font-bold text-white text-xl mb-2">{item.timeframe}</div>
-                    {showTheme && item.theme && <div className="text-gray-400 mb-2">{item.theme}</div>}
-                    <div className="text-gray-300">{item.description}</div>
-
-                    {item.detailed && item.milestones && (
-                      <ul className="space-y-2 text-gray-300 mt-3 text-sm">
-                        {item.milestones.map((milestone, i) => (
-                          <li key={i} className="flex gap-2">
-                            <span className="text-gray-500">•</span>
-                            <span>{milestone}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-
-                {/* Desktop content for odd items & mobile content for odd items */}
-                {!isEvenItem && (
-                  <>
-                    <div className="font-bold text-white text-xl mb-2">{item.timeframe}</div>
-                    {showTheme && item.theme && <div className="text-gray-400 mb-2">{item.theme}</div>}
-                    <div className="text-gray-300">{item.description}</div>
-
-                    {item.detailed && item.milestones && (
-                      <ul className="space-y-2 text-gray-300 mt-3 text-sm">
-                        {item.milestones.map((milestone, i) => (
-                          <li key={i} className="flex gap-2">
-                            <span className="text-gray-500">•</span>
-                            <span>{milestone}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                )}
-              </div>
+      <div className="flex flex-col gap-24">
+        {items.map((item, index) => (
+          <div
+            key={item.id || `roadmap-${index}`}
+            className="group relative pl-8 sm:pl-12"
+            id={item.id}
+          >
+            {/* Marker */}
+            <div className="absolute left-2 top-0 mt-4 h-px w-5 -translate-x-1/2 bg-foreground transition-colors group-hover:bg-white sm:left-0 sm:w-8" />
+            <div className="absolute left-0 top-0 mt-2.5 hidden w-8 -translate-x-[45px] pr-2 text-right text-[10px] font-bold text-muted-foreground sm:block">
+              RIP-{index + 1}
             </div>
-          );
-        } else {
-          // Non-alternating timeline (all items on right)
-          return (
-            <div
-              key={item.id || `roadmap-${index}`}
-              className="mb-12 relative"
-              id={item.id}
-            >
-              {/* Center dot - perfectly centered on line */}
-              <div className="absolute left-4 md:left-8 top-0 w-8 h-8 rounded-full bg-white/10 border-2 border-white/70 transform -translate-x-1/2 flex items-center justify-center z-10">
-                <div className="w-2 h-2 rounded-full bg-white"></div>
-              </div>
 
-              {/* Content */}
-              <div className="ml-12 md:ml-16">
-                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 mb-4">
-                  <h3 className="text-xl font-bold text-white">{item.timeframe}</h3>
-                  {showTheme && item.theme && (
-                    <div className="px-3 py-1 bg-white/5 rounded-full text-sm text-gray-300">{item.theme}</div>
-                  )}
-                </div>
-
-                <div className="text-gray-300">{item.description}</div>
-
-                {item.detailed && item.milestones && (
-                  <ul className="space-y-2 text-gray-300 mt-3">
-                    {item.milestones.map((milestone, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="text-gray-500">•</span>
-                        <span>{milestone}</span>
-                      </li>
-                    ))}
-                  </ul>
+            {/* Content */}
+            <div className="text-left">
+              <div className="flex flex-col gap-2 mb-6">
+                <span className="text-[10px] tracking-widest text-muted-foreground">{item.timeframe}</span>
+                <h3 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">{item.description}</h3>
+                {showTheme && item.theme && (
+                  <div className="inline-block mt-1 text-[10px] font-bold text-muted-foreground">{item.theme}</div>
                 )}
               </div>
+
+              {item.detailed && item.milestones && (
+                <ul className="space-y-4 text-sm text-muted-foreground">
+                  {item.milestones.map((milestone, i) => (
+                    <li key={i} className="flex gap-4 items-start">
+                      <span className="text-muted-foreground shrink-0 text-xs">[*]</span>
+                      <span className="leading-relaxed">{milestone}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          );
-        }
-      })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default RoadmapTimeline; 
+export default RoadmapTimeline;

@@ -1,168 +1,119 @@
 import BackButton from "@/components/BackButton";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { PageContainer, SiteShell } from "@/components/layout/site-shell";
 import RoadmapTimeline, { RoadmapItem } from "@/components/RoadmapTimeline";
 import type { Metadata } from "next";
+import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Roadmap - Routstr",
-  description:
-    "Follow our journey to building a decentralized AI ecosystem. See upcoming features and milestones for Routstr.",
-  openGraph: {
-    title: "Roadmap - Routstr",
-    description:
-      "Follow our journey to building a decentralized AI ecosystem. See upcoming features and milestones for Routstr.",
-    url: "https://routstr.com/roadmap",
-  },
-  twitter: {
-    title: "Roadmap - Routstr",
-    description:
-      "Follow our journey to building a decentralized AI ecosystem. See upcoming features and milestones for Routstr.",
-  },
+  description: "Follow our journey to building a decentralized AI ecosystem. See upcoming features and milestones for Routstr.",
 };
 
 export default function RoadmapPage() {
   const roadmapItems: RoadmapItem[] = [
     {
       id: "rip-01",
-      timeframe: "RIP-01: API Proxy & Payments",
-      description: "OpenAI-API Proxy with Cashu Payments",
+      timeframe: "rip-01: api proxy & payments",
+      description: "openai-api proxy with cashu payments",
       detailed: true,
       milestones: [
-        "HTTP proxy forwarding OpenAI-compatible API requests",
-        "Per-request micropayments with Cashu tokens",
-        "Token-based pricing by input/output tokens",
-        "Authorization via API keys or Cashu tokens",
-        "Cost reporting in streaming and non-streaming responses",
+        "http proxy forwarding openai-compatible api requests",
+        "per-request micropayments with cashu tokens",
+        "token-based pricing by input/output tokens",
+        "authorization via api keys or cashu tokens",
+        "cost reporting in streaming and non-streaming responses",
       ],
     },
     {
       id: "rip-02",
-      timeframe: "RIP-02: Node Listing",
-      description: "Nostr event spec for announcing inference nodes",
+      timeframe: "rip-02: node listing",
+      description: "nostr event spec for announcing inference nodes",
       detailed: true,
       milestones: [
-        "Nostr Kind 40500 event for node announcements",
-        "Node capabilities including models, pricing, region",
-        "Operator pubkey association",
-        "Endpoint URL and latency metrics",
-        "Client subscription to node listings",
+        "nostr kind 40500 event for node announcements",
+        "node capabilities including models, pricing, region",
+        "operator pubkey association",
+        "endpoint url and latency metrics",
+        "client subscription to node listings",
       ],
     },
     {
       id: "rip-03",
-      timeframe: "RIP-03: Frontend Discovery",
-      description: "Web interface for browsing available nodes",
+      timeframe: "rip-03: frontend discovery",
+      description: "web interface for browsing available nodes",
       detailed: true,
       milestones: [
-        "List active nodes from Nostr Kind 40500",
-        "Filter by models, region, price, social proximity",
-        "Node cards with descriptions and metrics",
-        "Search and filtering capabilities",
-        "Real-time updates on new node events",
+        "list active nodes from nostr kind 40500",
+        "filter by models, region, price, social proximity",
+        "node cards with descriptions and metrics",
+        "search and filtering capabilities",
+        "real-time updates on new node events",
       ],
     },
     {
       id: "rip-04",
-      timeframe: "RIP-04: Evaluations & Quality",
-      description: "Anonymous quality control for providers",
+      timeframe: "rip-04: evaluations & quality",
+      description: "anonymous quality control for providers",
       detailed: true,
       milestones: [
-        "Client-side randomized evaluation submissions",
-        "Anonymized metrics on quality, latency, and cost",
-        "Provider ratings with ephemeral Nostr keys",
-        "Kind 31555 events with standardized tags",
-        "Aggregation of multiple evaluations",
+        "client-side randomized evaluation submissions",
+        "anonymized metrics on quality, latency, and cost",
+        "provider ratings with ephemeral nostr keys",
+        "kind 31555 events with standardized tags",
+        "aggregation of multiple evaluations",
       ],
     },
     {
       id: "rip-05",
-      timeframe: "RIP-05: Smart Clients",
-      description: "Client-side token and privacy management",
+      timeframe: "rip-05: smart clients",
+      description: "client-side token and privacy management",
       detailed: true,
       milestones: [
-        "Local Cashu wallet and token management",
-        "Auto-redemption and token splitting",
-        "Proxy/Tor routing for privacy",
-        "Provider optimization based on metrics",
-        "Dynamic scoring for provider selection",
+        "local cashu wallet and token management",
+        "auto-redemption and token splitting",
+        "proxy/tor routing for privacy",
+        "provider optimization based on metrics",
+        "dynamic scoring for provider selection",
       ],
     },
   ];
 
   return (
-    <main className="flex min-h-screen flex-col bg-black text-white">
-      <Header />
-
-      {/* Hero Section */}
-      <section className="pt-8 sm:pt-16 md:pt-24 pb-16 md:pb-24 bg-black border-b border-white/5">
-        <div className="px-4 md:px-6 max-w-7xl mx-auto">
-          <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
-              Routstr Roadmap
-            </h1>
-            <p className="text-base sm:text-xl text-gray-300 mb-8">
-              Our progressive journey to building a decentralized AI ecosystem
+    <SiteShell className="font-mono">
+      <section className="py-12 md:py-20 relative">
+        <PageContainer className="w-full text-left">
+          <BackButton fallbackHref="/" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-12">
+            <ArrowLeft className="w-3 h-3" /> Back
+          </BackButton>
+          
+          <div className="text-left">
+            <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-6 tracking-tight">Roadmap</h1>
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed">
+              Our progressive journey to building a decentralized AI ecosystem.
             </p>
-            <div className="flex justify-center">
-              <BackButton
-                fallbackHref="/"
-                className="inline-flex items-center justify-center gap-2 text-white hover:text-gray-300"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-                  />
-                </svg>
-                Back
-              </BackButton>
-            </div>
           </div>
-        </div>
+        </PageContainer>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       </section>
 
-      {/* Full Roadmap Timeline */}
-      <section className="pt-8 sm:pt-16 pb-16 bg-black">
-        <div className="px-4 md:px-6 max-w-5xl mx-auto">
-          <div className="max-w-5xl mx-auto">
-            <div className="mb-16">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8 pb-4 border-b border-white/10">
-                Milestone Roadmap
-              </h2>
-
-              <RoadmapTimeline
-                items={roadmapItems}
-                alternating={false}
-                showTheme={false}
-              />
-            </div>
-
-            <div className="text-center mt-16 pt-8 border-t border-white/10">
-              <p className="text-gray-400 mb-4">
-                This roadmap is subject to change as we adapt to community
-                feedback and industry developments.
-              </p>
-              <BackButton
-                fallbackHref="/"
-                className="inline-flex items-center justify-center rounded-md bg-white text-black px-8 py-3 text-sm font-medium transition-colors hover:bg-gray-200"
-              >
-                Back
-              </BackButton>
-            </div>
+      <section className="py-20 relative">
+        <PageContainer>
+          <div className="mb-16">
+            <RoadmapTimeline
+              items={roadmapItems}
+              alternating={false}
+              showTheme={false}
+            />
           </div>
-        </div>
-      </section>
 
-      <Footer />
-    </main>
+          <div className="text-left mt-20 pt-12 border-t border-border/30">
+            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+              This roadmap is subject to change as we adapt to community feedback and the rapid developments in the open source ai and bitcoin ecosystems.
+            </p>
+          </div>
+        </PageContainer>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      </section>
+    </SiteShell>
   );
 }

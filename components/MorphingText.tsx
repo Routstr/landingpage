@@ -137,14 +137,14 @@ const Texts: React.FC<TextsProps> = ({
     <>
       <span
         className={cn(
-          "absolute inset-x-0 top-0 m-auto inline-block w-full",
+          "absolute inset-x-0 top-0 w-full",
           textClassName
         )}
         ref={text1Ref}
       />
       <span
         className={cn(
-          "absolute inset-x-0 top-0 m-auto inline-block w-full",
+          "absolute inset-x-0 top-0 w-full",
           textClassName
         )}
         ref={text2Ref}

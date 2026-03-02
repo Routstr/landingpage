@@ -13,7 +13,7 @@ export function ArchitectureDiagram() {
   return (
     <div className="relative w-full min-h-[680px] md:h-[620px] bg-neutral-950 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center p-3 md:p-4">
       {/* Subtle grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0d_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0d_1px,transparent_1px)] bg-[size:28px_28px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:28px_28px] opacity-30" />
 
       {/* Desktop connectors */}
       <svg
@@ -24,39 +24,44 @@ export function ArchitectureDiagram() {
         {/* Nostr to endpoints (dotted) */}
         <path
           d="M20 18 L20 38"
-          stroke="#a855f780"
+          stroke="var(--chart-5)"
           strokeWidth="0.5"
           strokeDasharray="1.5 1.5"
+          strokeOpacity="0.55"
         />
         <path
           d="M80 18 L80 38"
-          stroke="#a855f780"
+          stroke="var(--chart-5)"
           strokeWidth="0.5"
           strokeDasharray="1.5 1.5"
+          strokeOpacity="0.55"
         />
         {/* Cashu to endpoints (dotted) */}
         <path
           d="M20 62 L20 82"
-          stroke="#f59e0b99"
+          stroke="var(--chart-3)"
           strokeWidth="0.5"
           strokeDasharray="1.5 1.5"
+          strokeOpacity="0.65"
         />
         <path
           d="M80 62 L80 82"
-          stroke="#f59e0b99"
+          stroke="var(--chart-3)"
           strokeWidth="0.5"
           strokeDasharray="1.5 1.5"
+          strokeOpacity="0.65"
         />
         {/* Main line (solid) */}
         <path
           d="M30 50 L70 50"
-          stroke="#cbd5f580"
+          stroke="var(--muted-foreground)"
           strokeWidth="1"
           strokeLinecap="round"
+          strokeOpacity="0.8"
         />
       </svg>
 
-      <div className="relative z-10 w-full h-full max-w-7xl flex flex-col justify-between py-6 md:py-12 px-2 md:px-8">
+      <div className="relative z-10 w-full h-full max-w-5xl flex flex-col justify-between py-6 md:py-12 px-2 md:px-8">
         {/* Top: Nostr */}
         <div className="flex justify-center">
           <div className="flex flex-col items-center gap-1 md:gap-1.5 text-center">
