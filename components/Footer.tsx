@@ -1,8 +1,14 @@
 import Link from 'next/link';
 import { CurrencyTabs } from '@/components/ui/currency-tabs';
 
+type FooterLink = {
+  text: string;
+  href: string;
+  external?: boolean;
+};
+
 export default function Footer() {
-  const exploreLinks = [
+  const exploreLinks: FooterLink[] = [
     { text: 'Models', href: '/models' },
     { text: 'Providers', href: '/providers' },
     { text: 'Stats', href: '/stats' },
@@ -10,14 +16,14 @@ export default function Footer() {
     { text: 'Roadmap', href: '/roadmap' },
   ];
 
-  const developerLinks = [
+  const developerLinks: FooterLink[] = [
     { text: 'Platform', href: 'https://beta.platform.routstr.com', external: true },
     { text: 'Chat', href: 'https://chat.routstr.com', external: true },
     { text: 'Docs', href: 'https://docs.routstr.com', external: true },
     { text: 'GitHub', href: 'https://github.com/routstr', external: true },
   ];
 
-  const communityLinks = [
+  const communityLinks: FooterLink[] = [
     { text: 'Nostr', href: 'https://njump.me/npub130mznv74rxs032peqym6g3wqavh472623mt3z5w73xq9r6qqdufs7ql29s', external: true },
     { text: 'X', href: 'https://x.com/routstrai', external: true },
   ];

@@ -183,7 +183,7 @@ export default function OpenClawPage() {
               { title: "LNVPS", url: "https://lnvps.net" },
               { title: "Platform", url: "https://beta.platform.routstr.com" },
             ].map((item) => (
-              <a key={item.title} href={item.url} target={item.local ? undefined : "_blank"} rel={item.local ? undefined : "noopener noreferrer"} className="group border border-border p-6 hover:bg-muted transition-colors flex items-center justify-between">
+              <a key={item.title} href={item.url} target="_blank" rel="noopener noreferrer" className="group border border-border p-6 hover:bg-muted transition-colors flex items-center justify-between">
                 <span className="text-sm font-bold text-foreground group-hover:underline underline-offset-4">{item.title}</span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-white" />
               </a>
