@@ -54,6 +54,15 @@ export default function Header() {
               <ArrowUpRight className="h-3 w-3" />
             </a>
             <a
+              href="https://beta.platform.routstr.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Platform
+              <ArrowUpRight className="h-3 w-3" />
+            </a>
+            <a
               href="https://docs.routstr.com"
               target="_blank"
               rel="noopener noreferrer"
@@ -62,9 +71,6 @@ export default function Header() {
               Docs
               <ArrowUpRight className="h-3 w-3" />
             </a>
-            <Link href="/topup" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Top-Up
-            </Link>
           </nav>
         </div>
 
@@ -118,9 +124,6 @@ export default function Header() {
               <Link href="/providers" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Providers</Link>
               <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Stats</Link>
               <Link href="/blog" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Blog</Link>
-              <Link href="/topup" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Top-Up
-              </Link>
             </div>
 
             <div className="my-5 h-px bg-border" />
@@ -133,6 +136,16 @@ export default function Header() {
               className="inline-flex items-center gap-2 text-base font-medium text-foreground"
             >
               Chat
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <a
+              href="https://beta.platform.routstr.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={closeMobileMenu}
+              className="inline-flex items-center gap-2 text-base font-medium text-foreground"
+            >
+              Platform
               <ArrowUpRight className="h-4 w-4" />
             </a>
             <a
