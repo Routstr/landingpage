@@ -57,10 +57,10 @@ You can obtain a Cashu token in two ways:
 2. Create or manage an API key directly in the interface (stored in Nostr relays)
 3. The system will generate a Cashu token for you automatically
 
-**Option B: Via any Cashu Wallet with Topup**
+**Option B: Via any Cashu Wallet**
 
 1. Use any Cashu wallet (e.g., Nutstash, Cashu.me, or a self-hosted wallet)
-2. Top up your wallet with e-cash at [https://routstr.com/topup](https://routstr.com/topup)
+2. Top up your wallet with e-cash in [Routstr Platform](https://beta.platform.routstr.com/wallet)
 3. Copy your Cashu token from the wallet
 
 Ensure you have sufficient balance for your intended usage before proceeding.

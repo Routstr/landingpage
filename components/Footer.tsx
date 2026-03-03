@@ -2,22 +2,22 @@ import Link from 'next/link';
 import { CurrencyTabs } from '@/components/ui/currency-tabs';
 
 export default function Footer() {
-  const productLinks = [
+  const exploreLinks = [
     { text: 'Models', href: '/models' },
     { text: 'Providers', href: '/providers' },
     { text: 'Stats', href: '/stats' },
-    { text: 'Top-Up', href: '/topup' },
+    { text: 'Blog', href: '/blog' },
     { text: 'Roadmap', href: '/roadmap' },
   ];
 
-  const resourcesLinks = [
-    { text: 'Docs', href: 'https://docs.routstr.com', external: true },
-    { text: 'Blog', href: '/blog' },
+  const developerLinks = [
+    { text: 'Platform', href: 'https://beta.platform.routstr.com', external: true },
     { text: 'Chat', href: 'https://chat.routstr.com', external: true },
+    { text: 'Docs', href: 'https://docs.routstr.com', external: true },
     { text: 'GitHub', href: 'https://github.com/routstr', external: true },
   ];
 
-  const socialLinks = [
+  const communityLinks = [
     { text: 'Nostr', href: 'https://njump.me/npub130mznv74rxs032peqym6g3wqavh472623mt3z5w73xq9r6qqdufs7ql29s', external: true },
     { text: 'X', href: 'https://x.com/routstrai', external: true },
   ];
@@ -43,25 +43,11 @@ export default function Footer() {
 
         {/* Links Grid */}
         <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 sm:gap-20">
-          {/* Product */}
+          {/* Explore */}
           <div className="space-y-6">
-            <h4 className="text-[10px] font-bold text-muted-foreground">Product</h4>
+            <h4 className="text-[10px] font-bold text-muted-foreground">Explore</h4>
             <ul className="space-y-4 text-xs">
-              {productLinks.map((link, idx) => (
-                <li key={idx}>
-                  <Link href={link.href} className="text-muted-foreground hover:text-foreground transition-colors">
-                    {link.text}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Resources */}
-          <div className="space-y-6">
-            <h4 className="text-[10px] font-bold text-muted-foreground">Resources</h4>
-            <ul className="space-y-4 text-xs">
-              {resourcesLinks.map((link, idx) => (
+              {exploreLinks.map((link, idx) => (
                 <li key={idx}>
                   {link.external ? (
                     <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -77,11 +63,31 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Social */}
+          {/* Developers */}
           <div className="space-y-6">
-            <h4 className="text-[10px] font-bold text-muted-foreground">Social</h4>
+            <h4 className="text-[10px] font-bold text-muted-foreground">Developers</h4>
             <ul className="space-y-4 text-xs">
-              {socialLinks.map((link, idx) => (
+              {developerLinks.map((link, idx) => (
+                <li key={idx}>
+                  {link.external ? (
+                    <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                      {link.text}
+                    </a>
+                  ) : (
+                    <Link href={link.href} className="text-muted-foreground hover:text-foreground transition-colors">
+                      {link.text}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Community */}
+          <div className="space-y-6">
+            <h4 className="text-[10px] font-bold text-muted-foreground">Community</h4>
+            <ul className="space-y-4 text-xs">
+              {communityLinks.map((link, idx) => (
                 <li key={idx}>
                   <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                     {link.text}

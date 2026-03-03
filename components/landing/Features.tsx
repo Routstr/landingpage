@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { Bot, User, ArrowRight, Check, Zap } from "lucide-react";
+import { Bot, User, Zap } from "lucide-react";
 
 export function LandingFeatures() {
   const features = [

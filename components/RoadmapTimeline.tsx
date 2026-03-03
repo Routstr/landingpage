@@ -32,7 +32,7 @@ const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
           >
             {/* Marker */}
             <div className="absolute left-2 top-0 mt-4 h-px w-5 -translate-x-1/2 bg-foreground transition-colors group-hover:bg-white sm:left-0 sm:w-8" />
-            <div className="absolute left-0 top-0 mt-2.5 hidden w-8 -translate-x-[45px] pr-2 text-right text-[10px] font-bold text-muted-foreground sm:block">
+            <div className="absolute left-0 top-0 mt-2.5 hidden w-auto -translate-x-[58px] whitespace-nowrap pr-2 text-right text-[10px] font-bold text-muted-foreground sm:block">
               RIP-{index + 1}
             </div>
 
