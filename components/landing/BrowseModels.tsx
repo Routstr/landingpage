@@ -17,7 +17,7 @@ interface DisplayModel {
 
 export function LandingBrowseModels() {
   const { currency } = usePricingView();
-  const priceUnit = currency === "sats" ? "sats/m" : "usd/m";
+  const priceUnit = currency === "sats" ? "sats/1M tokens" : "USD/1M tokens";
   const { models, loading: modelsLoading } = useModels();
   const [displayModels, setDisplayModels] = useState<DisplayModel[]>([]);
 
@@ -144,14 +144,14 @@ export function LandingBrowseModels() {
                     <span className="text-foreground font-mono">
                       {model.promptPrice}
                     </span>
-                    <span className="text-muted-foreground">{priceUnit}</span>
+                    <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                   </div>
                   <div className="flex items-center justify-end gap-1.5">
                     <span className="text-muted-foreground font-medium">out</span>
                     <span className="text-foreground font-mono">
                       {model.completionPrice}
                     </span>
-                    <span className="text-muted-foreground">{priceUnit}</span>
+                    <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                   </div>
                 </div>
               </Link>

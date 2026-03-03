@@ -24,7 +24,7 @@ import { ArrowLeft, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function ProviderPage() {
   const { currency } = usePricingView();
-  const priceUnit = currency === "sats" ? "sats/m" : "usd/m";
+  const priceUnit = currency === "sats" ? "sats/1M tokens" : "USD/1M tokens";
   const params = useParams();
   const providerId = (() => {
     const raw = (params?.id as string) || "";
@@ -180,7 +180,7 @@ export default function ProviderPage() {
                 </div>
                 <div className="col-span-6 md:col-span-2 text-right cursor-pointer hover:text-muted-foreground" onClick={() => requestSort("price")}>
                   <div className="inline-flex items-center justify-end gap-1 w-full">
-                    Pricing <SortIcon column="price" />
+                    Pricing (in/out) <SortIcon column="price" />
                   </div>
                 </div>
               </div>
@@ -214,14 +214,14 @@ export default function ProviderPage() {
                         <span className="text-foreground font-mono">
                           {currency === "sats" ? (model.sats_pricing.prompt * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) : (model.pricing.prompt * 1_000_000).toFixed(2)}
                         </span>
-                        <span className="text-muted-foreground">{priceUnit}</span>
+                        <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>
                       <div className="flex items-center justify-end gap-1.5">
                         <span className="text-muted-foreground font-medium">out</span>
                         <span className="text-foreground font-mono">
                           {currency === "sats" ? (model.sats_pricing.completion * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) : (model.pricing.completion * 1_000_000).toFixed(2)}
                         </span>
-                        <span className="text-muted-foreground">{priceUnit}</span>
+                        <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>
                     </div>
                   </Link>

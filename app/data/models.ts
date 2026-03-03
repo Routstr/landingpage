@@ -75,7 +75,7 @@ export interface Provider {
 
 function isUnknownProviderName(name: string): boolean {
   const normalized = name.trim().toLowerCase();
-  return normalized === "unknown" || normalized.startsWith("unknown ");
+  return normalized === "unknown";
 }
 
 // Initial state with empty data

@@ -64,6 +64,31 @@ function decodeSegments(segments: string[]): string[] {
   return segments.map((s) => decodeURIComponent(s));
 }
 
+function isUnknownProviderName(name: string | null | undefined): boolean {
+  return (name ?? "").trim().toLowerCase() === "unknown";
+}
+
+function inferProviderFromModel(modelName: string, modelId: string): string {
+  const namedProvider = getProviderFromModelName(modelName);
+  if (!isUnknownProviderName(namedProvider)) {
+    return namedProvider;
+  }
+
+  const id = modelId.toLowerCase();
+  if (id.includes("openai") || id.includes("gpt-") || id.startsWith("o1") || id.startsWith("o3")) return "OpenAI";
+  if (id.includes("claude")) return "Anthropic";
+  if (id.includes("gemini") || id.includes("gemma")) return "Google";
+  if (id.includes("qwen")) return "Qwen";
+  if (id.includes("mistral")) return "Mistral";
+  if (id.includes("minimax")) return "MiniMax";
+  if (id.includes("grok") || id.includes("x-ai") || id.includes("xai")) return "xAI";
+  if (id.includes("glm") || id.includes("zai") || id.includes("z-ai")) return "Z.ai";
+  if (id.includes("deepseek")) return "DeepSeek";
+  if (id.includes("kimi") || id.includes("moonshot")) return "Moonshot";
+
+  return namedProvider;
+}
+
 export default function ModelDetailPage() {
   const params = useParams();
   const { currency } = usePricingView();
@@ -121,7 +146,12 @@ export default function ModelDetailPage() {
               if (prev.some((p) => p.provider.id === provider.id)) return prev;
               const newEntry = { provider, model: modelInProvider };
               const next = [...prev, newEntry];
-              return next.sort((a, b) => (a.model.sats_pricing?.completion ?? 0) - (b.model.sats_pricing?.completion ?? 0));
+              return next.sort((a, b) => {
+                const aUnknown = isUnknownProviderName(a.provider.name);
+                const bUnknown = isUnknownProviderName(b.provider.name);
+                if (aUnknown !== bUnknown) return aUnknown ? 1 : -1;
+                return (a.model.sats_pricing?.completion ?? 0) - (b.model.sats_pricing?.completion ?? 0);
+              });
             });
             setSelectedProviderId((prev) => prev || provider.id);
           }
@@ -185,10 +215,10 @@ export default function ModelDetailPage() {
 
   if (!model) return null;
 
-  const provider = getProviderFromModelName(model.name);
+  const selectedProvider = providersWithPricing.find((p) => p.provider.id === selectedProviderId)?.provider || providersWithPricing[0]?.provider;
+  const provider = inferProviderFromModel(model.name, model.id);
   const displayName = getModelNameWithoutProvider(model.name);
   const chatModelId = model.id.split("/").pop() || model.id;
-  const selectedProvider = providersWithPricing.find((p) => p.provider.id === selectedProviderId)?.provider || providersWithPricing[0]?.provider;
   const providerBaseUrl = selectedProvider?.endpoint_url ? (selectedProvider.endpoint_url.endsWith("/v1") ? selectedProvider.endpoint_url : `${selectedProvider.endpoint_url.replace(/\/$/, "")}/v1`) : "";
 
   const copyModelId = () => {
@@ -286,7 +316,7 @@ export default function ModelDetailPage() {
                         : (entry.model.pricing?.completion || 0) * 1_000_000,
                   }))}
                   currencyLabel={currency === "sats" ? "sats / 1M tokens" : "usd / 1M tokens"}
-                  unitSuffix={currency === "sats" ? "sats/m" : "usd/m"}
+                  unitSuffix={currency === "sats" ? "sats/1M tokens" : "USD/1M tokens"}
                 />
               )}
             </div>

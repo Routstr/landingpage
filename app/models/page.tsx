@@ -13,8 +13,46 @@ import { usePricingView } from "@/app/contexts/PricingContext";
 import { ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
+const MIN_REASONABLE_CREATED = Date.UTC(2020, 0, 1) / 1000;
+const MAX_FUTURE_SKEW_SECONDS = 7 * 24 * 60 * 60;
+
+function normalizeCreated(value: number | undefined): number {
+  if (!value || !Number.isFinite(value)) return 0;
+  // Accept both seconds and milliseconds timestamps.
+  return value > 1_000_000_000_000 ? Math.floor(value / 1000) : value;
+}
+
+function inferCreatedFromModelId(modelId: string): number | null {
+  const match = modelId.match(
+    /(20\d{2})[-_](0[1-9]|1[0-2])[-_](0[1-9]|[12]\d|3[01])/
+  );
+  if (!match) return null;
+  const parsed = Date.parse(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`);
+  if (Number.isNaN(parsed)) return null;
+  return Math.floor(parsed / 1000);
+}
+
+function isReasonableCreated(value: number): boolean {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return (
+    value >= MIN_REASONABLE_CREATED &&
+    value <= nowSeconds + MAX_FUTURE_SKEW_SECONDS
+  );
+}
+
+function getStableCreated(model: Model): number {
+  const direct = normalizeCreated(model.created);
+  const inferred = inferCreatedFromModelId(model.id);
+  const candidates = [direct, inferred ?? 0].filter(
+    (value) => value > 0 && isReasonableCreated(value)
+  );
+  if (candidates.length === 0) return 0;
+  return Math.min(...candidates);
+}
+
 export default function ModelsPage() {
   const { currency } = usePricingView();
+  const priceUnit = currency === "sats" ? "sats/1M tokens" : "USD/1M tokens";
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     key: "name" | "context" | "created" | "input" | "output";
@@ -29,13 +67,17 @@ export default function ModelsPage() {
 
   const isUnknownProvider = (name: string) => {
     const normalized = name.trim().toLowerCase();
-    return normalized === "unknown" || normalized.startsWith("unknown ");
+    return normalized === "unknown";
   };
 
-  const normalizeCreated = (value: number | undefined) => {
-    if (!value || !Number.isFinite(value)) return 0;
-    // Accept both seconds and milliseconds timestamps.
-    return value > 1_000_000_000_000 ? Math.floor(value / 1000) : value;
+  const getPrimaryProviderName = (
+    modelName: string,
+    providers: Array<{ name: string; price: number }> | undefined
+  ) => {
+    if (providers && providers.length > 0) {
+      return providers[0].name;
+    }
+    return getProviderFromModelName(modelName);
   };
 
   useEffect(() => {
@@ -52,17 +94,30 @@ export default function ModelsPage() {
           setItems((prevItems) => {
             const byName = new Map(prevItems.map((m) => [m.name, m]));
             for (const model of newModels) {
+              const incomingStableCreated = getStableCreated(model);
               const existing = byName.get(model.name);
               if (!existing) {
-                byName.set(model.name, model);
+                byName.set(model.name, {
+                  ...model,
+                  created: incomingStableCreated || normalizeCreated(model.created),
+                });
                 continue;
               }
 
               const existingCreated = normalizeCreated(existing.created);
               const incomingCreated = normalizeCreated(model.created);
-              if (incomingCreated > existingCreated) {
-                byName.set(model.name, model);
-              }
+              const preferred = incomingCreated > existingCreated ? model : existing;
+              const existingStableCreated = getStableCreated(existing);
+              const mergedStableCreated =
+                existingStableCreated > 0 && incomingStableCreated > 0
+                  ? Math.min(existingStableCreated, incomingStableCreated)
+                  : Math.max(existingStableCreated, incomingStableCreated);
+
+              byName.set(model.name, {
+                ...preferred,
+                created:
+                  mergedStableCreated || normalizeCreated(preferred.created),
+              });
             }
             return Array.from(byName.values());
           });
@@ -122,11 +177,11 @@ export default function ModelsPage() {
       const providersB = modelProvidersKV[b.name] || [
         { name: getProviderFromModelName(b.name), price: 0 },
       ];
-      const providerAUnknown = providersA.every((provider) =>
-        isUnknownProvider(provider.name)
+      const providerAUnknown = isUnknownProvider(
+        getPrimaryProviderName(a.name, providersA)
       );
-      const providerBUnknown = providersB.every((provider) =>
-        isUnknownProvider(provider.name)
+      const providerBUnknown = isUnknownProvider(
+        getPrimaryProviderName(b.name, providersB)
       );
       if (providerAUnknown !== providerBUnknown) {
         return providerAUnknown ? 1 : -1;
@@ -313,7 +368,7 @@ export default function ModelsPage() {
                             ? (model.sats_pricing.prompt * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) 
                             : (model.pricing.prompt * 1_000_000).toFixed(2)}
                         </span>
-                        <span className="text-muted-foreground">{currency === "sats" ? "sats/m" : "usd/m"}</span>
+                        <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>
                       <div className="flex items-center justify-end gap-1.5">
                         <span className="text-muted-foreground font-medium">out</span>
@@ -322,7 +377,7 @@ export default function ModelsPage() {
                             ? (model.sats_pricing.completion * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) 
                             : (model.pricing.completion * 1_000_000).toFixed(2)}
                         </span>
-                        <span className="text-muted-foreground">{currency === "sats" ? "sats/m" : "usd/m"}</span>
+                        <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>
                     </div>
                   </Link>
