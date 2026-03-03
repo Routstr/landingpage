@@ -128,36 +128,38 @@ export default function Header() {
 
             <div className="my-5 h-px bg-border" />
 
-            <a
-              href="https://chat.routstr.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={closeMobileMenu}
-              className="inline-flex items-center gap-2 text-base font-medium text-foreground"
-            >
-              Chat
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
-            <a
-              href="https://beta.platform.routstr.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={closeMobileMenu}
-              className="inline-flex items-center gap-2 text-base font-medium text-foreground"
-            >
-              Platform
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
-            <a
-              href="https://docs.routstr.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={closeMobileMenu}
-              className="inline-flex items-center gap-2 text-base font-medium text-foreground"
-            >
-              Docs
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
+            <div className="flex flex-col gap-5">
+              <a
+                href="https://chat.routstr.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-2 text-base font-medium text-foreground"
+              >
+                Chat
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+              <a
+                href="https://beta.platform.routstr.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-2 text-base font-medium text-foreground"
+              >
+                Platform
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+              <a
+                href="https://docs.routstr.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-2 text-base font-medium text-foreground"
+              >
+                Docs
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+            </div>
             <div className="flex flex-col gap-4 pt-4">
               <Button
                 variant="outline"
