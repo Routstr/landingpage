@@ -17,7 +17,6 @@ import {
 
 const GlobeComp = dynamic(() => import("react-globe.gl"), { ssr: false });
 const POINT_FETCH_DELAY_MS = 200;
-const POINT_FETCH_CONCURRENCY = 4;
 const CLUSTER_COORD_PRECISION = 4;
 const CLUSTER_RING_CAPACITY = 8;
 const BASE_POINT_ALTITUDE = 0.01;
@@ -148,7 +147,7 @@ export function Globe({ className }: { className?: string }) {
           if (!isMounted) return;
           setPoints((prev) => mergeProviderPoints(prev, [point]));
         },
-        { signal: abortController.signal, concurrency: POINT_FETCH_CONCURRENCY }
+        { signal: abortController.signal }
       ).catch(() => {
         // Ignore fallback failures and keep any points already plotted.
       });
