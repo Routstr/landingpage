@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   fetchProviderPointsFromEndpointIpProgressive,
 } from "@/lib/globe/provider-points-client";
+import { cn } from "@/lib/utils";
 import {
   isProviderPoint,
   mergeProviderPoints,
@@ -34,6 +35,37 @@ type RenderPoint = ProviderPoint & {
   plotRadius: number;
 };
 
+type GlobeRenderBoundaryProps = {
+  fallback: React.ReactNode;
+  children: React.ReactNode;
+};
+
+type GlobeRenderBoundaryState = {
+  hasError: boolean;
+};
+
+class GlobeRenderBoundary extends React.Component<
+  GlobeRenderBoundaryProps,
+  GlobeRenderBoundaryState
+> {
+  state: GlobeRenderBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): GlobeRenderBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(): void {
+    // Swallow render errors from WebGL renderer and show fallback UI.
+  }
+
+  render(): React.ReactNode {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
 function toClusterKey(lat: number, lng: number): string {
   return `${lat.toFixed(CLUSTER_COORD_PRECISION)}:${lng.toFixed(
     CLUSTER_COORD_PRECISION
@@ -55,8 +87,53 @@ async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unkno
   return res.json();
 }
 
+function browserSupportsWebGL(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    if (!canvas) return false;
+    return Boolean(
+      canvas.getContext("webgl2") ||
+        canvas.getContext("webgl") ||
+        canvas.getContext("experimental-webgl")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function GlobeFallback({
+  className,
+  pointsCount,
+}: {
+  className?: string;
+  pointsCount: number;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-full w-full items-center justify-center rounded-full border border-border/70 bg-gradient-to-b from-muted/20 via-background to-background text-center",
+        className
+      )}
+    >
+      <div className="space-y-2 px-6">
+        <p className="text-sm text-foreground">Live node map unavailable</p>
+        <p className="text-xs text-muted-foreground">
+          WebGL is disabled in this browser.
+        </p>
+        {pointsCount > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {pointsCount} node{pointsCount === 1 ? "" : "s"} detected
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function Globe({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
+  const [supportsWebGL, setSupportsWebGL] = useState<boolean | null>(null);
   const isMobile = useIsMobile();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -122,6 +199,7 @@ export function Globe({ className }: { className?: string }) {
     const abortController = new AbortController();
     let pointsFetchTimer: TimeoutHandle | null = null;
     setMounted(true);
+    setSupportsWebGL(browserSupportsWebGL());
     const updateSize = () => {
       const width = window.innerWidth;
       const targetSize = Math.min(width - 48, 1200);
@@ -318,6 +396,9 @@ export function Globe({ className }: { className?: string }) {
 
   if (!mounted) return null;
 
+  const fallback = <GlobeFallback className={className} pointsCount={points.length} />;
+  if (supportsWebGL === false) return fallback;
+
   return (
     <div 
       ref={containerRef}
@@ -336,79 +417,81 @@ export function Globe({ className }: { className?: string }) {
         }
       }}
     >
-      <GlobeComp
-        ref={globeRef}
-        width={size}
-        height={size}
-        backgroundColor="rgba(0,0,0,0)"
-        globeMaterial={globeMaterial}
-        hexPolygonsData={hexData}
-        hexPolygonResolution={3}
-        hexPolygonMargin={0.3}
-        hexPolygonUseDots
-        hexPolygonColor={() => "rgba(255, 255, 255, 0.15)"}
-        pointsData={renderPoints}
-        pointLat={(point: object) => (point as RenderPoint).plotLat}
-        pointLng={(point: object) => (point as RenderPoint).plotLng}
-        pointRadius={(point: object) => (point as RenderPoint).plotRadius}
-        pointAltitude={(point: object) => (point as RenderPoint).plotAltitude}
-        pointColor={() => "#e5e5e5"}
-        pointLabel={() => ""}
-        showAtmosphere={false}
-        onPointHover={(p: unknown) => {
-          if (isMobile) return;
-          clearHideTimeout();
-          if (isProviderPoint(p)) {
-            setSelectedProvider(buildTooltipProvider(p));
-            setSelectedPos({ x: mousePos.x, y: mousePos.y });
-            if (globeRef.current) globeRef.current.controls().autoRotate = false;
-          } else {
-            hideTimeoutRef.current = setTimeout(() => {
-              if (!isHoveringTooltip) {
-                setSelectedProvider(null);
-                setSelectedPos(null);
-                if (globeRef.current && !containerRef.current?.matches(':hover')) {
-                  globeRef.current.controls().autoRotate = true;
+      <GlobeRenderBoundary fallback={fallback}>
+        <GlobeComp
+          ref={globeRef}
+          width={size}
+          height={size}
+          backgroundColor="rgba(0,0,0,0)"
+          globeMaterial={globeMaterial}
+          hexPolygonsData={hexData}
+          hexPolygonResolution={3}
+          hexPolygonMargin={0.3}
+          hexPolygonUseDots
+          hexPolygonColor={() => "rgba(255, 255, 255, 0.15)"}
+          pointsData={renderPoints}
+          pointLat={(point: object) => (point as RenderPoint).plotLat}
+          pointLng={(point: object) => (point as RenderPoint).plotLng}
+          pointRadius={(point: object) => (point as RenderPoint).plotRadius}
+          pointAltitude={(point: object) => (point as RenderPoint).plotAltitude}
+          pointColor={() => "#e5e5e5"}
+          pointLabel={() => ""}
+          showAtmosphere={false}
+          onPointHover={(p: unknown) => {
+            if (isMobile) return;
+            clearHideTimeout();
+            if (isProviderPoint(p)) {
+              setSelectedProvider(buildTooltipProvider(p));
+              setSelectedPos({ x: mousePos.x, y: mousePos.y });
+              if (globeRef.current) globeRef.current.controls().autoRotate = false;
+            } else {
+              hideTimeoutRef.current = setTimeout(() => {
+                if (!isHoveringTooltip) {
+                  setSelectedProvider(null);
+                  setSelectedPos(null);
+                  if (globeRef.current && !containerRef.current?.matches(':hover')) {
+                    globeRef.current.controls().autoRotate = true;
+                  }
                 }
-              }
-            }, 250);
-          }
-        }}
-        onPointClick={(p: unknown, event: unknown) => {
-          if (!isProviderPoint(p)) return;
+              }, 250);
+            }
+          }}
+          onPointClick={(p: unknown, event: unknown) => {
+            if (!isProviderPoint(p)) return;
 
-          suppressNextGlobeClickRef.current = true;
-          requestAnimationFrame(() => {
-            suppressNextGlobeClickRef.current = false;
-          });
+            suppressNextGlobeClickRef.current = true;
+            requestAnimationFrame(() => {
+              suppressNextGlobeClickRef.current = false;
+            });
 
-          clearHideTimeout();
-          setSelectedProvider(buildTooltipProvider(p));
+            clearHideTimeout();
+            setSelectedProvider(buildTooltipProvider(p));
 
-          const eventPos = getEventClientPosition(event);
-          if (eventPos) {
-            setSelectedPos(eventPos);
-          } else {
-            setSelectedPos({ x: mousePos.x, y: mousePos.y });
-          }
+            const eventPos = getEventClientPosition(event);
+            if (eventPos) {
+              setSelectedPos(eventPos);
+            } else {
+              setSelectedPos({ x: mousePos.x, y: mousePos.y });
+            }
 
-          if (isMobile) {
-            setMobileRotationLocked(true);
-          }
-          if (globeRef.current) globeRef.current.controls().autoRotate = false;
-        }}
-        onGlobeClick={() => {
-          if (suppressNextGlobeClickRef.current) return;
-          setSelectedProvider(null);
-          setSelectedPos(null);
-          if (isMobile) {
-            setMobileRotationLocked(true);
+            if (isMobile) {
+              setMobileRotationLocked(true);
+            }
             if (globeRef.current) globeRef.current.controls().autoRotate = false;
-            return;
-          }
-          if (globeRef.current) globeRef.current.controls().autoRotate = true;
-        }}
-      />
+          }}
+          onGlobeClick={() => {
+            if (suppressNextGlobeClickRef.current) return;
+            setSelectedProvider(null);
+            setSelectedPos(null);
+            if (isMobile) {
+              setMobileRotationLocked(true);
+              if (globeRef.current) globeRef.current.controls().autoRotate = false;
+              return;
+            }
+            if (globeRef.current) globeRef.current.controls().autoRotate = true;
+          }}
+        />
+      </GlobeRenderBoundary>
       <GlobeTooltip 
         provider={selectedProvider} 
         position={selectedPos}
