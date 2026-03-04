@@ -1002,14 +1002,8 @@ export default function StatsPage() {
   const respondingRelays = relayStatusList.filter(
     (relay) => relay.state === "active" || relay.state === "done" || relay.state === "no-data"
   ).length;
-  const hasRelayError = relayStatusList.some(
-    (relay) => relay.state === "error" || relay.state === "timeout"
-  );
-  const relaySummaryDotClass = hasRelayError
-    ? "bg-red-500"
-    : respondingRelays === relayStatusList.length
-      ? "bg-green-500"
-      : "bg-muted-foreground";
+  const relayDots = relayStatusList.slice(0, 8);
+  const hiddenRelayDotsCount = Math.max(0, relayStatusList.length - relayDots.length);
 
   const relayStatusControl = (
     <Popover open={relayStatusOpen} onOpenChange={setRelayStatusOpen}>
@@ -1017,11 +1011,26 @@ export default function StatsPage() {
         <button
           type="button"
           aria-label="Show relay statuses"
-          className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
         >
-          <span className={cn("h-1.5 w-1.5 rounded-full", relaySummaryDotClass)} />
           <span>
             Relays {respondingRelays}/{relayStatusList.length}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            {relayDots.map((relay) => {
+              const meta = getRelayStateMeta(relay.state);
+              return (
+                <span
+                  key={`relay-dot-${relay.url}`}
+                  className={cn("h-1.5 w-1.5 rounded-full", meta.dotClass)}
+                />
+              );
+            })}
+            {hiddenRelayDotsCount > 0 ? (
+              <span className="text-[10px] leading-none text-muted-foreground">
+                +{hiddenRelayDotsCount}
+              </span>
+            ) : null}
           </span>
         </button>
       </PopoverTrigger>
