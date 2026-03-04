@@ -407,6 +407,15 @@ function formatCompact(value: number): string {
   }).format(value);
 }
 
+function formatUpdatedAt(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function getWindowPayload(payload: AnalyticsPayload, key: "24h" | "7d" | "30d"): WindowPayload | null {
   const windows = asRecord(payload.windows);
   const windowRaw =
@@ -920,6 +929,24 @@ export default function StatsPage() {
     if (selectedProviderId === ALL_PROVIDERS_ID) return null;
     return timelines.find((timeline) => timeline.providerId === selectedProviderId) ?? null;
   }, [selectedProviderId, timelines]);
+  const latestSnapshotUnixSeconds = useMemo(() => {
+    const targetTimelines =
+      selectedProviderId === ALL_PROVIDERS_ID
+        ? timelines
+        : selectedTimeline
+          ? [selectedTimeline]
+          : [];
+    let latest = 0;
+    for (const timeline of targetTimelines) {
+      latest = Math.max(
+        latest,
+        timeline.latest?.eventCreatedAt ?? 0,
+        timeline.day[timeline.day.length - 1]?.eventCreatedAt ?? 0,
+        timeline.month[timeline.month.length - 1]?.eventCreatedAt ?? 0
+      );
+    }
+    return latest > 0 ? latest : null;
+  }, [selectedProviderId, selectedTimeline, timelines]);
 
   const selectedWindowPayload = useMemo(() => {
     if (selectedProviderId === ALL_PROVIDERS_ID) {
@@ -955,6 +982,11 @@ export default function StatsPage() {
       ? asNumber(summary.revenue_sats)
       : asNumber(summary.revenue_msats) / 1000
     : null;
+  const updatedStatusText = latestSnapshotUnixSeconds
+    ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
+    : loading
+      ? "Loading snapshots..."
+      : "No snapshots yet";
 
   const relayStatusList = RELAYS.map((relay) => {
     const key = normalizeRelayUrl(relay);
@@ -1036,14 +1068,17 @@ export default function StatsPage() {
                 Shared usage analytics published by Routstr nodes.
               </p>
             </div>
-            <Button
-              variant="outline"
-              className="h-9 w-auto self-start border-border bg-transparent px-3 text-xs text-foreground hover:bg-muted"
-              onClick={() => setRefreshNonce((current) => current + 1)}
-              disabled={loading}
-            >
-              {loading ? "Refreshing..." : "Refresh"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-3 self-start md:self-end">
+              <p className="text-xs text-muted-foreground">{updatedStatusText}</p>
+              <Button
+                variant="outline"
+                className="h-9 w-auto border-border bg-transparent px-3 text-xs text-foreground hover:bg-muted"
+                onClick={() => setRefreshNonce((current) => current + 1)}
+                disabled={loading}
+              >
+                {loading ? "Refreshing..." : "Refresh"}
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
