@@ -285,7 +285,13 @@ export function TopModelsUsageChart({
     [mix.metrics]
   );
 
-  const chartModels = useMemo(() => mixTopModels.slice(0, 10), [mixTopModels]);
+  const chartModelLimit = showAllModels
+    ? EXPANDED_LEADERBOARD_LIMIT
+    : DEFAULT_LEADERBOARD_LIMIT;
+  const chartModels = useMemo(
+    () => mixTopModels.slice(0, chartModelLimit),
+    [mixTopModels, chartModelLimit]
+  );
   const leaderboardModels = useMemo(
     () => mixTopModels.slice(0, EXPANDED_LEADERBOARD_LIMIT),
     [mixTopModels]
