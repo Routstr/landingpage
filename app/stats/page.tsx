@@ -288,6 +288,163 @@ function getMetricTimestampKey(timestamp: string): string {
   return `ms:${parsed.getTime()}`;
 }
 
+function parseMetricTimestampMs(timestamp: string): number | null {
+  const normalized = timestamp.includes("T")
+    ? timestamp
+    : `${timestamp.replace(" ", "T")}Z`;
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) return parsed.getTime();
+  const fallback = new Date(timestamp);
+  return Number.isNaN(fallback.getTime()) ? null : fallback.getTime();
+}
+
+function alignMetricTimestamp(ms: number, intervalMinutes: number): string {
+  const bucketMs = Math.max(1, intervalMinutes) * 60 * 1000;
+  const bucketStart = Math.floor(ms / bucketMs) * bucketMs;
+  return new Date(bucketStart).toISOString().replace(".000Z", "Z");
+}
+
+const INTERVAL_STEPS_MINUTES = [
+  60,
+  120,
+  180,
+  240,
+  360,
+  480,
+  720,
+  1440,
+  2880,
+  4320,
+  10080,
+  20160,
+  43200,
+] as const;
+
+const MAX_CHART_POINTS: Record<WindowKey, number> = {
+  "24h": 48,
+  "7d": 84,
+  "30d": 96,
+  "90d": 120,
+  "1y": 120,
+  all: 140,
+};
+
+function roundUpIntervalMinutes(value: number): number {
+  const safe = Math.max(1, Math.ceil(value));
+  const found = INTERVAL_STEPS_MINUTES.find((step) => step >= safe);
+  return found ?? INTERVAL_STEPS_MINUTES[INTERVAL_STEPS_MINUTES.length - 1];
+}
+
+function chooseDisplayIntervalMinutes(
+  metrics: ModelUsageMixMetric[],
+  baseIntervalMinutes: number,
+  window: WindowKey
+): number {
+  const base = Math.max(1, baseIntervalMinutes);
+  if (metrics.length <= 1) return base;
+
+  const times = metrics
+    .map((metric) => parseMetricTimestampMs(metric.timestamp))
+    .filter((value): value is number => value !== null)
+    .sort((a, b) => a - b);
+  if (times.length <= 1) return base;
+
+  const spanMinutes = Math.max(
+    1,
+    Math.ceil((times[times.length - 1] - times[0]) / (60 * 1000))
+  );
+  const maxPoints = MAX_CHART_POINTS[window];
+  const needed = Math.ceil(spanMinutes / Math.max(1, maxPoints));
+  return roundUpIntervalMinutes(Math.max(base, needed));
+}
+
+function rebucketMetrics(
+  metrics: ModelUsageMixMetric[],
+  intervalMinutes: number
+): ModelUsageMixMetric[] {
+  if (metrics.length <= 1) return metrics;
+
+  const bucketMap = new Map<string, ModelUsageMixMetric>();
+  for (const metric of metrics) {
+    const ms = parseMetricTimestampMs(metric.timestamp);
+    if (ms === null) {
+      const fallbackKey = `raw:${metric.timestamp}`;
+      bucketMap.set(fallbackKey, {
+        timestamp: metric.timestamp,
+        total_successful: asNumber(metric.total_successful),
+        total_revenue_msats: asNumber(metric.total_revenue_msats),
+        total_tokens: asNumber(metric.total_tokens),
+        others: asNumber(metric.others),
+        others_revenue_msats: asNumber(metric.others_revenue_msats),
+        others_tokens: asNumber(metric.others_tokens),
+        model_counts: { ...(metric.model_counts ?? {}) },
+        model_revenue_msats: { ...(metric.model_revenue_msats ?? {}) },
+        model_tokens: { ...(metric.model_tokens ?? {}) },
+      });
+      continue;
+    }
+
+    const alignedTimestamp = alignMetricTimestamp(ms, intervalMinutes);
+    const existing = bucketMap.get(alignedTimestamp);
+    if (!existing) {
+      bucketMap.set(alignedTimestamp, {
+        timestamp: alignedTimestamp,
+        total_successful: asNumber(metric.total_successful),
+        total_revenue_msats: asNumber(metric.total_revenue_msats),
+        total_tokens: asNumber(metric.total_tokens),
+        others: asNumber(metric.others),
+        others_revenue_msats: asNumber(metric.others_revenue_msats),
+        others_tokens: asNumber(metric.others_tokens),
+        model_counts: { ...(metric.model_counts ?? {}) },
+        model_revenue_msats: { ...(metric.model_revenue_msats ?? {}) },
+        model_tokens: { ...(metric.model_tokens ?? {}) },
+      });
+      continue;
+    }
+
+    existing.total_successful += asNumber(metric.total_successful);
+    existing.total_revenue_msats += asNumber(metric.total_revenue_msats);
+    existing.total_tokens += asNumber(metric.total_tokens);
+    existing.others += asNumber(metric.others);
+    existing.others_revenue_msats += asNumber(metric.others_revenue_msats);
+    existing.others_tokens += asNumber(metric.others_tokens);
+    mergeNumberRecords(existing.model_counts, metric.model_counts ?? {});
+    mergeNumberRecords(existing.model_revenue_msats, metric.model_revenue_msats ?? {});
+    mergeNumberRecords(existing.model_tokens, metric.model_tokens ?? {});
+  }
+
+  return Array.from(bucketMap.values()).sort((a, b) => {
+    const aMs = parseMetricTimestampMs(a.timestamp);
+    const bMs = parseMetricTimestampMs(b.timestamp);
+    if (aMs !== null && bMs !== null) return aMs - bMs;
+    if (aMs !== null) return -1;
+    if (bMs !== null) return 1;
+    return a.timestamp.localeCompare(b.timestamp);
+  });
+}
+
+function coarsenWindowPayloadForDisplay(
+  payload: WindowPayload,
+  window: WindowKey
+): WindowPayload {
+  const targetInterval = chooseDisplayIntervalMinutes(
+    payload.metrics,
+    payload.mixIntervalMinutes,
+    window
+  );
+  if (targetInterval <= payload.mixIntervalMinutes) {
+    return payload;
+  }
+
+  const metrics = rebucketMetrics(payload.metrics, targetInterval);
+  return {
+    ...payload,
+    metrics,
+    mixIntervalMinutes: targetInterval,
+    topModels: deriveTopModels(metrics),
+  };
+}
+
 function mergeNumberRecords(
   target: Record<string, number>,
   source: Record<string, number>
@@ -570,6 +727,11 @@ function getPayloadsForTimeline(timeline: ProviderTimeline, window: WindowKey): 
   }
 
   if (window === "90d") {
+    const recentMonths = keepRecentByMonths(timeline.month, 3)
+      .map((snapshot) => getPrimaryPayload(snapshot.payload))
+      .filter((payload): payload is WindowPayload => payload !== null);
+    if (recentMonths.length > 0) return recentMonths;
+
     return keepRecentByDays(timeline.day, 90)
       .map((snapshot) => getPrimaryPayload(snapshot.payload))
       .filter((payload): payload is WindowPayload => payload !== null);
@@ -949,15 +1111,20 @@ export default function StatsPage() {
   }, [selectedProviderId, selectedTimeline, timelines]);
 
   const selectedWindowPayload = useMemo(() => {
+    const coarsen = (payload: WindowPayload | null): WindowPayload | null =>
+      payload ? coarsenWindowPayloadForDisplay(payload, selectedWindow) : null;
+
     if (selectedProviderId === ALL_PROVIDERS_ID) {
       const payloads = timelines.flatMap((timeline) =>
         getPayloadsForTimeline(timeline, selectedWindow)
       );
-      return mergeWindowPayloads(payloads);
+      return coarsen(mergeWindowPayloads(payloads));
     }
 
     if (!selectedTimeline) return null;
-    return mergeWindowPayloads(getPayloadsForTimeline(selectedTimeline, selectedWindow));
+    return coarsen(
+      mergeWindowPayloads(getPayloadsForTimeline(selectedTimeline, selectedWindow))
+    );
   }, [selectedProviderId, selectedTimeline, selectedWindow, timelines]);
 
   const modelUsageMix = useMemo<ModelUsageMix | null>(() => {

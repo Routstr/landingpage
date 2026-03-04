@@ -119,6 +119,13 @@ function formatTooltipTimestamp(
   if (!date) {
     return label;
   }
+  const isMonthlyOrCoarser = intervalMinutes >= 28 * 24 * 60;
+  if (isMonthlyOrCoarser) {
+    return date.toLocaleString([], {
+      month: "long",
+      year: "numeric",
+    });
+  }
   const shouldShowTime = intervalMinutes <= 6 * 60 || hoursBack <= 48;
   if (shouldShowTime) {
     return date.toLocaleString([], {
@@ -147,6 +154,14 @@ function formatAxisTimestamp(
     return "";
   }
 
+  const isMonthlyOrCoarser = intervalMinutes >= 28 * 24 * 60;
+  if (isMonthlyOrCoarser) {
+    return date.toLocaleDateString([], {
+      month: "short",
+      year: "numeric",
+    });
+  }
+
   const shouldShowTime = intervalMinutes <= 6 * 60 || hoursBack <= 48;
   if (shouldShowTime && hasMultipleDays) {
     return date.toLocaleString([], {
@@ -161,13 +176,6 @@ function formatAxisTimestamp(
     return date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-    });
-  }
-
-  if (intervalMinutes >= 24 * 60 && hoursBack >= 24 * 180) {
-    return date.toLocaleDateString([], {
-      month: "short",
-      year: "2-digit",
     });
   }
 
