@@ -74,7 +74,7 @@ const ApiRequestSkeleton = () => {
                         <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
                         <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
                     </div>
-                    <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-sans">app.py</span>
+                    <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">app.py</span>
                 </div>
                 
                 {/* Code block */}
@@ -425,7 +425,7 @@ const DockerSkeleton = () => {
                     <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
                     <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
                 </div>
-                <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-sans">routstr-proxy</span>
+                <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">routstr-proxy</span>
                 <div className="ml-auto flex items-center gap-1.5">
                     <motion.div 
                         animate={isInView ? { opacity: [0.3, 0.8, 0.3] } : { opacity: 0.3 }}

@@ -7,7 +7,6 @@ import type { GlobeMethods } from "react-globe.gl";
 import dynamic from "next/dynamic";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  fetchProviderPointsFromApiRoute,
   fetchProviderPointsFromEndpointIpProgressive,
 } from "@/lib/globe/provider-points-client";
 import {
@@ -19,7 +18,36 @@ import {
 const GlobeComp = dynamic(() => import("react-globe.gl"), { ssr: false });
 const POINT_FETCH_DELAY_MS = 200;
 const POINT_FETCH_CONCURRENCY = 4;
+const CLUSTER_COORD_PRECISION = 4;
+const CLUSTER_RING_CAPACITY = 8;
+const BASE_POINT_ALTITUDE = 0.01;
+const BASE_POINT_RADIUS = 0.4;
+const STACK_POINT_ALTITUDE_STEP = 0.006;
+const STACK_POINT_RADIUS = 0.34;
+const STACK_SPREAD_DEGREES_BASE = 0.18;
+const STACK_SPREAD_DEGREES_STEP = 0.12;
 type TimeoutHandle = ReturnType<typeof setTimeout>;
+
+type RenderPoint = ProviderPoint & {
+  plotLat: number;
+  plotLng: number;
+  plotAltitude: number;
+  plotRadius: number;
+};
+
+function toClusterKey(lat: number, lng: number): string {
+  return `${lat.toFixed(CLUSTER_COORD_PRECISION)}:${lng.toFixed(
+    CLUSTER_COORD_PRECISION
+  )}`;
+}
+
+function clampLatitude(lat: number): number {
+  return Math.max(-89.5, Math.min(89.5, lat));
+}
+
+function wrapLongitude(lng: number): number {
+  return ((lng + 180) % 360 + 360) % 360 - 180;
+}
 
 async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
   const res = await fetch(
@@ -111,15 +139,6 @@ export function Globe({ className }: { className?: string }) {
       .catch(() => {
         if (!isMounted) return;
         setHexData([]);
-      });
-
-    void fetchProviderPointsFromApiRoute()
-      .then((apiPoints) => {
-        if (!isMounted || apiPoints.length === 0) return;
-        setPoints((prev) => mergeProviderPoints(prev, apiPoints));
-      })
-      .catch(() => {
-        // Progressive fallback continues below.
       });
 
     // Defer point geolocation work so the globe itself paints first.
@@ -218,6 +237,79 @@ export function Globe({ className }: { className?: string }) {
     []
   );
 
+  const renderPoints = useMemo<RenderPoint[]>(() => {
+    if (points.length <= 1) {
+      return points.map((point) => ({
+        ...point,
+        plotLat: point.lat,
+        plotLng: point.lng,
+        plotAltitude: BASE_POINT_ALTITUDE,
+        plotRadius: BASE_POINT_RADIUS,
+      }));
+    }
+
+    const clustered = new Map<string, ProviderPoint[]>();
+    for (const point of points) {
+      const key = toClusterKey(point.lat, point.lng);
+      const group = clustered.get(key);
+      if (group) group.push(point);
+      else clustered.set(key, [point]);
+    }
+
+    const output: RenderPoint[] = [];
+    Array.from(clustered.values()).forEach((group) => {
+      const ordered = [...group].sort((a, b) => a.id.localeCompare(b.id));
+
+      if (ordered.length === 1) {
+        const point = ordered[0];
+        output.push({
+          ...point,
+          plotLat: point.lat,
+          plotLng: point.lng,
+          plotAltitude: BASE_POINT_ALTITUDE,
+          plotRadius: BASE_POINT_RADIUS,
+        });
+      } else {
+        output.push({
+          ...ordered[0],
+          plotLat: ordered[0].lat,
+          plotLng: ordered[0].lng,
+          plotAltitude: BASE_POINT_ALTITUDE,
+          plotRadius: BASE_POINT_RADIUS,
+        });
+        ordered.slice(1).forEach((point, extraIndex) => {
+          const ringIndex = Math.floor(extraIndex / CLUSTER_RING_CAPACITY);
+          const indexInRing = extraIndex % CLUSTER_RING_CAPACITY;
+          const pointsInThisRing = Math.min(
+            CLUSTER_RING_CAPACITY,
+            ordered.length - 1 - ringIndex * CLUSTER_RING_CAPACITY
+          );
+          const angle =
+            pointsInThisRing > 0
+              ? (2 * Math.PI * indexInRing) / pointsInThisRing
+              : 0;
+          const spread =
+            STACK_SPREAD_DEGREES_BASE + ringIndex * STACK_SPREAD_DEGREES_STEP;
+          const latitudeRadians = (point.lat * Math.PI) / 180;
+          const latitudeOffset = spread * Math.cos(angle);
+          const longitudeOffset =
+            (spread * Math.sin(angle)) / Math.max(Math.cos(latitudeRadians), 0.35);
+
+          output.push({
+            ...point,
+            plotLat: clampLatitude(point.lat + latitudeOffset),
+            plotLng: wrapLongitude(point.lng + longitudeOffset),
+            plotAltitude:
+              BASE_POINT_ALTITUDE + (ringIndex + 1) * STACK_POINT_ALTITUDE_STEP,
+            plotRadius: STACK_POINT_RADIUS,
+          });
+        });
+      }
+    });
+
+    return output;
+  }, [points]);
+
   const clearHideTimeout = () => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
@@ -256,11 +348,11 @@ export function Globe({ className }: { className?: string }) {
         hexPolygonMargin={0.3}
         hexPolygonUseDots
         hexPolygonColor={() => "rgba(255, 255, 255, 0.15)"}
-        pointsData={points}
-        pointLat="lat"
-        pointLng="lng"
-        pointRadius={0.4}
-        pointAltitude={0.01}
+        pointsData={renderPoints}
+        pointLat={(point: object) => (point as RenderPoint).plotLat}
+        pointLng={(point: object) => (point as RenderPoint).plotLng}
+        pointRadius={(point: object) => (point as RenderPoint).plotRadius}
+        pointAltitude={(point: object) => (point as RenderPoint).plotAltitude}
         pointColor={() => "#e5e5e5"}
         pointLabel={() => ""}
         showAtmosphere={false}

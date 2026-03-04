@@ -59,14 +59,29 @@ context/             # React contexts (e.g., NostrContext)
 
 ## Deployment
 
-Build and run:
+This app is configured for static export (client-only runtime) via:
+
+- `next.config.ts` → `output: "export"`
+- production build output directory: `out/`
+
+### Cloudflare Pages
+
+Use these settings in Cloudflare Pages:
+
+- Framework preset: `Next.js (static export)` or `None`
+- Build command: `npm run build`
+- Build output directory: `out`
+
+### Notes
+
+- Dynamic detail routes (`/models/[...modelId]`, `/providers/[id]`, `/blog/[slug]`) are pre-rendered at build time using `generateStaticParams`.
+- For full model/provider detail page generation, the build environment needs outbound access to your provider/model sources (for example `api.routstr.com`).
+
+Build locally:
 
 ```bash
 npm run build
-npm run start
 ```
-
-Vercel is recommended for zero-config deployments of Next.js apps.
 
 ## Contributing
 

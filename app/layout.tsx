@@ -1,19 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ModelsProvider } from "./contexts/ModelsContext";
 import { NostrProvider } from "@/context/NostrContext";
 import { PricingProvider } from "./contexts/PricingContext";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { GeistMono } from "geist/font/mono";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://routstr.com"),
@@ -83,7 +73,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body
         suppressHydrationWarning
-        className={`${inter.variable} ${geistMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground`}
+        className={`${GeistMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground`}
       >
         <ModelsProvider>
           <NostrProvider>

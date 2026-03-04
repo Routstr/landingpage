@@ -185,7 +185,7 @@ export const MorphingText: React.FC<MorphingTextProps> = ({
     <div
       ref={containerRef}
       className={cn(
-        "relative mx-auto w-full text-center font-sans leading-none font-bold overflow-visible",
+        "relative mx-auto w-full text-center font-mono leading-none font-bold overflow-visible",
         className
       )}
     >

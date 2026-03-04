@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint ."
   },
@@ -16,6 +16,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "framer-motion": "^12.34.3",
+    "geist": "^1.7.0",
     "lucide-react": "^0.575.0",
     "next": "^16.1.6",
     "nostr-tools": "^2.23.3",
