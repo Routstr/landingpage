@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type WindowKey = "24h" | "7d" | "30d" | "90d" | "1y" | "all";
+type WindowKey = "24h" | "7d" | "30d" | "3m" | "1y";
 type RelayState = "connecting" | "active" | "done" | "no-data" | "timeout" | "error";
 type PeriodType = "latest" | "day" | "month";
 
@@ -83,6 +83,7 @@ const ANALYTICS_KIND = 38422;
 const ANALYTICS_SCHEMAS = new Set([
   "routstr.analytics.usage.v1",
   "routstr.analytics.usage.v2",
+  "routstr.analytics.snapshot.v1",
 ]);
 const RELAYS = Array.from(
   new Set([...getDefaultRelays(), "wss://relay.routstr.com", "wss://nos.lol"])
@@ -92,18 +93,16 @@ const WINDOW_OPTIONS: Array<{ id: WindowKey; label: string }> = [
   { id: "24h", label: "24h" },
   { id: "7d", label: "7d" },
   { id: "30d", label: "30d" },
-  { id: "90d", label: "90d" },
+  { id: "3m", label: "3m" },
   { id: "1y", label: "1y" },
-  { id: "all", label: "All" },
 ];
 
 const WINDOW_HOURS: Record<WindowKey, number> = {
   "24h": 24,
   "7d": 24 * 7,
   "30d": 24 * 30,
-  "90d": 24 * 90,
+  "3m": 24 * 90,
   "1y": 24 * 365,
-  all: 24 * 365 * 10,
 };
 
 const ALL_PROVIDERS_ID = "__all_providers__";
@@ -324,9 +323,8 @@ const MAX_CHART_POINTS: Record<WindowKey, number> = {
   "24h": 48,
   "7d": 84,
   "30d": 96,
-  "90d": 120,
+  "3m": 120,
   "1y": 120,
-  all: 140,
 };
 
 function roundUpIntervalMinutes(value: number): number {
@@ -573,12 +571,17 @@ function formatUpdatedAt(unixSeconds: number): string {
   });
 }
 
-function getWindowPayload(payload: AnalyticsPayload, key: "24h" | "7d" | "30d"): WindowPayload | null {
+function getWindowPayload(payload: AnalyticsPayload, key: WindowKey): WindowPayload | null {
   const windows = asRecord(payload.windows);
+  const selectedWindow =
+    key === "3m" ? asRecord(windows["3m"] ?? windows["90d"]) : asRecord(windows[key]);
+  const hasSelectedWindow =
+    selectedWindow.interval_minutes !== undefined ||
+    selectedWindow.summary !== undefined ||
+    selectedWindow.model_usage_mix !== undefined;
   const windowRaw =
-    asRecord(windows[key]).interval_minutes !== undefined ||
-    asRecord(windows[key]).summary !== undefined
-      ? asRecord(windows[key])
+    hasSelectedWindow
+      ? selectedWindow
       : key === "24h"
         ? {
             summary: payload.summary ?? {},
@@ -677,6 +680,9 @@ function parsePeriodFromEvent(
   if (dTag === `${providerId}:usage` || dTag.endsWith(":usage:latest")) {
     return { periodType: "latest", periodKey: "latest" };
   }
+  if (dTag === `${providerId}:stats` || dTag.endsWith(":stats")) {
+    return { periodType: "latest", periodKey: "latest" };
+  }
 
   const monthMatch = dTag.match(/:usage:month:([0-9]{4}-[0-9]{2})$/);
   if (monthMatch) {
@@ -720,13 +726,16 @@ function keepRecentByMonths(events: PeriodSnapshot[], months: number): PeriodSna
 }
 
 function getPayloadsForTimeline(timeline: ProviderTimeline, window: WindowKey): WindowPayload[] {
-  if (window === "24h" || window === "7d" || window === "30d") {
-    if (!timeline.latest) return [];
+  if (timeline.latest) {
     const latestWindow = getWindowPayload(timeline.latest.payload, window);
-    return latestWindow ? [latestWindow] : [];
+    if (latestWindow) return [latestWindow];
   }
 
-  if (window === "90d") {
+  if (window === "24h" || window === "7d" || window === "30d") {
+    return [];
+  }
+
+  if (window === "3m") {
     const recentMonths = keepRecentByMonths(timeline.month, 3)
       .map((snapshot) => getPrimaryPayload(snapshot.payload))
       .filter((payload): payload is WindowPayload => payload !== null);
@@ -747,15 +756,7 @@ function getPayloadsForTimeline(timeline: ProviderTimeline, window: WindowKey): 
       .map((snapshot) => getPrimaryPayload(snapshot.payload))
       .filter((payload): payload is WindowPayload => payload !== null);
   }
-
-  const allMonths = timeline.month
-    .map((snapshot) => getPrimaryPayload(snapshot.payload))
-    .filter((payload): payload is WindowPayload => payload !== null);
-  if (allMonths.length > 0) return allMonths;
-
-  return timeline.day
-    .map((snapshot) => getPrimaryPayload(snapshot.payload))
-    .filter((payload): payload is WindowPayload => payload !== null);
+  return [];
 }
 
 export default function StatsPage() {
