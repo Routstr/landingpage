@@ -265,6 +265,33 @@ function getModelPresentation(
   };
 }
 
+function deriveRankedModelsByMode(
+  metrics: ModelUsageMixMetric[],
+  mode: ChartMode
+): string[] {
+  const totals = new Map<string, number>();
+
+  for (const metric of metrics) {
+    const source =
+      mode === "requests"
+        ? metric.model_counts ?? {}
+        : mode === "revenue"
+          ? metric.model_revenue_msats ?? {}
+          : metric.model_tokens ?? {};
+
+    for (const [model, rawValue] of Object.entries(source)) {
+      if (!model || model === "unknown") continue;
+      const value = Number(rawValue || 0);
+      if (!Number.isFinite(value) || value <= 0) continue;
+      totals.set(model, (totals.get(model) ?? 0) + value);
+    }
+  }
+
+  return Array.from(totals.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([model]) => model);
+}
+
 export function TopModelsUsageChart({
   mix,
   displayUnit = "sat",
@@ -284,7 +311,7 @@ export function TopModelsUsageChart({
       }),
     []
   );
-  const mixTopModels = useMemo(
+  const fallbackTopModels = useMemo(
     () => (Array.isArray(mix.top_models) ? mix.top_models : []),
     [mix.top_models]
   );
@@ -292,17 +319,24 @@ export function TopModelsUsageChart({
     () => (Array.isArray(mix.metrics) ? mix.metrics : []),
     [mix.metrics]
   );
+  const rankedModels = useMemo(() => {
+    const ranked = deriveRankedModelsByMode(mixMetrics, mode);
+    if (ranked.length > 0) {
+      return ranked;
+    }
+    return fallbackTopModels;
+  }, [fallbackTopModels, mixMetrics, mode]);
 
   const chartModelLimit = showAllModels
     ? EXPANDED_LEADERBOARD_LIMIT
     : DEFAULT_LEADERBOARD_LIMIT;
   const chartModels = useMemo(
-    () => mixTopModels.slice(0, chartModelLimit),
-    [mixTopModels, chartModelLimit]
+    () => rankedModels.slice(0, chartModelLimit),
+    [rankedModels, chartModelLimit]
   );
   const leaderboardModels = useMemo(
-    () => mixTopModels.slice(0, EXPANDED_LEADERBOARD_LIMIT),
-    [mixTopModels]
+    () => rankedModels.slice(0, EXPANDED_LEADERBOARD_LIMIT),
+    [rankedModels]
   );
   const revenueDisplayUnit: DisplayUnit = useMemo(() => {
     if (displayUnit === "usd" && usdPerSat === null) {
@@ -405,7 +439,7 @@ export function TopModelsUsageChart({
 
   useEffect(() => {
     setShowAllModels(false);
-  }, [mixTopModels, mode]);
+  }, [rankedModels, mode]);
 
   const formatValue = (rawValue: number): string => {
     if (mode === "requests") {
