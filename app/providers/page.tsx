@@ -5,6 +5,36 @@ import { PageContainer, SiteShell } from "@/components/layout/site-shell";
 import { fetchModels, Provider } from "@/app/data/models";
 import { Input } from "@/components/ui/input";
 
+function parseVersionParts(version: string | null | undefined): number[] {
+  if (!version) return [0, 0, 0];
+  const normalized = version.trim().replace(/^v/i, "");
+  const segments = normalized
+    .split(/[^\d]+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((segment) => Number.parseInt(segment, 10))
+    .filter((value) => Number.isFinite(value));
+
+  while (segments.length < 3) {
+    segments.push(0);
+  }
+  return segments;
+}
+
+function compareVersionsDesc(
+  aVersion: string | null | undefined,
+  bVersion: string | null | undefined
+): number {
+  const aParts = parseVersionParts(aVersion);
+  const bParts = parseVersionParts(bVersion);
+  for (let i = 0; i < 3; i += 1) {
+    if (aParts[i] !== bParts[i]) {
+      return bParts[i] - aParts[i];
+    }
+  }
+  return 0;
+}
+
 export default function ProvidersPage() {
   const [items, setItems] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,10 +61,18 @@ export default function ProvidersPage() {
 
   const sortedItems = useMemo(() => {
     if (!items || items.length === 0) return [] as Provider[];
-    return [...items].sort(
-      (a, b) =>
-        (b.supported_models?.length || 0) - (a.supported_models?.length || 0)
-    );
+    return [...items].sort((a, b) => {
+      const versionComparison = compareVersionsDesc(a.version, b.version);
+      if (versionComparison !== 0) {
+        return versionComparison;
+      }
+      const modelCountComparison =
+        (b.supported_models?.length || 0) - (a.supported_models?.length || 0);
+      if (modelCountComparison !== 0) {
+        return modelCountComparison;
+      }
+      return (a.name || "").localeCompare(b.name || "");
+    });
   }, [items]);
 
   const filteredItems = useMemo(() => {
