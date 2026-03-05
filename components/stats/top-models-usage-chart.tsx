@@ -371,21 +371,40 @@ export function TopModelsUsageChart({
         const modelCounts = metric.model_counts ?? {};
         const modelRevenue = metric.model_revenue_msats ?? {};
         const modelTokens = metric.model_tokens ?? {};
+        const totalSuccessful = Number(metric.total_successful ?? 0);
+        const totalRevenueMsats = Number(metric.total_revenue_msats ?? 0);
+        const totalTokens = Number(metric.total_tokens ?? 0);
+        let displayedRequests = 0;
+        let displayedRevenueMsats = 0;
+        let displayedTokens = 0;
         const point: Record<string, number | string> = {
           timestamp: metric.timestamp,
-          total_successful: metric.total_successful,
-          total_revenue_msats: metric.total_revenue_msats,
-          total_tokens: metric.total_tokens,
-          others_requests: metric.others,
-          others_revenue_msats: metric.others_revenue_msats,
-          others_tokens: metric.others_tokens,
+          total_successful: totalSuccessful,
+          total_revenue_msats: totalRevenueMsats,
+          total_tokens: totalTokens,
+          others_requests: 0,
+          others_revenue_msats: 0,
+          others_tokens: 0,
         };
 
         for (const item of series) {
-          point[item.requestsKey] = modelCounts[item.label] ?? 0;
-          point[item.revenueKey] = modelRevenue[item.label] ?? 0;
-          point[item.tokensKey] = modelTokens[item.label] ?? 0;
+          const requestsValue = Number(modelCounts[item.label] ?? 0);
+          const revenueValue = Number(modelRevenue[item.label] ?? 0);
+          const tokensValue = Number(modelTokens[item.label] ?? 0);
+          point[item.requestsKey] = requestsValue;
+          point[item.revenueKey] = revenueValue;
+          point[item.tokensKey] = tokensValue;
+          displayedRequests += requestsValue;
+          displayedRevenueMsats += revenueValue;
+          displayedTokens += tokensValue;
         }
+
+        point.others_requests = Math.max(0, totalSuccessful - displayedRequests);
+        point.others_revenue_msats = Math.max(
+          0,
+          totalRevenueMsats - displayedRevenueMsats
+        );
+        point.others_tokens = Math.max(0, totalTokens - displayedTokens);
 
         return point;
       }),
