@@ -79,35 +79,39 @@ function parseBucketDate(value: string): Date | null {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
-function hueFromString(input: string): number {
-  let hash = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash) % 360;
-}
-
-function getSeriesColor(model: string, index: number): string {
+function getSeriesColor(_model: string, index: number): string {
   const palette = [
     "var(--chart-1)",
     "var(--chart-2)",
     "var(--chart-3)",
     "var(--chart-4)",
     "var(--chart-5)",
-    "var(--chart-1)",
-    "var(--chart-2)",
-    "var(--chart-3)",
-    "var(--chart-4)",
-    "var(--chart-5)",
+    "hsl(196 72% 60%)",
+    "hsl(326 72% 62%)",
+    "hsl(255 74% 64%)",
+    "hsl(144 58% 54%)",
+    "hsl(18 78% 60%)",
+    "hsl(214 80% 64%)",
+    "hsl(48 88% 58%)",
+    "hsl(174 66% 56%)",
+    "hsl(292 68% 62%)",
+    "hsl(96 56% 56%)",
+    "hsl(8 74% 58%)",
+    "hsl(228 68% 70%)",
+    "hsl(334 78% 58%)",
+    "hsl(120 44% 60%)",
+    "hsl(276 58% 64%)",
   ];
 
   if (index < palette.length) {
     return palette[index];
   }
 
-  const hue = (hueFromString(model) + index * 23) % 360;
-  return `hsl(${hue} 70% 56%)`;
+  const extendedIndex = index - palette.length;
+  const hue = (extendedIndex * 71 + 23) % 360;
+  const saturation = 64 + (extendedIndex % 3) * 6;
+  const lightness = 54 + (Math.floor(extendedIndex / 3) % 3) * 5;
+  return `hsl(${hue} ${saturation}% ${lightness}%)`;
 }
 
 function formatTooltipTimestamp(
