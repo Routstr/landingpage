@@ -258,7 +258,7 @@ export default function ModelsPage() {
             <div className="text-left">
               <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Models</h1>
               <p className="text-base md:text-lg text-muted-foreground max-w-xl font-light leading-relaxed">
-                Browse and compare {items.length} open source AI models across the decentralized Routstr network.
+                Browse and compare {items.length} AI models across the decentralized Routstr network.
               </p>
             </div>
           </div>

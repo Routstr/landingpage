@@ -86,7 +86,7 @@ export function LandingBrowseModels() {
               Browse Models
             </h2>
             <p className="text-muted-foreground text-sm max-w-xl">
-              Access leading open source AI models through independent providers.
+              Access leading AI models through independent providers.
             </p>
           </div>
         </div>
