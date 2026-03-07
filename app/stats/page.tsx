@@ -25,6 +25,7 @@ import {
 } from "@/components/stats/top-models-usage-chart";
 import { Button } from "@/components/ui/button";
 import { createPool, getDefaultRelays } from "@/lib/nostr";
+import { formatCompactCount } from "@/lib/number-format";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -553,13 +554,6 @@ function mergeWindowPayloads(payloads: WindowPayload[]): WindowPayload | null {
     metrics,
     topModels: deriveTopModels(metrics),
   };
-}
-
-function formatCompact(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
 }
 
 function formatUpdatedAt(unixSeconds: number): string {
@@ -1266,7 +1260,7 @@ export default function StatsPage() {
               {loading ? (
                 <Skeleton className="mt-2 h-8 w-12 bg-border" />
               ) : (
-                <p className="mt-1 text-2xl text-foreground sm:text-3xl">{timelines.length}</p>
+                <p className="mt-1 text-2xl text-foreground sm:text-3xl">{formatCompactCount(timelines.length)}</p>
               )}
             </div>
             <div className="border-t border-border pt-3">
@@ -1277,7 +1271,7 @@ export default function StatsPage() {
                 <Skeleton className="mt-2 h-8 w-20 bg-border" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                  {requests === null ? "—" : formatCompact(requests)}
+                  {requests === null ? "—" : formatCompactCount(requests)}
                 </p>
               )}
             </div>
@@ -1289,7 +1283,7 @@ export default function StatsPage() {
                 <Skeleton className="mt-2 h-8 w-20 bg-border" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                  {tokens === null ? "—" : formatCompact(tokens)}
+                  {tokens === null ? "—" : formatCompactCount(tokens)}
                 </p>
               )}
             </div>
@@ -1301,7 +1295,7 @@ export default function StatsPage() {
                 <Skeleton className="mt-2 h-8 w-24 bg-border" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                  {revenueSats === null ? "—" : formatCompact(revenueSats)}
+                  {revenueSats === null ? "—" : formatCompactCount(revenueSats)}
                 </p>
               )}
             </div>

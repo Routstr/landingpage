@@ -21,6 +21,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProviderReviews } from "@/components/ProviderReviews";
 import { formatPublicKey } from "@/lib/nostr";
 import { ArrowLeft, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  formatCompactContextLength,
+  formatCompactPriceValue,
+} from "@/lib/number-format";
 
 export default function ProviderPage() {
   const { currency } = usePricingView();
@@ -203,7 +207,7 @@ export default function ProviderPage() {
                       </span>
                     </div>
                     <div className="hidden md:flex col-span-2 text-xs text-muted-foreground font-mono">
-                      {model.context_length >= 1000 ? `${Math.round(model.context_length / 1000)}K` : model.context_length}
+                      {formatCompactContextLength(model.context_length)}
                     </div>
                     <div className="hidden md:flex col-span-2 text-xs text-muted-foreground">
                       {model.created ? new Date(model.created * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "—"}
@@ -212,14 +216,18 @@ export default function ProviderPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <span className="text-muted-foreground font-medium">in</span>
                         <span className="text-foreground font-mono">
-                          {currency === "sats" ? (model.sats_pricing.prompt * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) : (model.pricing.prompt * 1_000_000).toFixed(2)}
+                          {currency === "sats"
+                            ? formatCompactPriceValue(model.sats_pricing.prompt * 1_000_000)
+                            : formatCompactPriceValue(model.pricing.prompt * 1_000_000, { fixedSmallDecimals: true })}
                         </span>
                         <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>
                       <div className="flex items-center justify-end gap-1.5">
                         <span className="text-muted-foreground font-medium">out</span>
                         <span className="text-foreground font-mono">
-                          {currency === "sats" ? (model.sats_pricing.completion * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) : (model.pricing.completion * 1_000_000).toFixed(2)}
+                          {currency === "sats"
+                            ? formatCompactPriceValue(model.sats_pricing.completion * 1_000_000)
+                            : formatCompactPriceValue(model.pricing.completion * 1_000_000, { fixedSmallDecimals: true })}
                         </span>
                         <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>

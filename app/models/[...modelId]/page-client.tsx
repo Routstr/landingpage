@@ -35,6 +35,9 @@ import { getLocalCashuToken, setLocalCashuToken } from "@/utils/storageUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  formatCompactContextLength,
+} from "@/lib/number-format";
 
 type CodeLanguage = "curl" | "javascript" | "python";
 
@@ -316,6 +319,7 @@ export default function ModelDetailPage() {
                         : (entry.model.pricing?.completion || 0) * 1_000_000,
                   }))}
                   currencyLabel={currency === "sats" ? "sats / 1M tokens" : "usd / 1M tokens"}
+                  fixedSmallDecimals={currency === "usd"}
                   unitSuffix={currency === "sats" ? "sats/1M tokens" : "USD/1M tokens"}
                 />
               )}
@@ -491,7 +495,7 @@ export default function ModelDetailPage() {
               <div className="space-y-0 border-t border-border">
                 {[
                   { label: "Created", value: new Date(model.created * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
-                  { label: "Context Length", value: `${model.context_length.toLocaleString()} tokens` },
+                  { label: "Context Length", value: `${formatCompactContextLength(model.context_length)} tokens` },
                   { label: "Modality", value: model.architecture.modality },
                   { label: "Tokenizer", value: model.architecture.tokenizer },
                 ].map((spec, i) => (

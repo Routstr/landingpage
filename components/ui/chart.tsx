@@ -3,6 +3,7 @@
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
+import { formatCompactNumber } from "@/lib/number-format"
 import { cn } from "@/lib/utils"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
@@ -236,7 +237,10 @@ function ChartTooltipContent({
                       </div>
                       {item.value && (
                         <span className="text-foreground font-mono font-medium tabular-nums">
-                          {item.value.toLocaleString()}
+                          {formatCompactNumber(Number(item.value), {
+                            standardMaximumFractionDigits: 2,
+                            compactMaximumFractionDigits: 2,
+                          })}
                         </span>
                       )}
                     </div>

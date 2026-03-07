@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatCompactNumber } from "@/lib/number-format";
 import { cn } from "@/lib/utils";
 
 type DisplayUnit = "msat" | "sat" | "usd";
@@ -307,14 +308,6 @@ export function TopModelsUsageChart({
   const [isChartPointerInside, setIsChartPointerInside] = useState(false);
   const [showAllModels, setShowAllModels] = useState(false);
   const isMobile = useIsMobile();
-  const compactNumber = useMemo(
-    () =>
-      new Intl.NumberFormat("en-US", {
-        notation: "compact",
-        maximumFractionDigits: 2,
-      }),
-    []
-  );
   const fallbackTopModels = useMemo(
     () => (Array.isArray(mix.top_models) ? mix.top_models : []),
     [mix.top_models]
@@ -466,11 +459,17 @@ export function TopModelsUsageChart({
 
   const formatValue = (rawValue: number): string => {
     if (mode === "requests") {
-      return compactNumber.format(rawValue);
+      return formatCompactNumber(rawValue, {
+        standardMaximumFractionDigits: 0,
+        compactMaximumFractionDigits: 2,
+      });
     }
 
     if (mode === "tokens") {
-      return compactNumber.format(rawValue);
+      return formatCompactNumber(rawValue, {
+        standardMaximumFractionDigits: 0,
+        compactMaximumFractionDigits: 2,
+      });
     }
 
     const converted = convertRevenueMsats(
@@ -478,7 +477,11 @@ export function TopModelsUsageChart({
       revenueDisplayUnit,
       usdPerSat
     );
-    const compact = compactNumber.format(converted);
+    const compact = formatCompactNumber(converted, {
+      standardMinimumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
+      standardMaximumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
+      compactMaximumFractionDigits: 2,
+    });
     if (revenueDisplayUnit === "usd") {
       return `$${compact}`;
     }
@@ -511,11 +514,17 @@ export function TopModelsUsageChart({
     activeHoverSeriesKey && activeHoverSeriesKey !== dataKey ? 0.18 : 1;
   const formatLeaderboardTotal = (rawValue: number): string => {
     if (mode === "requests") {
-      return `${compactNumber.format(rawValue)} requests`;
+      return `${formatCompactNumber(rawValue, {
+        standardMaximumFractionDigits: 0,
+        compactMaximumFractionDigits: 2,
+      })} requests`;
     }
 
     if (mode === "tokens") {
-      return `${compactNumber.format(rawValue)} tokens`;
+      return `${formatCompactNumber(rawValue, {
+        standardMaximumFractionDigits: 0,
+        compactMaximumFractionDigits: 2,
+      })} tokens`;
     }
 
     const converted = convertRevenueMsats(
@@ -523,7 +532,11 @@ export function TopModelsUsageChart({
       revenueDisplayUnit,
       usdPerSat
     );
-    const compact = compactNumber.format(converted);
+    const compact = formatCompactNumber(converted, {
+      standardMinimumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
+      standardMaximumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
+      compactMaximumFractionDigits: 2,
+    });
     if (revenueDisplayUnit === "usd") {
       return `$${compact}`;
     }

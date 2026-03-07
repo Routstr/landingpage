@@ -12,6 +12,11 @@ import {
 import { usePricingView } from "@/app/contexts/PricingContext";
 import { ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  formatCompactContextLength,
+  formatCompactCount,
+  formatCompactPriceValue,
+} from "@/lib/number-format";
 
 const MIN_REASONABLE_CREATED = Date.UTC(2020, 0, 1) / 1000;
 const MAX_FUTURE_SKEW_SECONDS = 7 * 24 * 60 * 60;
@@ -258,7 +263,7 @@ export default function ModelsPage() {
             <div className="text-left">
               <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Models</h1>
               <p className="text-base md:text-lg text-muted-foreground max-w-xl font-light leading-relaxed">
-                Browse and compare {items.length} AI models across the decentralized Routstr network.
+                Browse and compare {formatCompactCount(items.length)} AI models across the decentralized Routstr network.
               </p>
             </div>
           </div>
@@ -350,7 +355,7 @@ export default function ModelsPage() {
                       {displayedProviders}
                     </div>
                     <div className="hidden lg:flex col-span-2 text-xs text-muted-foreground font-mono">
-                      {model.context_length >= 1000 ? `${Math.round(model.context_length / 1000)}K` : model.context_length}
+                      {formatCompactContextLength(model.context_length)}
                     </div>
                     <div className="hidden md:flex col-span-2 text-xs text-muted-foreground">
                       {model.created
@@ -365,8 +370,8 @@ export default function ModelsPage() {
                         <span className="text-muted-foreground font-medium">in</span>
                         <span className="text-foreground font-mono">
                           {currency === "sats" 
-                            ? (model.sats_pricing.prompt * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) 
-                            : (model.pricing.prompt * 1_000_000).toFixed(2)}
+                            ? formatCompactPriceValue(model.sats_pricing.prompt * 1_000_000)
+                            : formatCompactPriceValue(model.pricing.prompt * 1_000_000, { fixedSmallDecimals: true })}
                         </span>
                         <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>
@@ -374,8 +379,8 @@ export default function ModelsPage() {
                         <span className="text-muted-foreground font-medium">out</span>
                         <span className="text-foreground font-mono">
                           {currency === "sats" 
-                            ? (model.sats_pricing.completion * 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) 
-                            : (model.pricing.completion * 1_000_000).toFixed(2)}
+                            ? formatCompactPriceValue(model.sats_pricing.completion * 1_000_000)
+                            : formatCompactPriceValue(model.pricing.completion * 1_000_000, { fixedSmallDecimals: true })}
                         </span>
                         <span className="text-[9px] text-muted-foreground whitespace-nowrap">{priceUnit}</span>
                       </div>

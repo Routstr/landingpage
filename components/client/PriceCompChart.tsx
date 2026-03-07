@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { formatCompactPriceValue } from "@/lib/number-format";
 
 export interface PriceData {
   providerName: string;
@@ -14,6 +15,7 @@ interface PriceCompChartProps {
   currencyLabel?: string;
   unitSuffix?: string;
   className?: string;
+  fixedSmallDecimals?: boolean;
 }
 
 export function PriceCompChart({
@@ -21,6 +23,7 @@ export function PriceCompChart({
   currencyLabel = "sats / 1M tokens",
   unitSuffix = "",
   className = "",
+  fixedSmallDecimals = false,
 }: PriceCompChartProps) {
   const maxValue = useMemo(() => {
     return Math.max(
@@ -72,9 +75,8 @@ export function PriceCompChart({
                     />
                   </div>
                   <span className="w-20 text-right text-muted-foreground tabular-nums font-mono">
-                    {d.promptPrice.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
+                    {formatCompactPriceValue(d.promptPrice, {
+                      fixedSmallDecimals,
                     })}{unitSuffix ? ` ${unitSuffix}` : ""}
                   </span>
                 </div>
@@ -93,9 +95,8 @@ export function PriceCompChart({
                     />
                   </div>
                   <span className="w-20 text-right text-muted-foreground tabular-nums font-mono">
-                    {d.completionPrice.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
+                    {formatCompactPriceValue(d.completionPrice, {
+                      fixedSmallDecimals,
                     })}{unitSuffix ? ` ${unitSuffix}` : ""}
                   </span>
                 </div>

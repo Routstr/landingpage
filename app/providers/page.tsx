@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageContainer, SiteShell } from "@/components/layout/site-shell";
 import { fetchModels, Provider } from "@/app/data/models";
 import { Input } from "@/components/ui/input";
+import { formatCompactCount } from "@/lib/number-format";
 
 function parseVersionParts(version: string | null | undefined): number[] {
   if (!version) return [0, 0, 0];
@@ -92,7 +93,7 @@ export default function ProvidersPage() {
             <div className="text-left">
               <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Providers</h1>
               <p className="text-base md:text-lg text-muted-foreground max-w-xl font-light leading-relaxed">
-                Explore the {items.length} hardware providers powering the decentralized Routstr marketplace.
+                Explore the {formatCompactCount(items.length)} hardware providers powering the decentralized Routstr marketplace.
               </p>
             </div>
           </div>
@@ -145,7 +146,7 @@ export default function ProvidersPage() {
                       </span>
                     </div>
                     <div className="hidden md:flex col-span-2 text-xs text-muted-foreground">
-                      {modelCount} {modelCount === 1 ? "model" : "models"}
+                      {formatCompactCount(modelCount)} {modelCount === 1 ? "model" : "models"}
                     </div>
                     <div className="hidden md:flex col-span-2 text-xs text-muted-foreground">
                       {provider.version ? `v${provider.version}` : "—"}

@@ -5,6 +5,10 @@ import { useModels } from "@/app/contexts/ModelsContext";
 import { getPopularModels } from "@/app/data/models";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import {
+  formatCompactContextLength,
+  formatCompactPriceValue,
+} from "@/lib/number-format";
 
 interface DisplayModel {
   id: string;
@@ -48,29 +52,18 @@ export function LandingBrowseModels() {
             : 0
           : model.pricing.completion * 1_000_000;
 
-      const formatPrice = (num: number) => {
-        if (currency === "sats") {
-          return num.toLocaleString(undefined, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2,
-          });
-        }
-        return num.toFixed(2);
-      };
-
-      const formatContext = (length: number) => {
-        if (!length) return "N/A";
-        if (length >= 1000000) return `${(length / 1000000).toFixed(0)}M`;
-        if (length >= 1000) return `${(length / 1000).toFixed(0)}K`;
-        return length.toString();
-      };
-
       return {
         id: model.id,
         name: modelName,
-        promptPrice: formatPrice(promptPrice),
-        completionPrice: formatPrice(completionPrice),
-        context: formatContext(model.context_length),
+        promptPrice: formatCompactPriceValue(promptPrice, {
+          fixedSmallDecimals: currency === "usd",
+        }),
+        completionPrice: formatCompactPriceValue(completionPrice, {
+          fixedSmallDecimals: currency === "usd",
+        }),
+        context: model.context_length
+          ? formatCompactContextLength(model.context_length)
+          : "N/A",
         created: model.created,
       };
     });
