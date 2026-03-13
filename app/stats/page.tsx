@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import type { Event } from "nostr-tools";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { PageContainer, SiteShell } from "@/components/layout/site-shell";
 import {
   Command,
@@ -78,6 +83,12 @@ type RelayStatus = {
   state: RelayState;
   events: number;
   reason: string | null;
+};
+
+type StatsQueryData = {
+  timelines: ProviderTimeline[];
+  relayStatuses: Record<string, RelayStatus>;
+  emptyMessage: string | null;
 };
 
 const ANALYTICS_KIND = 38422;
@@ -753,50 +764,76 @@ function getPayloadsForTimeline(timeline: ProviderTimeline, window: WindowKey): 
   return [];
 }
 
-export default function StatsPage() {
-  const [selectedWindow, setSelectedWindow] = useState<WindowKey>("30d");
-  const [selectedMode, setSelectedMode] = useState<ChartMode>("requests");
-  const [selectedProviderId, setSelectedProviderId] = useState<string>(
-    ALL_PROVIDERS_ID
-  );
-  const [timelines, setTimelines] = useState<ProviderTimeline[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
-  const [relayStatusOpen, setRelayStatusOpen] = useState(false);
-  const [refreshNonce, setRefreshNonce] = useState(0);
-  const [relayStatuses, setRelayStatuses] = useState<Record<string, RelayStatus>>(
-    () => createInitialRelayStatuses()
-  );
+function createAbortError(): Error {
+  if (typeof DOMException === "function") {
+    return new DOMException("Query cancelled", "AbortError");
+  }
+  const error = new Error("Query cancelled");
+  error.name = "AbortError";
+  return error;
+}
 
-  useEffect(() => {
+function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(createAbortError());
+      return;
+    }
+
     let active = true;
+    let settled = false;
     let hardTimeout: ReturnType<typeof setTimeout> | null = null;
     let eoseTimer: ReturnType<typeof setTimeout> | null = null;
+    let relayStatuses = createInitialRelayStatuses();
     const pool = createPool();
+    let sub: ReturnType<typeof pool.subscribeMany> | null = null;
 
     const latestByProvider = new Map<string, PeriodSnapshot>();
     const dayByProvider = new Map<string, Map<string, PeriodSnapshot>>();
     const monthByProvider = new Map<string, Map<string, PeriodSnapshot>>();
 
-    const finish = (finishReason: "eose" | "timeout") => {
-      if (!active) return;
+    const cleanup = () => {
       active = false;
       if (hardTimeout) clearTimeout(hardTimeout);
       if (eoseTimer) clearTimeout(eoseTimer);
+      if (signal) signal.removeEventListener("abort", handleAbort);
+      try {
+        sub?.close();
+      } catch {
+        // ignore
+      }
+      try {
+        pool.close(RELAYS);
+      } catch {
+        // ignore
+      }
+    };
+
+    const updateRelayStatuses = (
+      updater: (
+        current: Record<string, RelayStatus>
+      ) => Record<string, RelayStatus>
+    ) => {
+      if (!active) return;
+      relayStatuses = updater(relayStatuses);
+    };
+
+    const finish = (finishReason: "eose" | "timeout") => {
+      if (!active || settled) return;
+      settled = true;
 
       const connectionMap = new Map<string, boolean>();
       Array.from(pool.listConnectionStatus().entries()).forEach(([url, isConnected]) => {
         connectionMap.set(normalizeRelayUrl(url), Boolean(isConnected));
       });
 
-      setRelayStatuses((current) => {
+      updateRelayStatuses((current) => {
         const next = { ...current };
         for (const relay of RELAYS) {
           const key = normalizeRelayUrl(relay);
           const status = next[key] ?? {
             url: relay,
-            state: "connecting",
+            state: "connecting" as RelayState,
             events: 0,
             reason: null,
           };
@@ -825,16 +862,7 @@ export default function StatsPage() {
         return next;
       });
 
-      try {
-        sub.close();
-      } catch {
-        // ignore
-      }
-      try {
-        pool.close(RELAYS);
-      } catch {
-        // ignore
-      }
+      cleanup();
 
       const providerIds = new Set<string>([
         ...Array.from(latestByProvider.keys()),
@@ -842,7 +870,7 @@ export default function StatsPage() {
         ...Array.from(monthByProvider.keys()),
       ]);
 
-      const nextTimelines: ProviderTimeline[] = Array.from(providerIds).map((providerId) => {
+      const timelines: ProviderTimeline[] = Array.from(providerIds).map((providerId) => {
         const latest = latestByProvider.get(providerId) ?? null;
         const day = Array.from(dayByProvider.get(providerId)?.values() ?? []).sort((a, b) =>
           a.periodKey.localeCompare(b.periodKey)
@@ -865,26 +893,31 @@ export default function StatsPage() {
         };
       });
 
-      nextTimelines.sort((a, b) => a.providerLabel.localeCompare(b.providerLabel));
+      timelines.sort((a, b) => a.providerLabel.localeCompare(b.providerLabel));
 
-      setTimelines(nextTimelines);
-      setLoading(false);
-      setError(nextTimelines.length === 0 ? "No analytics snapshots found yet." : null);
+      resolve({
+        timelines,
+        relayStatuses,
+        emptyMessage: timelines.length === 0 ? "No analytics snapshots found yet." : null,
+      });
     };
 
-    setLoading(true);
-    setError(null);
-    setTimelines([]);
-    setRelayStatuses(createInitialRelayStatuses());
+    function handleAbort() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(createAbortError());
+    }
 
-    const sub = pool.subscribeMany(RELAYS, { kinds: [ANALYTICS_KIND], limit: 20000 }, {
+    signal?.addEventListener("abort", handleAbort, { once: true });
+
+    sub = pool.subscribeMany(RELAYS, { kinds: [ANALYTICS_KIND], limit: 20000 }, {
       receivedEvent(relay) {
-        if (!active) return;
-        const key = normalizeRelayUrl(relay.url);
-        setRelayStatuses((current) => {
+        updateRelayStatuses((current) => {
+          const key = normalizeRelayUrl(relay.url);
           const existing = current[key] ?? {
             url: relay.url,
-            state: "connecting",
+            state: "connecting" as RelayState,
             events: 0,
             reason: null,
           };
@@ -901,6 +934,7 @@ export default function StatsPage() {
         });
       },
       onevent(event: Event) {
+        if (!active) return;
         if (eoseTimer) {
           clearTimeout(eoseTimer);
           eoseTimer = null;
@@ -986,8 +1020,7 @@ export default function StatsPage() {
         monthByProvider.set(providerId, byMonth);
       },
       onclose(reasons) {
-        if (!active) return;
-        setRelayStatuses((current) => {
+        updateRelayStatuses((current) => {
           const next = { ...current };
           reasons.forEach((reason, index) => {
             const relay = RELAYS[index];
@@ -1034,23 +1067,45 @@ export default function StatsPage() {
     });
 
     hardTimeout = setTimeout(() => finish("timeout"), 9000);
+  });
+}
 
-    return () => {
-      active = false;
-      if (hardTimeout) clearTimeout(hardTimeout);
-      if (eoseTimer) clearTimeout(eoseTimer);
-      try {
-        sub.close();
-      } catch {
-        // ignore
-      }
-      try {
-        pool.close(RELAYS);
-      } catch {
-        // ignore
-      }
-    };
-  }, [refreshNonce]);
+function StatsPageContent() {
+  const [selectedWindow, setSelectedWindow] = useState<WindowKey>("30d");
+  const [selectedMode, setSelectedMode] = useState<ChartMode>("requests");
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(
+    ALL_PROVIDERS_ID
+  );
+  const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
+  const [relayStatusOpen, setRelayStatusOpen] = useState(false);
+  const emptyTimelines = useMemo<ProviderTimeline[]>(() => [], []);
+  const fallbackRelayStatuses = useMemo(() => createInitialRelayStatuses(), []);
+  const {
+    data,
+    error: queryError,
+    isFetching,
+    isPending,
+    refetch,
+  } = useQuery({
+    queryKey: ["stats-snapshots"],
+    queryFn: ({ signal }) => fetchStatsSnapshots(signal),
+    placeholderData: (previousData) => previousData,
+    refetchInterval: 90_000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: false,
+  });
+  const timelines = data?.timelines ?? emptyTimelines;
+  const relayStatuses = data?.relayStatuses ?? fallbackRelayStatuses;
+  const loading = isPending && !data;
+  const error =
+    data?.emptyMessage ??
+    (loading
+      ? null
+      : queryError instanceof Error
+        ? queryError.message
+        : queryError
+          ? "Unable to load analytics snapshots."
+          : null);
 
   useEffect(() => {
     if (timelines.length === 0) {
@@ -1065,13 +1120,6 @@ export default function StatsPage() {
       setSelectedProviderId(ALL_PROVIDERS_ID);
     }
   }, [selectedProviderId, timelines]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshNonce((current) => current + 1);
-    }, 90_000);
-    return () => clearInterval(interval);
-  }, []);
 
   const providerOptions = useMemo(
     () => [{ providerId: ALL_PROVIDERS_ID, providerLabel: "All providers" }, ...timelines],
@@ -1244,10 +1292,12 @@ export default function StatsPage() {
               <Button
                 variant="outline"
                 className="h-9 w-auto border-border bg-transparent px-3 text-xs text-foreground hover:bg-muted"
-                onClick={() => setRefreshNonce((current) => current + 1)}
-                disabled={loading}
+                onClick={() => {
+                  void refetch();
+                }}
+                disabled={isFetching}
               >
-                {loading ? "Refreshing..." : "Refresh"}
+                {isFetching ? "Refreshing..." : "Refresh"}
               </Button>
             </div>
           </div>
@@ -1456,5 +1506,24 @@ export default function StatsPage() {
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       </section>
     </SiteShell>
+  );
+}
+
+export default function StatsPage() {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <StatsPageContent />
+    </QueryClientProvider>
   );
 }

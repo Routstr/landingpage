@@ -11,6 +11,7 @@
   "dependencies": {
     "@cashu/cashu-ts": "^3.5.0",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@tanstack/react-query": "^5.90.21",
     "@types/react-syntax-highlighter": "^15.5.13",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
