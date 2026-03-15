@@ -5,6 +5,137 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
+
+type MenuLink = {
+  title: string;
+  href: string;
+  description: string;
+  external?: boolean;
+};
+
+type MenuGroup = {
+  title: string;
+  links: MenuLink[];
+};
+
+const menuGroups: MenuGroup[] = [
+  {
+    title: "Explore",
+    links: [
+      {
+        title: "Models",
+        href: "/models",
+        description: "Browse the live model catalog across the network.",
+      },
+      {
+        title: "Providers",
+        href: "/providers",
+        description: "Inspect nodes, operators, and endpoint details.",
+      },
+      {
+        title: "Stats",
+        href: "/stats",
+        description: "Track usage, pricing, and network activity.",
+      },
+    ],
+  },
+  {
+    title: "Products",
+    links: [
+      {
+        title: "Top-Up",
+        href: "/topup",
+        description: "Fund an API key with Cashu or Lightning.",
+      },
+      {
+        title: "Chat",
+        href: "https://chat.routstr.com",
+        description: "Use Routstr through the hosted chat client.",
+        external: true,
+      },
+      {
+        title: "Platform",
+        href: "https://beta.platform.routstr.com",
+        description: "Manage keys, wallets, and node workflows.",
+        external: true,
+      },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      {
+        title: "Blog",
+        href: "/blog",
+        description: "Read product notes, guides, and release posts.",
+      },
+      {
+        title: "Roadmap",
+        href: "/roadmap",
+        description: "See the current protocol and frontend direction.",
+      },
+      {
+        title: "Docs",
+        href: "https://docs.routstr.com",
+        description: "Implementation guides and API references.",
+        external: true,
+      },
+      {
+        title: "GitHub",
+        href: "https://github.com/routstr",
+        description: "Source code, issues, and releases.",
+        external: true,
+      },
+    ],
+  },
+];
+
+function MenuPanel({ links }: { links: MenuLink[] }) {
+  return (
+    <ul className="grid w-full gap-2 p-3">
+      {links.map((link) => (
+        <li key={link.title}>
+          <NavigationMenuLink asChild>
+            {link.external ? (
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-full min-w-0 flex-col gap-2 border border-transparent bg-background px-4 py-3 transition-colors hover:border-border hover:bg-muted/40 focus:outline-none"
+              >
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
+                  {link.title}
+                  <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
+                </span>
+                <span className="min-w-0 whitespace-normal break-words text-xs leading-relaxed text-muted-foreground">
+                  {link.description}
+                </span>
+              </a>
+            ) : (
+              <Link
+                href={link.href}
+                className="flex h-full min-w-0 flex-col gap-2 border border-transparent bg-background px-4 py-3 transition-colors hover:border-border hover:bg-muted/40 focus:outline-none"
+              >
+                <span className="text-sm font-medium text-foreground">{link.title}</span>
+                <span className="min-w-0 whitespace-normal break-words text-xs leading-relaxed text-muted-foreground">
+                  {link.description}
+                </span>
+              </Link>
+            )}
+          </NavigationMenuLink>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,48 +161,19 @@ export default function Header() {
               Routstr
             </span>
           </Link>
-          
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/models" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Models
-            </Link>
-            <Link href="/providers" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Providers
-            </Link>
-            <Link href="/stats" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Stats
-            </Link>
-            <Link href="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Blog
-            </Link>
-            <a
-              href="https://chat.routstr.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Chat
-              <ArrowUpRight className="h-3 w-3" />
-            </a>
-            <a
-              href="https://beta.platform.routstr.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Platform
-              <ArrowUpRight className="h-3 w-3" />
-            </a>
-            <a
-              href="https://docs.routstr.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Docs
-              <ArrowUpRight className="h-3 w-3" />
-            </a>
-          </nav>
+
+          <NavigationMenu className="hidden md:flex" viewport>
+            <NavigationMenuList>
+              {menuGroups.map((group) => (
+                <NavigationMenuItem key={group.title}>
+                  <NavigationMenuTrigger>{group.title}</NavigationMenuTrigger>
+                  <NavigationMenuContent className="md:w-[32rem]">
+                    <MenuPanel links={group.links} />
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
         </div>
 
         <div className="hidden md:flex items-center gap-4">
@@ -120,10 +222,24 @@ export default function Header() {
             className="fixed inset-x-0 top-[72px] z-50 max-h-[calc(100vh-72px)] overflow-y-auto bg-background px-4 py-5 sm:top-[80px] sm:max-h-[calc(100vh-80px)] sm:px-6 md:hidden"
           >
             <div className="flex flex-col gap-5">
-              <Link href="/models" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Models</Link>
-              <Link href="/providers" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Providers</Link>
-              <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Stats</Link>
-              <Link href="/blog" onClick={closeMobileMenu} className="text-base font-medium text-foreground">Blog</Link>
+              <Link href="/models" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Models
+              </Link>
+              <Link href="/providers" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Providers
+              </Link>
+              <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Stats
+              </Link>
+              <Link href="/topup" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Top-Up
+              </Link>
+              <Link href="/blog" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Blog
+              </Link>
+              <Link href="/roadmap" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Roadmap
+              </Link>
             </div>
 
             <div className="my-5 h-px bg-border" />
@@ -160,6 +276,7 @@ export default function Header() {
                 <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>
+
             <div className="flex flex-col gap-4 pt-4">
               <Button
                 variant="outline"
@@ -170,6 +287,7 @@ export default function Header() {
                   href="https://github.com/routstr"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={closeMobileMenu}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

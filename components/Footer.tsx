@@ -12,6 +12,7 @@ export default function Footer() {
     { text: 'Models', href: '/models' },
     { text: 'Providers', href: '/providers' },
     { text: 'Stats', href: '/stats' },
+    { text: 'Top-Up', href: '/topup' },
     { text: 'Blog', href: '/blog' },
     { text: 'Roadmap', href: '/roadmap' },
   ];
