@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, CircleHelp } from "lucide-react";
 import type { Event } from "nostr-tools";
 import {
   QueryClient,
@@ -1304,9 +1304,29 @@ function StatsPageContent() {
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
             <div className="border-t border-border pt-3">
-              <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                Active providers
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                  Active providers
+                </p>
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label="What counts as an active provider?"
+                    className="peer text-muted-foreground/80 transition-colors hover:text-foreground"
+                  >
+                    <CircleHelp className="h-3.5 w-3.5" />
+                  </button>
+                  <div
+                    id="active-providers-tooltip"
+                    role="tooltip"
+                    className="pointer-events-none invisible absolute left-0 top-full z-20 mt-2 w-56 border border-border bg-card/95 p-3 opacity-0 shadow-md transition-all duration-150 peer-hover:visible peer-hover:opacity-100"
+                  >
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      This only counts providers that have enabled analytics sharing.
+                    </p>
+                  </div>
+                </div>
+              </div>
               {loading ? (
                 <Skeleton className="mt-2 h-8 w-12 bg-border" />
               ) : (
