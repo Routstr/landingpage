@@ -22,7 +22,7 @@ export function LandingFeatures() {
     {
       title: "Decentralized discovery",
       description:
-        "Find and connect to hardware providers through Nostr relays. Say goodbye to central registries and single points of failure.",
+        "Find and connect to providers through Nostr relays. Say goodbye to central registries and single points of failure.",
       visual: <NetworkSkeleton />
     },
     {

@@ -93,7 +93,7 @@ export default function ProvidersPage() {
             <div className="text-left">
               <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Providers</h1>
               <p className="text-base md:text-lg text-muted-foreground max-w-xl font-light leading-relaxed">
-                Explore the {formatCompactCount(items.length)} hardware providers powering the decentralized Routstr marketplace.
+                Explore the {formatCompactCount(items.length)} providers powering the decentralized Routstr marketplace.
               </p>
             </div>
           </div>

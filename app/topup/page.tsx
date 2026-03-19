@@ -556,7 +556,7 @@ export default function TopUpPage() {
                 <div className="flex gap-3 sm:gap-4">
                   <span className="text-muted-foreground">01</span>
                   <p>
-                    Your API key is associated with a specific hardware provider. Routstr
+                    Your API key is associated with a specific provider. Routstr
                     automatically detects which one.
                   </p>
                 </div>
