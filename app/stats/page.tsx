@@ -1297,19 +1297,11 @@ function StatsPageContent() {
       ? asNumber(summary.revenue_sats)
       : asNumber(summary.revenue_msats) / 1000
     : null;
-  const showingCachedData = Boolean(data?.fromCache);
-  const updatedStatusText = showingCachedData
-    ? data?.cachedAtMs
-      ? `Showing cached snapshot from ${formatUpdatedAt(Math.floor(data.cachedAtMs / 1000))}`
-      : "Showing cached snapshot"
-    : latestSnapshotUnixSeconds
-      ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
-      : loading
-        ? "Loading snapshots..."
-        : "No snapshots yet";
-  const cacheStatusText = showingCachedData
-    ? "Retrying live relays in background."
-    : null;
+  const updatedStatusText = latestSnapshotUnixSeconds
+    ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
+    : loading
+      ? "Loading snapshots..."
+      : "No snapshots yet";
 
   const relayStatusList = RELAYS.map((relay) => {
     const key = normalizeRelayUrl(relay);
@@ -1401,14 +1393,7 @@ function StatsPageContent() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 self-start md:self-end">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">{updatedStatusText}</p>
-                {cacheStatusText ? (
-                  <p className="text-[10px] text-muted-foreground">
-                    {cacheStatusText}
-                  </p>
-                ) : null}
-              </div>
+              <p className="text-xs text-muted-foreground">{updatedStatusText}</p>
               <Button
                 variant="outline"
                 className="h-9 w-auto border-border bg-transparent px-3 text-xs text-foreground hover:bg-muted"
