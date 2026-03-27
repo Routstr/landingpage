@@ -89,6 +89,13 @@ type StatsQueryData = {
   timelines: ProviderTimeline[];
   relayStatuses: Record<string, RelayStatus>;
   emptyMessage: string | null;
+  fromCache?: boolean;
+  cachedAtMs?: number | null;
+};
+
+type StatsCacheEnvelope = {
+  savedAtMs: number;
+  timelines: ProviderTimeline[];
 };
 
 const ANALYTICS_KIND = 38422;
@@ -123,6 +130,8 @@ const MODE_OPTIONS: Array<{ id: ChartMode; label: string }> = [
   { id: "revenue", label: "Revenue" },
   { id: "tokens", label: "Tokens" },
 ];
+const STATS_CACHE_KEY = "stats_snapshots_cache_v1";
+const STATS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function normalizeRelayUrl(url: string): string {
   try {
@@ -764,6 +773,47 @@ function getPayloadsForTimeline(timeline: ProviderTimeline, window: WindowKey): 
   return [];
 }
 
+function readStatsCache(): StatsCacheEnvelope | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STATS_CACHE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<StatsCacheEnvelope> | null;
+    if (!parsed || typeof parsed.savedAtMs !== "number" || !Array.isArray(parsed.timelines)) {
+      return null;
+    }
+    if (
+      parsed.savedAtMs <= 0 ||
+      Date.now() - parsed.savedAtMs > STATS_CACHE_TTL_MS ||
+      parsed.timelines.length === 0
+    ) {
+      return null;
+    }
+
+    return parsed as StatsCacheEnvelope;
+  } catch {
+    return null;
+  }
+}
+
+function writeStatsCache(timelines: ProviderTimeline[]): void {
+  if (typeof window === "undefined" || timelines.length === 0) return;
+  try {
+    const payload: StatsCacheEnvelope = {
+      savedAtMs: Date.now(),
+      timelines,
+    };
+    window.localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+
 function createAbortError(): Error {
   if (typeof DOMException === "function") {
     return new DOMException("Query cancelled", "AbortError");
@@ -1070,6 +1120,46 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
   });
 }
 
+async function fetchStatsSnapshotsWithFallback(
+  signal?: AbortSignal
+): Promise<StatsQueryData> {
+  const cached = readStatsCache();
+
+  try {
+    const liveData = await fetchStatsSnapshots(signal);
+    if (liveData.timelines.length > 0) {
+      writeStatsCache(liveData.timelines);
+      return { ...liveData, fromCache: false, cachedAtMs: null };
+    }
+
+    if (cached) {
+      return {
+        ...liveData,
+        timelines: cached.timelines,
+        emptyMessage: null,
+        fromCache: true,
+        cachedAtMs: cached.savedAtMs,
+      };
+    }
+
+    return { ...liveData, fromCache: false, cachedAtMs: null };
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+
+    if (cached) {
+      return {
+        timelines: cached.timelines,
+        relayStatuses: createInitialRelayStatuses(),
+        emptyMessage: null,
+        fromCache: true,
+        cachedAtMs: cached.savedAtMs,
+      };
+    }
+
+    throw error;
+  }
+}
+
 function StatsPageContent() {
   const [selectedWindow, setSelectedWindow] = useState<WindowKey>("30d");
   const [selectedMode, setSelectedMode] = useState<ChartMode>("requests");
@@ -1088,8 +1178,20 @@ function StatsPageContent() {
     refetch,
   } = useQuery({
     queryKey: ["stats-snapshots"],
-    queryFn: ({ signal }) => fetchStatsSnapshots(signal),
+    queryFn: ({ signal }) => fetchStatsSnapshotsWithFallback(signal),
+    initialData: () => {
+      const cached = readStatsCache();
+      if (!cached) return undefined;
+      return {
+        timelines: cached.timelines,
+        relayStatuses: createInitialRelayStatuses(),
+        emptyMessage: null,
+        fromCache: true,
+        cachedAtMs: cached.savedAtMs,
+      };
+    },
     placeholderData: (previousData) => previousData,
+    gcTime: STATS_CACHE_TTL_MS,
     refetchInterval: 90_000,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: false,
@@ -1097,15 +1199,18 @@ function StatsPageContent() {
   const timelines = data?.timelines ?? emptyTimelines;
   const relayStatuses = data?.relayStatuses ?? fallbackRelayStatuses;
   const loading = isPending && !data;
+  const hasUsableTimelines = timelines.length > 0;
   const error =
-    data?.emptyMessage ??
-    (loading
-      ? null
-      : queryError instanceof Error
-        ? queryError.message
-        : queryError
-          ? "Unable to load analytics snapshots."
-          : null);
+    !hasUsableTimelines
+      ? data?.emptyMessage ??
+        (loading
+          ? null
+          : queryError instanceof Error
+            ? queryError.message
+            : queryError
+              ? "Unable to load analytics snapshots."
+              : null)
+      : null;
 
   useEffect(() => {
     if (timelines.length === 0) {
@@ -1192,11 +1297,19 @@ function StatsPageContent() {
       ? asNumber(summary.revenue_sats)
       : asNumber(summary.revenue_msats) / 1000
     : null;
-  const updatedStatusText = latestSnapshotUnixSeconds
-    ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
-    : loading
-      ? "Loading snapshots..."
-      : "No snapshots yet";
+  const showingCachedData = Boolean(data?.fromCache);
+  const updatedStatusText = showingCachedData
+    ? data?.cachedAtMs
+      ? `Showing cached snapshot from ${formatUpdatedAt(Math.floor(data.cachedAtMs / 1000))}`
+      : "Showing cached snapshot"
+    : latestSnapshotUnixSeconds
+      ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
+      : loading
+        ? "Loading snapshots..."
+        : "No snapshots yet";
+  const cacheStatusText = showingCachedData
+    ? "Retrying live relays in background."
+    : null;
 
   const relayStatusList = RELAYS.map((relay) => {
     const key = normalizeRelayUrl(relay);
@@ -1288,7 +1401,14 @@ function StatsPageContent() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 self-start md:self-end">
-              <p className="text-xs text-muted-foreground">{updatedStatusText}</p>
+              <div className="flex flex-col">
+                <p className="text-xs text-muted-foreground">{updatedStatusText}</p>
+                {cacheStatusText ? (
+                  <p className="text-[10px] text-muted-foreground">
+                    {cacheStatusText}
+                  </p>
+                ) : null}
+              </div>
               <Button
                 variant="outline"
                 className="h-9 w-auto border-border bg-transparent px-3 text-xs text-foreground hover:bg-muted"
