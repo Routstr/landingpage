@@ -23,6 +23,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  ModelShareChart,
+  ProviderComparisonChart,
+  type ModelSharePoint,
+  type ProviderComparisonPoint,
+} from "@/components/stats/stats-analytics-charts";
+import {
   TopModelsUsageChart,
   type ChartMode,
   type ModelUsageMix,
@@ -30,7 +36,7 @@ import {
 } from "@/components/stats/top-models-usage-chart";
 import { Button } from "@/components/ui/button";
 import { createPool, getDefaultRelays } from "@/lib/nostr";
-import { formatCompactCount } from "@/lib/number-format";
+import { formatCompactCount, formatCompactNumber } from "@/lib/number-format";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -574,6 +580,115 @@ function mergeWindowPayloads(payloads: WindowPayload[]): WindowPayload | null {
     metrics,
     topModels: deriveTopModels(metrics),
   };
+}
+
+function getMetricOthersValue(metric: ModelUsageMixMetric, mode: ChartMode): number {
+  if (mode === "requests") return asNumber(metric.others);
+  if (mode === "tokens") return asNumber(metric.others_tokens);
+  return asNumber(metric.others_revenue_msats) / 1000;
+}
+
+function getMetricModelValues(
+  metric: ModelUsageMixMetric,
+  mode: ChartMode
+): Record<string, number> {
+  if (mode === "requests") return metric.model_counts ?? {};
+  if (mode === "tokens") return metric.model_tokens ?? {};
+  const raw = metric.model_revenue_msats ?? {};
+  const values: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    values[key] = asNumber(value) / 1000;
+  }
+  return values;
+}
+
+function getPayloadRequests(payload: WindowPayload | null): number {
+  if (!payload) return 0;
+  const summaryValue = asNumber(
+    payload.summary.total_requests || payload.summary.successful_chat_completions
+  );
+  if (summaryValue > 0) return summaryValue;
+  return payload.metrics.reduce(
+    (sum, metric) => sum + asNumber(metric.total_successful),
+    0
+  );
+}
+
+function getPayloadTokens(payload: WindowPayload | null): number {
+  if (!payload) return 0;
+  const summaryValue = asNumber(payload.summary.total_tokens);
+  if (summaryValue > 0) return summaryValue;
+  return payload.metrics.reduce((sum, metric) => sum + asNumber(metric.total_tokens), 0);
+}
+
+function getPayloadRevenueSats(payload: WindowPayload | null): number {
+  if (!payload) return 0;
+  const revenueSats = asNumber(payload.summary.revenue_sats);
+  if (revenueSats > 0) return revenueSats;
+  const revenueMsats = asNumber(payload.summary.revenue_msats);
+  if (revenueMsats > 0) return revenueMsats / 1000;
+  return (
+    payload.metrics.reduce(
+      (sum, metric) => sum + asNumber(metric.total_revenue_msats),
+      0
+    ) / 1000
+  );
+}
+
+function countActiveModels(metrics: ModelUsageMixMetric[], mode: ChartMode): number {
+  const models = new Set<string>();
+  for (const metric of metrics) {
+    for (const [model, value] of Object.entries(getMetricModelValues(metric, mode))) {
+      if (!model || model === "unknown" || asNumber(value) <= 0) continue;
+      models.add(model);
+    }
+  }
+  return models.size;
+}
+
+function buildModelShare(
+  metrics: ModelUsageMixMetric[],
+  mode: ChartMode
+): ModelSharePoint[] {
+  const totals = new Map<string, number>();
+  let othersTotal = 0;
+
+  for (const metric of metrics) {
+    for (const [model, value] of Object.entries(getMetricModelValues(metric, mode))) {
+      if (!model || model === "unknown") continue;
+      const parsed = asNumber(value);
+      if (!Number.isFinite(parsed) || parsed <= 0) continue;
+      totals.set(model, (totals.get(model) ?? 0) + parsed);
+    }
+    othersTotal += getMetricOthersValue(metric, mode);
+  }
+
+  const ranked = Array.from(totals.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+  const topRows = ranked.slice(0, 7);
+  const remainingTotal =
+    othersTotal +
+    ranked.slice(7).reduce((sum, row) => sum + row.value, 0);
+  const total = ranked.reduce((sum, row) => sum + row.value, 0) + othersTotal;
+
+  if (total <= 0) return [];
+
+  const rows = topRows.map((row) => ({
+    label: row.label,
+    value: row.value,
+    share: row.value / total,
+  }));
+
+  if (remainingTotal > 0) {
+    rows.push({
+      label: "Others",
+      value: remainingTotal,
+      share: remainingTotal / total,
+    });
+  }
+
+  return rows;
 }
 
 function formatUpdatedAt(unixSeconds: number): string {
@@ -1289,14 +1404,78 @@ function StatsPageContent() {
 
   const summary = selectedWindowPayload?.summary ?? null;
   const requests = summary
-    ? asNumber(summary.total_requests || summary.successful_chat_completions)
+    ? getPayloadRequests(selectedWindowPayload)
     : null;
-  const tokens = summary ? asNumber(summary.total_tokens) : null;
+  const tokens = summary ? getPayloadTokens(selectedWindowPayload) : null;
   const revenueSats = summary
-    ? asNumber(summary.revenue_sats) > 0
-      ? asNumber(summary.revenue_sats)
-      : asNumber(summary.revenue_msats) / 1000
+    ? getPayloadRevenueSats(selectedWindowPayload)
     : null;
+  const modelShare = useMemo<ModelSharePoint[]>(
+    () => buildModelShare(selectedWindowPayload?.metrics ?? [], selectedMode),
+    [selectedMode, selectedWindowPayload]
+  );
+  const providerComparison = useMemo<ProviderComparisonPoint[]>(() => {
+    const rows = timelines
+      .map((timeline) => {
+        const mergedPayload = mergeWindowPayloads(
+          getPayloadsForTimeline(timeline, selectedWindow)
+        );
+        const payload = mergedPayload
+          ? coarsenWindowPayloadForDisplay(mergedPayload, selectedWindow)
+          : null;
+        if (!payload) return null;
+
+        const requestsValue = getPayloadRequests(payload);
+        const tokensValue = getPayloadTokens(payload);
+        const revenueSatsValue = getPayloadRevenueSats(payload);
+        const value =
+          selectedMode === "requests"
+            ? requestsValue
+            : selectedMode === "tokens"
+              ? tokensValue
+              : revenueSatsValue;
+        if (value <= 0) return null;
+
+        return {
+          providerLabel: timeline.providerLabel,
+          value,
+          share: 0,
+          activeModels: countActiveModels(payload.metrics, selectedMode),
+          requests: requestsValue,
+          revenueSats: revenueSatsValue,
+          tokens: tokensValue,
+        } satisfies ProviderComparisonPoint;
+      })
+      .filter((row): row is ProviderComparisonPoint => row !== null)
+      .sort((a, b) => b.value - a.value);
+
+    const totalValue = rows.reduce((sum, row) => sum + row.value, 0);
+    if (totalValue <= 0) return rows;
+    return rows.map((row) => ({
+      ...row,
+      share: row.value / totalValue,
+    }));
+  }, [selectedMode, selectedWindow, timelines]);
+  const showProviderComparison =
+    selectedProviderId === ALL_PROVIDERS_ID && providerComparison.length > 1;
+  const activeModelCount =
+    selectedWindowPayload?.metrics.length
+      ? countActiveModels(selectedWindowPayload.metrics, selectedMode)
+      : 0;
+  const avgTokensPerRequest =
+    requests !== null && tokens !== null && requests > 0
+      ? tokens / requests
+      : null;
+  const avgRevenuePerRequest =
+    requests !== null && revenueSats !== null && requests > 0
+      ? revenueSats / requests
+      : null;
+  const leadingShare =
+    selectedProviderId === ALL_PROVIDERS_ID
+      ? providerComparison[0]?.share ?? null
+      : modelShare[0]?.share ?? null;
+  const leadingShareLabel =
+    selectedProviderId === ALL_PROVIDERS_ID ? "Top provider share" : "Top model share";
   const updatedStatusText = latestSnapshotUnixSeconds
     ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
     : loading
@@ -1619,13 +1798,81 @@ function StatsPageContent() {
               Provider snapshots were found, but no usage was recorded in this window.
             </div>
           ) : (
-            <TopModelsUsageChart
-              mix={modelUsageMix}
-              displayUnit="sat"
-              usdPerSat={null}
-              mode={selectedMode}
-              headerRight={relayStatusControl}
-            />
+            <div className="space-y-6">
+              <TopModelsUsageChart
+                mix={modelUsageMix}
+                displayUnit="sat"
+                usdPerSat={null}
+                mode={selectedMode}
+                headerRight={relayStatusControl}
+              />
+
+              <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
+                <div className="border-t border-border pt-3">
+                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                    Active models
+                  </p>
+                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                    {formatCompactCount(activeModelCount)}
+                  </p>
+                </div>
+                <div className="border-t border-border pt-3">
+                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                    Avg tokens / request
+                  </p>
+                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                    {avgTokensPerRequest === null
+                      ? "—"
+                      : formatCompactNumber(avgTokensPerRequest, {
+                          standardMaximumFractionDigits: 0,
+                          compactMaximumFractionDigits: 1,
+                        })}
+                  </p>
+                </div>
+                <div className="border-t border-border pt-3">
+                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                    Avg sats / request
+                  </p>
+                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                    {avgRevenuePerRequest === null
+                      ? "—"
+                      : formatCompactNumber(avgRevenuePerRequest, {
+                          standardMaximumFractionDigits: 1,
+                          compactMaximumFractionDigits: 1,
+                        })}
+                  </p>
+                </div>
+                <div className="border-t border-border pt-3">
+                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                    {leadingShareLabel}
+                  </p>
+                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                    {leadingShare === null ? "—" : `${(leadingShare * 100).toFixed(1)}%`}
+                  </p>
+                </div>
+              </div>
+
+              {showProviderComparison ? (
+                <div className="space-y-6">
+                  <ProviderComparisonChart
+                    data={providerComparison}
+                    mode={selectedMode}
+                    description={`Top providers by ${selectedMode} in the ${selectedWindow} window.`}
+                  />
+                  <ModelShareChart
+                    data={modelShare}
+                    mode={selectedMode}
+                    description={`How ${selectedMode} concentrates across models in the selected window.`}
+                  />
+                </div>
+              ) : (
+                <ModelShareChart
+                  data={modelShare}
+                  mode={selectedMode}
+                  description={`How ${selectedMode} concentrates across models in the selected window.`}
+                />
+              )}
+            </div>
           )}
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
