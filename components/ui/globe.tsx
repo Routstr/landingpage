@@ -26,7 +26,6 @@ const STACK_POINT_ALTITUDE_STEP = 0.006;
 const STACK_POINT_RADIUS = 0.34;
 const STACK_SPREAD_DEGREES_BASE = 0.18;
 const STACK_SPREAD_DEGREES_STEP = 0.12;
-const THREE_CLOCK_DEPRECATION_SUBSTRING = "Clock: This module has been deprecated.";
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 type RenderPoint = ProviderPoint & {
@@ -79,25 +78,6 @@ function clampLatitude(lat: number): number {
 
 function wrapLongitude(lng: number): number {
   return ((lng + 180) % 360 + 360) % 360 - 180;
-}
-
-function shouldSuppressThreeClockWarning(message: unknown): boolean {
-  if (typeof message !== "string") return false;
-  return message.includes(THREE_CLOCK_DEPRECATION_SUBSTRING);
-}
-
-if (typeof window !== "undefined") {
-  const warningFilterGlobalKey = "__routstrThreeClockWarningFilterInstalled";
-  const globalWindow = window as unknown as Record<string, unknown>;
-
-  if (!globalWindow[warningFilterGlobalKey]) {
-    const originalWarn = console.warn;
-    console.warn = (...args) => {
-      if (shouldSuppressThreeClockWarning(args[0])) return;
-      originalWarn(...args);
-    };
-    globalWindow[warningFilterGlobalKey] = true;
-  }
 }
 
 async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
