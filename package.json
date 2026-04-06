@@ -19,7 +19,7 @@
     "framer-motion": "^12.34.3",
     "geist": "^1.7.0",
     "lucide-react": "^0.575.0",
-    "next": "^16.1.6",
+    "next": "^16.2.2",
     "nostr-tools": "^2.23.3",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
@@ -42,7 +42,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.3",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "^16.2.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

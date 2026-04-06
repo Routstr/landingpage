@@ -35,6 +35,7 @@ import {
   type ModelUsageMixMetric,
 } from "@/components/stats/top-models-usage-chart";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { createPool, getDefaultRelays } from "@/lib/nostr";
 import { formatCompactCount, formatCompactNumber } from "@/lib/number-format";
 import { cn } from "@/lib/utils";
@@ -1294,17 +1295,6 @@ function StatsPageContent() {
   } = useQuery({
     queryKey: ["stats-snapshots"],
     queryFn: ({ signal }) => fetchStatsSnapshotsWithFallback(signal),
-    initialData: () => {
-      const cached = readStatsCache();
-      if (!cached) return undefined;
-      return {
-        timelines: cached.timelines,
-        relayStatuses: createInitialRelayStatuses(),
-        emptyMessage: null,
-        fromCache: true,
-        cachedAtMs: cached.savedAtMs,
-      };
-    },
     placeholderData: (previousData) => previousData,
     gcTime: STATS_CACHE_TTL_MS,
     refetchInterval: 90_000,
@@ -1457,7 +1447,7 @@ function StatsPageContent() {
     }));
   }, [selectedMode, selectedWindow, timelines]);
   const showProviderComparison =
-    selectedProviderId === ALL_PROVIDERS_ID && providerComparison.length > 1;
+    selectedProviderId === ALL_PROVIDERS_ID && providerComparison.length > 0;
   const activeModelCount =
     selectedWindowPayload?.metrics.length
       ? countActiveModels(selectedWindowPayload.metrics, selectedMode)
@@ -1612,7 +1602,7 @@ function StatsPageContent() {
                 </div>
               </div>
               {loading ? (
-                <Skeleton className="mt-2 h-8 w-12 bg-border" />
+                <Skeleton className="mt-2 h-8 w-12" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">{formatCompactCount(timelines.length)}</p>
               )}
@@ -1622,7 +1612,7 @@ function StatsPageContent() {
                 {selectedWindow} Requests
               </p>
               {loading ? (
-                <Skeleton className="mt-2 h-8 w-20 bg-border" />
+                <Skeleton className="mt-2 h-8 w-20" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
                   {requests === null ? "—" : formatCompactCount(requests)}
@@ -1634,7 +1624,7 @@ function StatsPageContent() {
                 {selectedWindow} Tokens
               </p>
               {loading ? (
-                <Skeleton className="mt-2 h-8 w-20 bg-border" />
+                <Skeleton className="mt-2 h-8 w-20" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
                   {tokens === null ? "—" : formatCompactCount(tokens)}
@@ -1646,10 +1636,71 @@ function StatsPageContent() {
                 {selectedWindow} Revenue (sats)
               </p>
               {loading ? (
-                <Skeleton className="mt-2 h-8 w-24 bg-border" />
+                <Skeleton className="mt-2 h-8 w-24" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
                   {revenueSats === null ? "—" : formatCompactCount(revenueSats)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
+            <div className="border-t border-border pt-3">
+              <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                Active models
+              </p>
+              {loading ? (
+                <Skeleton className="mt-2 h-8 w-16" />
+              ) : (
+                <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                  {formatCompactCount(activeModelCount)}
+                </p>
+              )}
+            </div>
+            <div className="border-t border-border pt-3">
+              <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                Avg tokens / request
+              </p>
+              {loading ? (
+                <Skeleton className="mt-2 h-8 w-20" />
+              ) : (
+                <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                  {avgTokensPerRequest === null
+                    ? "—"
+                    : formatCompactNumber(avgTokensPerRequest, {
+                        standardMaximumFractionDigits: 0,
+                        compactMaximumFractionDigits: 1,
+                      })}
+                </p>
+              )}
+            </div>
+            <div className="border-t border-border pt-3">
+              <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                Avg sats / request
+              </p>
+              {loading ? (
+                <Skeleton className="mt-2 h-8 w-12" />
+              ) : (
+                <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                  {avgRevenuePerRequest === null
+                    ? "—"
+                    : formatCompactNumber(avgRevenuePerRequest, {
+                        standardMaximumFractionDigits: 1,
+                        compactMaximumFractionDigits: 1,
+                      })}
+                </p>
+              )}
+            </div>
+            <div className="border-t border-border pt-3">
+              <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
+                {leadingShareLabel}
+              </p>
+              {loading ? (
+                <Skeleton className="mt-2 h-8 w-16" />
+              ) : (
+                <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                  {leadingShare === null ? "—" : `${(leadingShare * 100).toFixed(1)}%`}
                 </p>
               )}
             </div>
@@ -1761,35 +1812,43 @@ function StatsPageContent() {
           {loading ? (
             <div className="space-y-8 py-4">
               <div className="space-y-3">
-                <Skeleton className="h-8 w-40 bg-border" />
-                <Skeleton className="h-4 w-80 max-w-full bg-border" />
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="h-4 w-80 max-w-full" />
               </div>
 
-              <div className="h-[250px] rounded-md border border-border/40 bg-card p-4 sm:h-[320px]">
-                <div className="flex h-full items-end gap-2">
-                  {Array.from({ length: 12 }).map((_, index) => (
-                    <Skeleton
-                      key={index}
-                      className="flex-1 bg-border"
-                      style={{ height: `${20 + ((index * 17) % 65)}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3"
-                  >
-                    <Skeleton className="h-3 w-4 bg-border" />
-                    <Skeleton className="h-3 w-56 max-w-full bg-border" />
-                    <Skeleton className="h-3 w-20 bg-border" />
-                    <Skeleton className="h-3 w-12 bg-border" />
+              <Card className="py-0">
+                <CardContent className="p-4">
+                  <div className="h-[250px] sm:h-[320px]">
+                    <div className="flex h-full items-end gap-2">
+                      {Array.from({ length: 12 }).map((_, index) => (
+                        <Skeleton
+                          key={index}
+                          className="flex-1"
+                          style={{ height: `${20 + ((index * 17) % 65)}%` }}
+                        />
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </CardContent>
+              </Card>
+
+              <Card className="py-0">
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3"
+                      >
+                        <Skeleton className="h-3 w-4" />
+                        <Skeleton className="h-3 w-56 max-w-full" />
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ) : error ? (
             <div className="py-24 text-center text-sm text-muted-foreground">{error}</div>
@@ -1806,51 +1865,6 @@ function StatsPageContent() {
                 mode={selectedMode}
                 headerRight={relayStatusControl}
               />
-
-              <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
-                <div className="border-t border-border pt-3">
-                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                    Active models
-                  </p>
-                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                    {formatCompactCount(activeModelCount)}
-                  </p>
-                </div>
-                <div className="border-t border-border pt-3">
-                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                    Avg tokens / request
-                  </p>
-                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                    {avgTokensPerRequest === null
-                      ? "—"
-                      : formatCompactNumber(avgTokensPerRequest, {
-                          standardMaximumFractionDigits: 0,
-                          compactMaximumFractionDigits: 1,
-                        })}
-                  </p>
-                </div>
-                <div className="border-t border-border pt-3">
-                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                    Avg sats / request
-                  </p>
-                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                    {avgRevenuePerRequest === null
-                      ? "—"
-                      : formatCompactNumber(avgRevenuePerRequest, {
-                          standardMaximumFractionDigits: 1,
-                          compactMaximumFractionDigits: 1,
-                        })}
-                  </p>
-                </div>
-                <div className="border-t border-border pt-3">
-                  <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                    {leadingShareLabel}
-                  </p>
-                  <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                    {leadingShare === null ? "—" : `${(leadingShare * 100).toFixed(1)}%`}
-                  </p>
-                </div>
-              </div>
 
               {showProviderComparison ? (
                 <div className="space-y-6">

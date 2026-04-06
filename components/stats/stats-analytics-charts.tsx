@@ -171,7 +171,7 @@ export function ProviderComparisonChart({
                 if (!point) return null;
 
                 return (
-                  <div className="min-w-[210px] rounded-md border border-border bg-card px-2.5 py-2 text-[11px] shadow-none">
+                  <div className="border-border/50 bg-background grid min-w-[210px] items-start gap-1.5 border px-2.5 py-1.5 text-xs shadow-xl">
                     <p className="mb-1.5 text-xs font-medium text-foreground">
                       {point.providerLabel}
                     </p>
@@ -199,7 +199,7 @@ export function ProviderComparisonChart({
                 );
               }}
             />
-            <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+            <Bar dataKey="value">
               {chartData.map((entry, index) => (
                 <Cell key={`${entry.providerLabel}-${index}`} fill={getSeriesColor(index)} />
               ))}
@@ -261,7 +261,7 @@ export function ModelShareChart({
                 if (!point) return null;
 
                 return (
-                  <div className="min-w-[180px] rounded-md border border-border bg-card px-2.5 py-2 text-[11px] shadow-none">
+                  <div className="border-border/50 bg-background grid min-w-[180px] items-start gap-1.5 border px-2.5 py-1.5 text-xs shadow-xl">
                     <div className="grid gap-1">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-muted-foreground">{point.label}</span>
