@@ -35,7 +35,6 @@ import {
   type ModelUsageMixMetric,
 } from "@/components/stats/top-models-usage-chart";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { createPool, getDefaultRelays } from "@/lib/nostr";
 import { formatCompactCount, formatCompactNumber } from "@/lib/number-format";
 import { cn } from "@/lib/utils";
@@ -1810,45 +1809,118 @@ function StatsPageContent() {
           </div>
 
           {loading ? (
-            <div className="space-y-8 py-4">
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-40" />
-                <Skeleton className="h-4 w-80 max-w-full" />
-              </div>
+            <div className="space-y-6">
+              <section className="py-4 sm:py-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="text-xl font-bold text-foreground">Model Usage</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Stacked requests, revenue, or tokens by model.
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-xs text-muted-foreground">Relays —/—</div>
+                </div>
 
-              <Card className="py-0">
-                <CardContent className="p-4">
-                  <div className="h-[250px] sm:h-[320px]">
+                <div className="pt-2 sm:pt-3">
+                  <div className="aspect-auto h-[250px] w-full sm:h-[320px]">
                     <div className="flex h-full items-end gap-2">
                       {Array.from({ length: 12 }).map((_, index) => (
                         <Skeleton
-                          key={index}
+                          key={`model-usage-bar-${index}`}
                           className="flex-1"
-                          style={{ height: `${20 + ((index * 17) % 65)}%` }}
+                          style={{ height: `${24 + ((index * 13) % 64)}%` }}
                         />
                       ))}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </section>
 
-              <Card className="py-0">
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3"
-                      >
-                        <Skeleton className="h-3 w-4" />
-                        <Skeleton className="h-3 w-56 max-w-full" />
-                        <Skeleton className="h-3 w-20" />
-                        <Skeleton className="h-3 w-12" />
-                      </div>
-                    ))}
+              <section className="pt-5 sm:pt-6">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium text-foreground">Top Models</p>
+                  <p className="hidden text-xs text-muted-foreground sm:block">
+                    Change vs prior period
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <div
+                      key={`top-model-row-${index}`}
+                      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-1.5 py-2.5 text-xs sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:gap-3"
+                    >
+                      <Skeleton className="h-3 w-5" />
+                      <Skeleton className="h-3 w-56 max-w-full" />
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="hidden h-3 w-12 sm:block" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="py-4 sm:py-5">
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-foreground">Provider Comparison</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Top providers by {selectedMode} in the {selectedWindow} window.
+                  </p>
+                </div>
+                <div className="pt-2 sm:pt-3">
+                  <div className="aspect-auto h-[220px] w-full sm:h-[260px]">
+                    <div className="space-y-2 pt-1">
+                      {Array.from({ length: 8 }).map((_, index) => (
+                        <div
+                          key={`provider-comparison-row-${index}`}
+                          className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[96px_minmax(0,1fr)]"
+                        >
+                          <Skeleton className="h-3 w-full" />
+                          <div className="flex items-center">
+                            <Skeleton
+                              className="h-4 rounded-sm"
+                              style={{ width: `${34 + ((index * 9) % 62)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </section>
+
+              <section className="py-4 sm:py-5">
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-foreground">Model Share</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    How {selectedMode} concentrates across models in the selected window.
+                  </p>
+                </div>
+                <div className="grid gap-6 pt-2 sm:pt-3 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-center">
+                  <Skeleton className="mx-auto aspect-square h-[220px] w-[220px] rounded-full sm:h-[240px] sm:w-[240px]" />
+                  <div>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-xs font-medium text-foreground">Share Breakdown</p>
+                      <p className="text-xs text-muted-foreground">
+                        Percent of selected total
+                      </p>
+                    </div>
+                    <div className="space-y-0.5">
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <div
+                          key={`model-share-row-${index}`}
+                          className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-1.5 py-2 text-xs"
+                        >
+                          <Skeleton className="h-2 w-2 rounded-full" />
+                          <div className="space-y-1">
+                            <Skeleton className="h-3 w-44 max-w-full" />
+                            <Skeleton className="h-3 w-28 max-w-full" />
+                          </div>
+                          <Skeleton className="h-3 w-12" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           ) : error ? (
             <div className="py-24 text-center text-sm text-muted-foreground">{error}</div>
