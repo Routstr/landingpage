@@ -15,7 +15,6 @@ import {
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -255,30 +254,31 @@ export function ModelShareChart({
           <PieChart>
             <ChartTooltip
               cursor={false}
-              content={
-                <ChartTooltipContent
-                  hideLabel
-                  formatter={(value, name, item) => {
-                    const point = item.payload as ModelSharePoint;
-                    return (
-                      <div className="grid min-w-[180px] gap-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">{name}</span>
-                          <span className="font-mono tabular-nums text-foreground">
-                            {formatModeValue(Number(value), mode, { withUnit: true })}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">Share</span>
-                          <span className="font-mono tabular-nums text-foreground">
-                            {(point.share * 100).toFixed(1)}%
-                          </span>
-                        </div>
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const entry = payload[0];
+                const point = entry?.payload as ModelSharePoint | undefined;
+                if (!point) return null;
+
+                return (
+                  <div className="min-w-[180px] rounded-md border border-border bg-card px-2.5 py-2 text-[11px] shadow-none">
+                    <div className="grid gap-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">{point.label}</span>
+                        <span className="font-mono tabular-nums text-foreground">
+                          {formatModeValue(point.value, mode, { withUnit: true })}
+                        </span>
                       </div>
-                    );
-                  }}
-                />
-              }
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">Share</span>
+                        <span className="font-mono tabular-nums text-foreground">
+                          {(point.share * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }}
             />
             <Pie
               data={chartData}
