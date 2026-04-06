@@ -22,6 +22,8 @@ const IPWHO_BASE_URL = "https://ipwho.is";
 const IP_API_BASE_URL = "http://ip-api.com/json";
 const GEO_TIMEOUT_MS = 8000;
 const GEO_CACHE_TTL_MS = 1000 * 60 * 60;
+const POINTS_CACHE_TTL_MS = 1000 * 60 * 10;
+const GEO_LOOKUP_CONCURRENCY = 8;
 
 type IpWhoApiResponse = {
   success?: boolean;
@@ -44,6 +46,8 @@ type CachedGeoPoint = {
 const geoCache = new Map<string, CachedGeoPoint>();
 const inFlightGeoLookups = new Map<string, Promise<{ lat: number; lng: number } | null>>();
 let lastSuccessfulPoints: ProviderPoint[] = [];
+let cachedPointsSnapshot: { points: ProviderPoint[]; expiresAt: number } | null = null;
+let inFlightPointsBuild: Promise<ProviderPoint[]> | null = null;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -125,6 +129,46 @@ function storeCachedGeo(cacheKey: string, lat: number, lng: number): void {
     lng,
     expiresAt: Date.now() + GEO_CACHE_TTL_MS,
   });
+}
+
+function readCachedPointsSnapshot(): ProviderPoint[] | null {
+  if (!cachedPointsSnapshot) return null;
+  if (cachedPointsSnapshot.expiresAt <= Date.now()) {
+    cachedPointsSnapshot = null;
+    return null;
+  }
+  return cachedPointsSnapshot.points;
+}
+
+function storeCachedPointsSnapshot(points: ProviderPoint[]): void {
+  cachedPointsSnapshot = {
+    points,
+    expiresAt: Date.now() + POINTS_CACHE_TTL_MS,
+  };
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+
+  const safeConcurrency = Math.max(1, Math.min(concurrency, items.length));
+  const output = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: safeConcurrency }, async () => {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      output[index] = await mapper(items[index]);
+    }
+  });
+
+  await Promise.all(workers);
+  return output;
 }
 
 function extractCoordinatesFromMetadata(
@@ -342,21 +386,45 @@ async function toProviderGlobePoint(provider: ProviderApiRecord): Promise<Provid
   };
 }
 
+async function buildProviderPoints(): Promise<ProviderPoint[]> {
+  const providers = await fetchProvidersList();
+  const visibleProviders = providers
+    .filter((provider) => isProviderVisible(provider))
+    .filter((provider) => !isOnionOnlyProvider(provider));
+
+  const resolved = await mapWithConcurrency(
+    visibleProviders,
+    GEO_LOOKUP_CONCURRENCY,
+    toProviderGlobePoint
+  );
+
+  return resolved.filter((point): point is ProviderPoint => point !== null);
+}
+
 export async function GET() {
   try {
-    const providers = await fetchProvidersList();
-    const visibleProviders = providers
-      .filter((provider) => isProviderVisible(provider))
-      .filter((provider) => !isOnionOnlyProvider(provider));
-
-    const points: ProviderPoint[] = [];
-    for (const provider of visibleProviders) {
-      const point = await toProviderGlobePoint(provider);
-      if (point) points.push(point);
+    const cachedSnapshot = readCachedPointsSnapshot();
+    if (cachedSnapshot) {
+      return NextResponse.json(
+        { points: cachedSnapshot },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600",
+          },
+        }
+      );
     }
+
+    const buildPromise =
+      inFlightPointsBuild ??
+      (inFlightPointsBuild = buildProviderPoints().finally(() => {
+        inFlightPointsBuild = null;
+      }));
+    const points = await buildPromise;
 
     if (points.length > 0) {
       lastSuccessfulPoints = points;
+      storeCachedPointsSnapshot(points);
       return NextResponse.json(
         { points },
         {
