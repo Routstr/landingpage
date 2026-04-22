@@ -62,7 +62,7 @@ export function LandingHero() {
           </Button>
           <Button asChild variant="outline" className="h-10 w-full px-5 sm:w-auto">
             <Link
-              href="https://beta.platform.routstr.com/api-keys?create=1"
+              href="https://chat.routstr.com/?tab=apikeys"
               target="_blank"
               rel="noreferrer"
             >
