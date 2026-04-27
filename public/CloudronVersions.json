@@ -46,6 +46,52 @@
             "creationDate": "Mon, 27 Apr 2026 11:19:46 GMT",
             "ts": "Mon, 27 Apr 2026 11:20:35 GMT",
             "publishState": "published"
+        },
+        "0.1.1": {
+            "manifest": {
+                "id": "io.routstr.routstrd-auth",
+                "title": "Routstrd Auth",
+                "author": "Routstr <hello@routstr.io>",
+                "description": "Auth proxy and daemon for the Routstr AI routing network",
+                "tagline": "Self-hosted Routstr node with bearer-token auth",
+                "version": "0.1.1",
+                "upstreamVersion": "0.1.1",
+                "healthCheckPath": "/health",
+                "httpPort": 8008,
+                "memoryLimit": 536870912,
+                "addons": {
+                    "localstorage": {
+                        "sqlite": {
+                            "paths": [
+                                "/app/data/routstr.db"
+                            ]
+                        }
+                    }
+                },
+                "manifestVersion": 2,
+                "website": "https://routstr.com",
+                "contactEmail": "team@routstr.com",
+                "iconUrl": "https://routstr.com/favicon.ico",
+                "packagerName": "Routstr",
+                "packagerUrl": "https://github.com/Routstr",
+                "minBoxVersion": "9.1.0",
+                "changelog": "* Bump version\n",
+                "postInstallMessage": "Routstrd Auth is now installed.\n\nThe app exposes an OpenAI-compatible Routstr endpoint protected by bearer-token auth. Persistent wallet/config/database data is stored under Cloudron's app data directory and included in backups.\n\nIf you need admin-only client management endpoints, configure `ROUTSTRD_AUTH_ADMIN_PUBKEYS` (comma-separated Nostr npub or hex pubkeys) in the app's Cloudron environment variables and restart the app.\n",
+                "tags": [
+                    "ai",
+                    "proxy",
+                    "nostr",
+                    "bitcoin",
+                    "openai"
+                ],
+                "mediaLinks": [
+                    "https://www.routstr.com/"
+                ],
+                "dockerImage": "ghcr.io/sh1ftred/routstrd.auth:20260427-122354-324764384"
+            },
+            "creationDate": "Mon, 27 Apr 2026 12:26:10 GMT",
+            "ts": "Mon, 27 Apr 2026 12:26:10 GMT",
+            "publishState": "published"
         }
     }
 }
