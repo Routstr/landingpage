@@ -42,7 +42,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type WindowKey = "24h" | "7d" | "30d" | "3m" | "1y";
-type RelayState = "connecting" | "active" | "done" | "no-data" | "timeout" | "error";
+type RelayState =
+  | "connecting"
+  | "active"
+  | "done"
+  | "no-data"
+  | "timeout"
+  | "error";
 type PeriodType = "latest" | "day" | "month";
 
 type AnalyticsPayload = {
@@ -111,7 +117,7 @@ const ANALYTICS_SCHEMAS = new Set([
   "routstr.analytics.snapshot.v1",
 ]);
 const RELAYS = Array.from(
-  new Set([...getDefaultRelays(), "wss://relay.routstr.com", "wss://nos.lol"])
+  new Set([...getDefaultRelays(), "wss://relay.routstr.com", "wss://nos.lol"]),
 );
 
 const WINDOW_OPTIONS: Array<{ id: WindowKey; label: string }> = [
@@ -331,19 +337,7 @@ function alignMetricTimestamp(ms: number, intervalMinutes: number): string {
 }
 
 const INTERVAL_STEPS_MINUTES = [
-  60,
-  120,
-  180,
-  240,
-  360,
-  480,
-  720,
-  1440,
-  2880,
-  4320,
-  10080,
-  20160,
-  43200,
+  60, 120, 180, 240, 360, 480, 720, 1440, 2880, 4320, 10080, 20160, 43200,
 ] as const;
 
 const MAX_CHART_POINTS: Record<WindowKey, number> = {
@@ -363,7 +357,7 @@ function roundUpIntervalMinutes(value: number): number {
 function chooseDisplayIntervalMinutes(
   metrics: ModelUsageMixMetric[],
   baseIntervalMinutes: number,
-  window: WindowKey
+  window: WindowKey,
 ): number {
   const base = Math.max(1, baseIntervalMinutes);
   if (metrics.length <= 1) return base;
@@ -376,7 +370,7 @@ function chooseDisplayIntervalMinutes(
 
   const spanMinutes = Math.max(
     1,
-    Math.ceil((times[times.length - 1] - times[0]) / (60 * 1000))
+    Math.ceil((times[times.length - 1] - times[0]) / (60 * 1000)),
   );
   const maxPoints = MAX_CHART_POINTS[window];
   const needed = Math.ceil(spanMinutes / Math.max(1, maxPoints));
@@ -385,7 +379,7 @@ function chooseDisplayIntervalMinutes(
 
 function rebucketMetrics(
   metrics: ModelUsageMixMetric[],
-  intervalMinutes: number
+  intervalMinutes: number,
 ): ModelUsageMixMetric[] {
   if (metrics.length <= 1) return metrics;
 
@@ -434,7 +428,10 @@ function rebucketMetrics(
     existing.others_revenue_msats += asNumber(metric.others_revenue_msats);
     existing.others_tokens += asNumber(metric.others_tokens);
     mergeNumberRecords(existing.model_counts, metric.model_counts ?? {});
-    mergeNumberRecords(existing.model_revenue_msats, metric.model_revenue_msats ?? {});
+    mergeNumberRecords(
+      existing.model_revenue_msats,
+      metric.model_revenue_msats ?? {},
+    );
     mergeNumberRecords(existing.model_tokens, metric.model_tokens ?? {});
   }
 
@@ -450,12 +447,12 @@ function rebucketMetrics(
 
 function coarsenWindowPayloadForDisplay(
   payload: WindowPayload,
-  window: WindowKey
+  window: WindowKey,
 ): WindowPayload {
   const targetInterval = chooseDisplayIntervalMinutes(
     payload.metrics,
     payload.mixIntervalMinutes,
-    window
+    window,
   );
   if (targetInterval <= payload.mixIntervalMinutes) {
     return payload;
@@ -472,7 +469,7 @@ function coarsenWindowPayloadForDisplay(
 
 function mergeNumberRecords(
   target: Record<string, number>,
-  source: Record<string, number>
+  source: Record<string, number>,
 ): void {
   for (const [key, value] of Object.entries(source)) {
     target[key] = (target[key] ?? 0) + asNumber(value);
@@ -521,7 +518,7 @@ function mergeWindowPayloads(payloads: WindowPayload[]): WindowPayload | null {
       mergeNumberRecords(existing.model_counts, metric.model_counts ?? {});
       mergeNumberRecords(
         existing.model_revenue_msats,
-        metric.model_revenue_msats ?? {}
+        metric.model_revenue_msats ?? {},
       );
       mergeNumberRecords(existing.model_tokens, metric.model_tokens ?? {});
     }
@@ -538,15 +535,15 @@ function mergeWindowPayloads(payloads: WindowPayload[]): WindowPayload | null {
 
   const totalRequestsFromMetrics = metrics.reduce(
     (sum, metric) => sum + asNumber(metric.total_successful),
-    0
+    0,
   );
   const totalTokensFromMetrics = metrics.reduce(
     (sum, metric) => sum + asNumber(metric.total_tokens),
-    0
+    0,
   );
   const totalRevenueMsatsFromMetrics = metrics.reduce(
     (sum, metric) => sum + asNumber(metric.total_revenue_msats),
-    0
+    0,
   );
 
   if (!Number.isFinite(summary.total_requests)) {
@@ -558,7 +555,10 @@ function mergeWindowPayloads(payloads: WindowPayload[]): WindowPayload | null {
   if (!Number.isFinite(summary.total_tokens)) {
     summary.total_tokens = totalTokensFromMetrics;
   }
-  if (!Number.isFinite(summary.revenue_msats) && !Number.isFinite(summary.revenue_sats)) {
+  if (
+    !Number.isFinite(summary.revenue_msats) &&
+    !Number.isFinite(summary.revenue_sats)
+  ) {
     summary.revenue_msats = totalRevenueMsatsFromMetrics;
   }
 
@@ -582,7 +582,10 @@ function mergeWindowPayloads(payloads: WindowPayload[]): WindowPayload | null {
   };
 }
 
-function getMetricOthersValue(metric: ModelUsageMixMetric, mode: ChartMode): number {
+function getMetricOthersValue(
+  metric: ModelUsageMixMetric,
+  mode: ChartMode,
+): number {
   if (mode === "requests") return asNumber(metric.others);
   if (mode === "tokens") return asNumber(metric.others_tokens);
   return asNumber(metric.others_revenue_msats) / 1000;
@@ -590,7 +593,7 @@ function getMetricOthersValue(metric: ModelUsageMixMetric, mode: ChartMode): num
 
 function getMetricModelValues(
   metric: ModelUsageMixMetric,
-  mode: ChartMode
+  mode: ChartMode,
 ): Record<string, number> {
   if (mode === "requests") return metric.model_counts ?? {};
   if (mode === "tokens") return metric.model_tokens ?? {};
@@ -605,12 +608,13 @@ function getMetricModelValues(
 function getPayloadRequests(payload: WindowPayload | null): number {
   if (!payload) return 0;
   const summaryValue = asNumber(
-    payload.summary.total_requests || payload.summary.successful_chat_completions
+    payload.summary.total_requests ||
+      payload.summary.successful_chat_completions,
   );
   if (summaryValue > 0) return summaryValue;
   return payload.metrics.reduce(
     (sum, metric) => sum + asNumber(metric.total_successful),
-    0
+    0,
   );
 }
 
@@ -618,7 +622,10 @@ function getPayloadTokens(payload: WindowPayload | null): number {
   if (!payload) return 0;
   const summaryValue = asNumber(payload.summary.total_tokens);
   if (summaryValue > 0) return summaryValue;
-  return payload.metrics.reduce((sum, metric) => sum + asNumber(metric.total_tokens), 0);
+  return payload.metrics.reduce(
+    (sum, metric) => sum + asNumber(metric.total_tokens),
+    0,
+  );
 }
 
 function getPayloadRevenueSats(payload: WindowPayload | null): number {
@@ -630,15 +637,20 @@ function getPayloadRevenueSats(payload: WindowPayload | null): number {
   return (
     payload.metrics.reduce(
       (sum, metric) => sum + asNumber(metric.total_revenue_msats),
-      0
+      0,
     ) / 1000
   );
 }
 
-function countActiveModels(metrics: ModelUsageMixMetric[], mode: ChartMode): number {
+function countActiveModels(
+  metrics: ModelUsageMixMetric[],
+  mode: ChartMode,
+): number {
   const models = new Set<string>();
   for (const metric of metrics) {
-    for (const [model, value] of Object.entries(getMetricModelValues(metric, mode))) {
+    for (const [model, value] of Object.entries(
+      getMetricModelValues(metric, mode),
+    )) {
       if (!model || model === "unknown" || asNumber(value) <= 0) continue;
       models.add(model);
     }
@@ -648,13 +660,15 @@ function countActiveModels(metrics: ModelUsageMixMetric[], mode: ChartMode): num
 
 function buildModelShare(
   metrics: ModelUsageMixMetric[],
-  mode: ChartMode
+  mode: ChartMode,
 ): ModelSharePoint[] {
   const totals = new Map<string, number>();
   let othersTotal = 0;
 
   for (const metric of metrics) {
-    for (const [model, value] of Object.entries(getMetricModelValues(metric, mode))) {
+    for (const [model, value] of Object.entries(
+      getMetricModelValues(metric, mode),
+    )) {
       if (!model || model === "unknown") continue;
       const parsed = asNumber(value);
       if (!Number.isFinite(parsed) || parsed <= 0) continue;
@@ -668,8 +682,7 @@ function buildModelShare(
     .sort((a, b) => b.value - a.value);
   const topRows = ranked.slice(0, 7);
   const remainingTotal =
-    othersTotal +
-    ranked.slice(7).reduce((sum, row) => sum + row.value, 0);
+    othersTotal + ranked.slice(7).reduce((sum, row) => sum + row.value, 0);
   const total = ranked.reduce((sum, row) => sum + row.value, 0) + othersTotal;
 
   if (total <= 0) return [];
@@ -700,25 +713,29 @@ function formatUpdatedAt(unixSeconds: number): string {
   });
 }
 
-function getWindowPayload(payload: AnalyticsPayload, key: WindowKey): WindowPayload | null {
+function getWindowPayload(
+  payload: AnalyticsPayload,
+  key: WindowKey,
+): WindowPayload | null {
   const windows = asRecord(payload.windows);
   const selectedWindow =
-    key === "3m" ? asRecord(windows["3m"] ?? windows["90d"]) : asRecord(windows[key]);
+    key === "3m"
+      ? asRecord(windows["3m"] ?? windows["90d"])
+      : asRecord(windows[key]);
   const hasSelectedWindow =
     selectedWindow.interval_minutes !== undefined ||
     selectedWindow.summary !== undefined ||
     selectedWindow.model_usage_mix !== undefined;
-  const windowRaw =
-    hasSelectedWindow
-      ? selectedWindow
-      : key === "24h"
-        ? {
-            summary: payload.summary ?? {},
-            model_usage_mix: payload.model_usage_mix ?? {},
-            top_model_usage: payload.top_model_usage ?? [],
-            interval_minutes: 60,
-          }
-        : null;
+  const windowRaw = hasSelectedWindow
+    ? selectedWindow
+    : key === "24h"
+      ? {
+          summary: payload.summary ?? {},
+          model_usage_mix: payload.model_usage_mix ?? {},
+          top_model_usage: payload.top_model_usage ?? [],
+          interval_minutes: 60,
+        }
+      : null;
 
   if (!windowRaw) return null;
 
@@ -738,7 +755,7 @@ function getWindowPayload(payload: AnalyticsPayload, key: WindowKey): WindowPayl
       1,
       asNumber(modelUsageMix.interval_minutes) ||
         asNumber(windowRaw.interval_minutes) ||
-        60
+        60,
     ),
     summary: asRecord(windowRaw.summary),
     metrics,
@@ -749,7 +766,10 @@ function getWindowPayload(payload: AnalyticsPayload, key: WindowKey): WindowPayl
 function getPrimaryPayload(payload: AnalyticsPayload): WindowPayload | null {
   const modelUsageMix = asRecord(payload.model_usage_mix);
   const summary = asRecord(payload.summary);
-  if (Object.keys(modelUsageMix).length === 0 && Object.keys(summary).length === 0) {
+  if (
+    Object.keys(modelUsageMix).length === 0 &&
+    Object.keys(summary).length === 0
+  ) {
     return null;
   }
   const metrics = asArray(modelUsageMix.metrics)
@@ -763,19 +783,25 @@ function getPrimaryPayload(payload: AnalyticsPayload): WindowPayload | null {
 
   return {
     intervalMinutes: Math.max(1, asNumber(payload.interval_minutes) || 60),
-    mixIntervalMinutes: Math.max(1, asNumber(modelUsageMix.interval_minutes) || 60),
+    mixIntervalMinutes: Math.max(
+      1,
+      asNumber(modelUsageMix.interval_minutes) || 60,
+    ),
     summary,
     metrics,
     topModels,
   };
 }
 
-function resolveProviderLabel(payload: AnalyticsPayload, providerId: string): string {
+function resolveProviderLabel(
+  payload: AnalyticsPayload,
+  providerId: string,
+): string {
   const endpointUrls = Array.isArray(payload.endpoint_urls)
     ? payload.endpoint_urls
     : [];
   const first = endpointUrls.find(
-    (url) => typeof url === "string" && url.length > 0
+    (url) => typeof url === "string" && url.length > 0,
   );
   if (!first) return providerId;
   try {
@@ -792,12 +818,14 @@ function getTagValue(event: Event, name: string): string {
 function parsePeriodFromEvent(
   event: Event,
   payload: AnalyticsPayload,
-  providerId: string
+  providerId: string,
 ): { periodType: PeriodType; periodKey: string } | null {
   const periodTypeRaw = asString(payload.period_type);
   const periodKeyRaw = asString(payload.period_key);
   if (
-    (periodTypeRaw === "latest" || periodTypeRaw === "day" || periodTypeRaw === "month") &&
+    (periodTypeRaw === "latest" ||
+      periodTypeRaw === "day" ||
+      periodTypeRaw === "month") &&
     periodKeyRaw
   ) {
     return { periodType: periodTypeRaw, periodKey: periodKeyRaw };
@@ -836,7 +864,10 @@ function parseMonthKeyToMs(monthKey: string): number | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
 }
 
-function keepRecentByDays(events: PeriodSnapshot[], days: number): PeriodSnapshot[] {
+function keepRecentByDays(
+  events: PeriodSnapshot[],
+  days: number,
+): PeriodSnapshot[] {
   const now = Date.now();
   const cutoffMs = now - days * 24 * 60 * 60 * 1000;
   return events.filter((event) => {
@@ -845,16 +876,26 @@ function keepRecentByDays(events: PeriodSnapshot[], days: number): PeriodSnapsho
   });
 }
 
-function keepRecentByMonths(events: PeriodSnapshot[], months: number): PeriodSnapshot[] {
+function keepRecentByMonths(
+  events: PeriodSnapshot[],
+  months: number,
+): PeriodSnapshot[] {
   const now = new Date();
-  const cutoff = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1);
+  const cutoff = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth() - months + 1,
+    1,
+  );
   return events.filter((event) => {
     const keyMs = parseMonthKeyToMs(event.periodKey);
     return keyMs !== null && keyMs >= cutoff;
   });
 }
 
-function getPayloadsForTimeline(timeline: ProviderTimeline, window: WindowKey): WindowPayload[] {
+function getPayloadsForTimeline(
+  timeline: ProviderTimeline,
+  window: WindowKey,
+): WindowPayload[] {
   if (timeline.latest) {
     const latestWindow = getWindowPayload(timeline.latest.payload, window);
     if (latestWindow) return [latestWindow];
@@ -895,7 +936,11 @@ function readStatsCache(): StatsCacheEnvelope | null {
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<StatsCacheEnvelope> | null;
-    if (!parsed || typeof parsed.savedAtMs !== "number" || !Array.isArray(parsed.timelines)) {
+    if (
+      !parsed ||
+      typeof parsed.savedAtMs !== "number" ||
+      !Array.isArray(parsed.timelines)
+    ) {
       return null;
     }
     if (
@@ -976,8 +1021,8 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
 
     const updateRelayStatuses = (
       updater: (
-        current: Record<string, RelayStatus>
-      ) => Record<string, RelayStatus>
+        current: Record<string, RelayStatus>,
+      ) => Record<string, RelayStatus>,
     ) => {
       if (!active) return;
       relayStatuses = updater(relayStatuses);
@@ -988,9 +1033,11 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
       settled = true;
 
       const connectionMap = new Map<string, boolean>();
-      Array.from(pool.listConnectionStatus().entries()).forEach(([url, isConnected]) => {
-        connectionMap.set(normalizeRelayUrl(url), Boolean(isConnected));
-      });
+      Array.from(pool.listConnectionStatus().entries()).forEach(
+        ([url, isConnected]) => {
+          connectionMap.set(normalizeRelayUrl(url), Boolean(isConnected));
+        },
+      );
 
       updateRelayStatuses((current) => {
         const next = { ...current };
@@ -1021,7 +1068,9 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
           next[key] = {
             ...status,
             state: connected ? "no-data" : "error",
-            reason: status.reason ?? (connected ? "no events returned" : "connection failed"),
+            reason:
+              status.reason ??
+              (connected ? "no events returned" : "connection failed"),
           };
         }
         return next;
@@ -1035,35 +1084,39 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
         ...Array.from(monthByProvider.keys()),
       ]);
 
-      const timelines: ProviderTimeline[] = Array.from(providerIds).map((providerId) => {
-        const latest = latestByProvider.get(providerId) ?? null;
-        const day = Array.from(dayByProvider.get(providerId)?.values() ?? []).sort((a, b) =>
-          a.periodKey.localeCompare(b.periodKey)
-        );
-        const month = Array.from(monthByProvider.get(providerId)?.values() ?? []).sort((a, b) =>
-          a.periodKey.localeCompare(b.periodKey)
-        );
+      const timelines: ProviderTimeline[] = Array.from(providerIds).map(
+        (providerId) => {
+          const latest = latestByProvider.get(providerId) ?? null;
+          const day = Array.from(
+            dayByProvider.get(providerId)?.values() ?? [],
+          ).sort((a, b) => a.periodKey.localeCompare(b.periodKey));
+          const month = Array.from(
+            monthByProvider.get(providerId)?.values() ?? [],
+          ).sort((a, b) => a.periodKey.localeCompare(b.periodKey));
 
-        const labelSource = latest ?? day[day.length - 1] ?? month[month.length - 1] ?? null;
-        const providerLabel = labelSource
-          ? resolveProviderLabel(labelSource.payload, providerId)
-          : providerId;
+          const labelSource =
+            latest ?? day[day.length - 1] ?? month[month.length - 1] ?? null;
+          const providerLabel = labelSource
+            ? resolveProviderLabel(labelSource.payload, providerId)
+            : providerId;
 
-        return {
-          providerId,
-          providerLabel,
-          latest,
-          day,
-          month,
-        };
-      });
+          return {
+            providerId,
+            providerLabel,
+            latest,
+            day,
+            month,
+          };
+        },
+      );
 
       timelines.sort((a, b) => a.providerLabel.localeCompare(b.providerLabel));
 
       resolve({
         timelines,
         relayStatuses,
-        emptyMessage: timelines.length === 0 ? "No analytics snapshots found yet." : null,
+        emptyMessage:
+          timelines.length === 0 ? "No analytics snapshots found yet." : null,
       });
     };
 
@@ -1076,167 +1129,179 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
 
     signal?.addEventListener("abort", handleAbort, { once: true });
 
-    sub = pool.subscribeMany(RELAYS, { kinds: [ANALYTICS_KIND], limit: 20000 }, {
-      receivedEvent(relay) {
-        updateRelayStatuses((current) => {
-          const key = normalizeRelayUrl(relay.url);
-          const existing = current[key] ?? {
-            url: relay.url,
-            state: "connecting" as RelayState,
-            events: 0,
-            reason: null,
-          };
-          return {
-            ...current,
-            [key]: {
-              ...existing,
+    sub = pool.subscribeMany(
+      RELAYS,
+      { kinds: [ANALYTICS_KIND], limit: 20000 },
+      {
+        receivedEvent(relay) {
+          updateRelayStatuses((current) => {
+            const key = normalizeRelayUrl(relay.url);
+            const existing = current[key] ?? {
               url: relay.url,
-              state: "active",
-              events: existing.events + 1,
-              reason: null,
-            },
-          };
-        });
-      },
-      onevent(event: Event) {
-        if (!active) return;
-        if (eoseTimer) {
-          clearTimeout(eoseTimer);
-          eoseTimer = null;
-        }
-
-        let parsed: unknown = null;
-        try {
-          parsed = JSON.parse(event.content);
-        } catch {
-          return;
-        }
-        if (!isRecord(parsed)) return;
-
-        const schema = asString(parsed.schema);
-        if (!ANALYTICS_SCHEMAS.has(schema)) return;
-
-        const providerIdFromTag = getTagValue(event, "provider");
-        const providerId =
-          asString(parsed.provider_id) ||
-          providerIdFromTag ||
-          event.pubkey.slice(0, 12);
-        if (!providerId) return;
-
-        const payload: AnalyticsPayload = {
-          schema,
-          provider_id: providerId,
-          endpoint_urls: Array.isArray(parsed.endpoint_urls)
-            ? parsed.endpoint_urls.filter(
-                (value): value is string => typeof value === "string"
-              )
-            : undefined,
-          windows: isRecord(parsed.windows) ? parsed.windows : undefined,
-          summary: isRecord(parsed.summary) ? parsed.summary : undefined,
-          model_usage_mix: isRecord(parsed.model_usage_mix)
-            ? parsed.model_usage_mix
-            : undefined,
-          top_model_usage: Array.isArray(parsed.top_model_usage)
-            ? parsed.top_model_usage
-            : undefined,
-          period_type: asString(parsed.period_type) || undefined,
-          period_key: asString(parsed.period_key) || undefined,
-          interval_minutes:
-            typeof parsed.interval_minutes === "number" ? parsed.interval_minutes : undefined,
-          window_hours:
-            typeof parsed.window_hours === "number" ? parsed.window_hours : undefined,
-        };
-
-        const period = parsePeriodFromEvent(event, payload, providerId);
-        if (!period) return;
-
-        const snapshot: PeriodSnapshot = {
-          providerId,
-          providerLabel: resolveProviderLabel(payload, providerId),
-          eventCreatedAt: event.created_at,
-          periodType: period.periodType,
-          periodKey: period.periodKey,
-          payload,
-        };
-
-        if (period.periodType === "latest") {
-          const current = latestByProvider.get(providerId);
-          if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
-            latestByProvider.set(providerId, snapshot);
-          }
-          return;
-        }
-
-        if (period.periodType === "day") {
-          const byDay = dayByProvider.get(providerId) ?? new Map<string, PeriodSnapshot>();
-          const current = byDay.get(period.periodKey);
-          if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
-            byDay.set(period.periodKey, snapshot);
-          }
-          dayByProvider.set(providerId, byDay);
-          return;
-        }
-
-        const byMonth = monthByProvider.get(providerId) ?? new Map<string, PeriodSnapshot>();
-        const current = byMonth.get(period.periodKey);
-        if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
-          byMonth.set(period.periodKey, snapshot);
-        }
-        monthByProvider.set(providerId, byMonth);
-      },
-      onclose(reasons) {
-        updateRelayStatuses((current) => {
-          const next = { ...current };
-          reasons.forEach((reason, index) => {
-            const relay = RELAYS[index];
-            if (!relay || !reason) return;
-            const key = normalizeRelayUrl(relay);
-            const status = next[key] ?? {
-              url: relay,
               state: "connecting" as RelayState,
               events: 0,
               reason: null,
             };
-            const lower = reason.toLowerCase();
-            if (lower.includes("timeout") || lower.includes("timed out")) {
-              next[key] = { ...status, state: "timeout", reason };
-              return;
+            return {
+              ...current,
+              [key]: {
+                ...existing,
+                url: relay.url,
+                state: "active",
+                events: existing.events + 1,
+                reason: null,
+              },
+            };
+          });
+        },
+        onevent(event: Event) {
+          if (!active) return;
+          if (eoseTimer) {
+            clearTimeout(eoseTimer);
+            eoseTimer = null;
+          }
+
+          let parsed: unknown = null;
+          try {
+            parsed = JSON.parse(event.content);
+          } catch {
+            return;
+          }
+          if (!isRecord(parsed)) return;
+
+          const schema = asString(parsed.schema);
+          if (!ANALYTICS_SCHEMAS.has(schema)) return;
+
+          const providerIdFromTag = getTagValue(event, "provider");
+          const providerId =
+            asString(parsed.provider_id) ||
+            providerIdFromTag ||
+            event.pubkey.slice(0, 12);
+          if (!providerId) return;
+
+          const payload: AnalyticsPayload = {
+            schema,
+            provider_id: providerId,
+            endpoint_urls: Array.isArray(parsed.endpoint_urls)
+              ? parsed.endpoint_urls.filter(
+                  (value): value is string => typeof value === "string",
+                )
+              : undefined,
+            windows: isRecord(parsed.windows) ? parsed.windows : undefined,
+            summary: isRecord(parsed.summary) ? parsed.summary : undefined,
+            model_usage_mix: isRecord(parsed.model_usage_mix)
+              ? parsed.model_usage_mix
+              : undefined,
+            top_model_usage: Array.isArray(parsed.top_model_usage)
+              ? parsed.top_model_usage
+              : undefined,
+            period_type: asString(parsed.period_type) || undefined,
+            period_key: asString(parsed.period_key) || undefined,
+            interval_minutes:
+              typeof parsed.interval_minutes === "number"
+                ? parsed.interval_minutes
+                : undefined,
+            window_hours:
+              typeof parsed.window_hours === "number"
+                ? parsed.window_hours
+                : undefined,
+          };
+
+          const period = parsePeriodFromEvent(event, payload, providerId);
+          if (!period) return;
+
+          const snapshot: PeriodSnapshot = {
+            providerId,
+            providerLabel: resolveProviderLabel(payload, providerId),
+            eventCreatedAt: event.created_at,
+            periodType: period.periodType,
+            periodKey: period.periodKey,
+            payload,
+          };
+
+          if (period.periodType === "latest") {
+            const current = latestByProvider.get(providerId);
+            if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
+              latestByProvider.set(providerId, snapshot);
             }
-            if (
-              lower.includes("auth-required") ||
-              lower.includes("failed") ||
-              lower.includes("error") ||
-              lower.includes("disconnect") ||
-              lower.includes("refused")
-            ) {
-              next[key] = { ...status, state: "error", reason };
-              return;
+            return;
+          }
+
+          if (period.periodType === "day") {
+            const byDay =
+              dayByProvider.get(providerId) ??
+              new Map<string, PeriodSnapshot>();
+            const current = byDay.get(period.periodKey);
+            if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
+              byDay.set(period.periodKey, snapshot);
             }
-            if (lower.includes("closed by caller")) {
-              next[key] = {
-                ...status,
-                state: status.state === "active" ? "done" : "no-data",
+            dayByProvider.set(providerId, byDay);
+            return;
+          }
+
+          const byMonth =
+            monthByProvider.get(providerId) ??
+            new Map<string, PeriodSnapshot>();
+          const current = byMonth.get(period.periodKey);
+          if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
+            byMonth.set(period.periodKey, snapshot);
+          }
+          monthByProvider.set(providerId, byMonth);
+        },
+        onclose(reasons) {
+          updateRelayStatuses((current) => {
+            const next = { ...current };
+            reasons.forEach((reason, index) => {
+              const relay = RELAYS[index];
+              if (!relay || !reason) return;
+              const key = normalizeRelayUrl(relay);
+              const status = next[key] ?? {
+                url: relay,
+                state: "connecting" as RelayState,
+                events: 0,
                 reason: null,
               };
-              return;
-            }
-            next[key] = { ...status, reason };
+              const lower = reason.toLowerCase();
+              if (lower.includes("timeout") || lower.includes("timed out")) {
+                next[key] = { ...status, state: "timeout", reason };
+                return;
+              }
+              if (
+                lower.includes("auth-required") ||
+                lower.includes("failed") ||
+                lower.includes("error") ||
+                lower.includes("disconnect") ||
+                lower.includes("refused")
+              ) {
+                next[key] = { ...status, state: "error", reason };
+                return;
+              }
+              if (lower.includes("closed by caller")) {
+                next[key] = {
+                  ...status,
+                  state: status.state === "active" ? "done" : "no-data",
+                  reason: null,
+                };
+                return;
+              }
+              next[key] = { ...status, reason };
+            });
+            return next;
           });
-          return next;
-        });
+        },
+        oneose() {
+          if (eoseTimer) clearTimeout(eoseTimer);
+          eoseTimer = setTimeout(() => finish("eose"), 500);
+        },
       },
-      oneose() {
-        if (eoseTimer) clearTimeout(eoseTimer);
-        eoseTimer = setTimeout(() => finish("eose"), 500);
-      },
-    });
+    );
 
     hardTimeout = setTimeout(() => finish("timeout"), 9000);
   });
 }
 
 async function fetchStatsSnapshotsWithFallback(
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<StatsQueryData> {
   const cached = readStatsCache();
 
@@ -1278,9 +1343,8 @@ async function fetchStatsSnapshotsWithFallback(
 function StatsPageContent() {
   const [selectedWindow, setSelectedWindow] = useState<WindowKey>("30d");
   const [selectedMode, setSelectedMode] = useState<ChartMode>("requests");
-  const [selectedProviderId, setSelectedProviderId] = useState<string>(
-    ALL_PROVIDERS_ID
-  );
+  const [selectedProviderId, setSelectedProviderId] =
+    useState<string>(ALL_PROVIDERS_ID);
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
   const [relayStatusOpen, setRelayStatusOpen] = useState(false);
   const emptyTimelines = useMemo<ProviderTimeline[]>(() => [], []);
@@ -1304,17 +1368,16 @@ function StatsPageContent() {
   const relayStatuses = data?.relayStatuses ?? fallbackRelayStatuses;
   const loading = isPending && !data;
   const hasUsableTimelines = timelines.length > 0;
-  const error =
-    !hasUsableTimelines
-      ? data?.emptyMessage ??
-        (loading
-          ? null
-          : queryError instanceof Error
-            ? queryError.message
-            : queryError
-              ? "Unable to load analytics snapshots."
-              : null)
-      : null;
+  const error = !hasUsableTimelines
+    ? (data?.emptyMessage ??
+      (loading
+        ? null
+        : queryError instanceof Error
+          ? queryError.message
+          : queryError
+            ? "Unable to load analytics snapshots."
+            : null))
+    : null;
 
   useEffect(() => {
     if (timelines.length === 0) {
@@ -1324,24 +1387,34 @@ function StatsPageContent() {
     if (selectedProviderId === ALL_PROVIDERS_ID) {
       return;
     }
-    const exists = timelines.some((timeline) => timeline.providerId === selectedProviderId);
+    const exists = timelines.some(
+      (timeline) => timeline.providerId === selectedProviderId,
+    );
     if (!exists) {
       setSelectedProviderId(ALL_PROVIDERS_ID);
     }
   }, [selectedProviderId, timelines]);
 
   const providerOptions = useMemo(
-    () => [{ providerId: ALL_PROVIDERS_ID, providerLabel: "All providers" }, ...timelines],
-    [timelines]
+    () => [
+      { providerId: ALL_PROVIDERS_ID, providerLabel: "All providers" },
+      ...timelines,
+    ],
+    [timelines],
   );
 
   const selectedProviderOption =
-    providerOptions.find((option) => option.providerId === selectedProviderId) ??
-    providerOptions[0];
+    providerOptions.find(
+      (option) => option.providerId === selectedProviderId,
+    ) ?? providerOptions[0];
 
   const selectedTimeline = useMemo(() => {
     if (selectedProviderId === ALL_PROVIDERS_ID) return null;
-    return timelines.find((timeline) => timeline.providerId === selectedProviderId) ?? null;
+    return (
+      timelines.find(
+        (timeline) => timeline.providerId === selectedProviderId,
+      ) ?? null
+    );
   }, [selectedProviderId, timelines]);
   const latestSnapshotUnixSeconds = useMemo(() => {
     const targetTimelines =
@@ -1356,7 +1429,7 @@ function StatsPageContent() {
         latest,
         timeline.latest?.eventCreatedAt ?? 0,
         timeline.day[timeline.day.length - 1]?.eventCreatedAt ?? 0,
-        timeline.month[timeline.month.length - 1]?.eventCreatedAt ?? 0
+        timeline.month[timeline.month.length - 1]?.eventCreatedAt ?? 0,
       );
     }
     return latest > 0 ? latest : null;
@@ -1368,14 +1441,16 @@ function StatsPageContent() {
 
     if (selectedProviderId === ALL_PROVIDERS_ID) {
       const payloads = timelines.flatMap((timeline) =>
-        getPayloadsForTimeline(timeline, selectedWindow)
+        getPayloadsForTimeline(timeline, selectedWindow),
       );
       return coarsen(mergeWindowPayloads(payloads));
     }
 
     if (!selectedTimeline) return null;
     return coarsen(
-      mergeWindowPayloads(getPayloadsForTimeline(selectedTimeline, selectedWindow))
+      mergeWindowPayloads(
+        getPayloadsForTimeline(selectedTimeline, selectedWindow),
+      ),
     );
   }, [selectedProviderId, selectedTimeline, selectedWindow, timelines]);
 
@@ -1392,22 +1467,20 @@ function StatsPageContent() {
   }, [selectedWindow, selectedWindowPayload]);
 
   const summary = selectedWindowPayload?.summary ?? null;
-  const requests = summary
-    ? getPayloadRequests(selectedWindowPayload)
-    : null;
+  const requests = summary ? getPayloadRequests(selectedWindowPayload) : null;
   const tokens = summary ? getPayloadTokens(selectedWindowPayload) : null;
   const revenueSats = summary
     ? getPayloadRevenueSats(selectedWindowPayload)
     : null;
   const modelShare = useMemo<ModelSharePoint[]>(
     () => buildModelShare(selectedWindowPayload?.metrics ?? [], selectedMode),
-    [selectedMode, selectedWindowPayload]
+    [selectedMode, selectedWindowPayload],
   );
   const providerComparison = useMemo<ProviderComparisonPoint[]>(() => {
     const rows = timelines
       .map((timeline) => {
         const mergedPayload = mergeWindowPayloads(
-          getPayloadsForTimeline(timeline, selectedWindow)
+          getPayloadsForTimeline(timeline, selectedWindow),
         );
         const payload = mergedPayload
           ? coarsenWindowPayloadForDisplay(mergedPayload, selectedWindow)
@@ -1447,10 +1520,9 @@ function StatsPageContent() {
   }, [selectedMode, selectedWindow, timelines]);
   const showProviderComparison =
     selectedProviderId === ALL_PROVIDERS_ID && providerComparison.length > 0;
-  const activeModelCount =
-    selectedWindowPayload?.metrics.length
-      ? countActiveModels(selectedWindowPayload.metrics, selectedMode)
-      : 0;
+  const activeModelCount = selectedWindowPayload?.metrics.length
+    ? countActiveModels(selectedWindowPayload.metrics, selectedMode)
+    : 0;
   const avgTokensPerRequest =
     requests !== null && tokens !== null && requests > 0
       ? tokens / requests
@@ -1461,10 +1533,12 @@ function StatsPageContent() {
       : null;
   const leadingShare =
     selectedProviderId === ALL_PROVIDERS_ID
-      ? providerComparison[0]?.share ?? null
-      : modelShare[0]?.share ?? null;
+      ? (providerComparison[0]?.share ?? null)
+      : (modelShare[0]?.share ?? null);
   const leadingShareLabel =
-    selectedProviderId === ALL_PROVIDERS_ID ? "Top provider share" : "Top model share";
+    selectedProviderId === ALL_PROVIDERS_ID
+      ? "Top provider share"
+      : "Top model share";
   const updatedStatusText = latestSnapshotUnixSeconds
     ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
     : loading
@@ -1483,10 +1557,16 @@ function StatsPageContent() {
     );
   });
   const respondingRelays = relayStatusList.filter(
-    (relay) => relay.state === "active" || relay.state === "done" || relay.state === "no-data"
+    (relay) =>
+      relay.state === "active" ||
+      relay.state === "done" ||
+      relay.state === "no-data",
   ).length;
   const relayDots = relayStatusList.slice(0, 8);
-  const hiddenRelayDotsCount = Math.max(0, relayStatusList.length - relayDots.length);
+  const hiddenRelayDotsCount = Math.max(
+    0,
+    relayStatusList.length - relayDots.length,
+  );
 
   const relayStatusControl = (
     <Popover open={relayStatusOpen} onOpenChange={setRelayStatusOpen}>
@@ -1531,7 +1611,9 @@ function StatsPageContent() {
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-1 py-0.5 text-[10px]"
               >
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <span className={cn("h-1.5 w-1.5 rounded-full", meta.dotClass)} />
+                  <span
+                    className={cn("h-1.5 w-1.5 rounded-full", meta.dotClass)}
+                  />
                   <span className="truncate text-muted-foreground">
                     {formatRelayLabel(relay.url)}
                   </span>
@@ -1561,7 +1643,9 @@ function StatsPageContent() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 self-start md:self-end">
-              <p className="text-xs text-muted-foreground">{updatedStatusText}</p>
+              <p className="text-xs text-muted-foreground">
+                {updatedStatusText}
+              </p>
               <Button
                 variant="outline"
                 className="h-9 w-auto border-border bg-transparent px-3 text-xs text-foreground hover:bg-muted"
@@ -1595,7 +1679,8 @@ function StatsPageContent() {
                     className="pointer-events-none invisible absolute left-0 top-full z-20 mt-2 w-56 border border-border bg-card/95 p-3 opacity-0 shadow-md transition-all duration-150 peer-hover:visible peer-hover:opacity-100"
                   >
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      This only counts providers that have enabled analytics sharing.
+                      This only counts providers that have enabled analytics
+                      sharing.
                     </p>
                   </div>
                 </div>
@@ -1603,7 +1688,9 @@ function StatsPageContent() {
               {loading ? (
                 <Skeleton className="mt-2 h-8 w-12" />
               ) : (
-                <p className="mt-1 text-2xl text-foreground sm:text-3xl">{formatCompactCount(timelines.length)}</p>
+                <p className="mt-1 text-2xl text-foreground sm:text-3xl">
+                  {formatCompactCount(timelines.length)}
+                </p>
               )}
             </div>
             <div className="border-t border-border pt-3">
@@ -1699,7 +1786,9 @@ function StatsPageContent() {
                 <Skeleton className="mt-2 h-8 w-16" />
               ) : (
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
-                  {leadingShare === null ? "—" : `${(leadingShare * 100).toFixed(1)}%`}
+                  {leadingShare === null
+                    ? "—"
+                    : `${(leadingShare * 100).toFixed(1)}%`}
                 </p>
               )}
             </div>
@@ -1715,7 +1804,10 @@ function StatsPageContent() {
                 <p className="mb-3 text-[10px] tracking-[0.04em] text-muted-foreground">
                   Provider
                 </p>
-                <Popover open={providerDropdownOpen} onOpenChange={setProviderDropdownOpen}>
+                <Popover
+                  open={providerDropdownOpen}
+                  onOpenChange={setProviderDropdownOpen}
+                >
                   <PopoverTrigger asChild>
                     <Button
                       id="stats-provider-select"
@@ -1724,7 +1816,9 @@ function StatsPageContent() {
                       aria-expanded={providerDropdownOpen}
                       className="h-10 w-full justify-between border-border bg-card px-3 text-left text-sm font-normal text-foreground hover:bg-muted hover:text-foreground"
                     >
-                      <span className="truncate">{selectedProviderOption.providerLabel}</span>
+                      <span className="truncate">
+                        {selectedProviderOption.providerLabel}
+                      </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
                     </Button>
                   </PopoverTrigger>
@@ -1752,13 +1846,15 @@ function StatsPageContent() {
                               }}
                               className="rounded px-2 py-2 text-sm text-muted-foreground data-[selected=true]:bg-muted data-[selected=true]:text-foreground"
                             >
-                              <span className="truncate">{option.providerLabel}</span>
+                              <span className="truncate">
+                                {option.providerLabel}
+                              </span>
                               <Check
                                 className={cn(
                                   "ml-auto h-4 w-4",
                                   selectedProviderId === option.providerId
                                     ? "opacity-100 text-foreground"
-                                    : "opacity-0"
+                                    : "opacity-0",
                                 )}
                               />
                             </CommandItem>
@@ -1776,7 +1872,9 @@ function StatsPageContent() {
                 </p>
                 <Tabs
                   value={selectedWindow}
-                  onValueChange={(value) => setSelectedWindow(value as WindowKey)}
+                  onValueChange={(value) =>
+                    setSelectedWindow(value as WindowKey)
+                  }
                 >
                   <TabsList variant="line">
                     {WINDOW_OPTIONS.map((option) => (
@@ -1813,12 +1911,16 @@ function StatsPageContent() {
               <section className="py-4 sm:py-5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <h3 className="text-xl font-bold text-foreground">Model Usage</h3>
+                    <h3 className="text-xl font-bold text-foreground">
+                      Model Usage
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Stacked requests, revenue, or tokens by model.
                     </p>
                   </div>
-                  <div className="shrink-0 text-xs text-muted-foreground">Relays —/—</div>
+                  <div className="shrink-0 text-xs text-muted-foreground">
+                    Relays —/—
+                  </div>
                 </div>
 
                 <div className="pt-2 sm:pt-3">
@@ -1838,7 +1940,9 @@ function StatsPageContent() {
 
               <section className="pt-5 sm:pt-6">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium text-foreground">Top Models</p>
+                  <p className="text-xs font-medium text-foreground">
+                    Top Models
+                  </p>
                   <p className="hidden text-xs text-muted-foreground sm:block">
                     Change vs prior period
                   </p>
@@ -1860,9 +1964,12 @@ function StatsPageContent() {
 
               <section className="py-4 sm:py-5">
                 <div className="min-w-0">
-                  <h3 className="text-xl font-bold text-foreground">Provider Comparison</h3>
+                  <h3 className="text-xl font-bold text-foreground">
+                    Provider Comparison
+                  </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Top providers by {selectedMode} in the {selectedWindow} window.
+                    Top providers by {selectedMode} in the {selectedWindow}{" "}
+                    window.
                   </p>
                 </div>
                 <div className="pt-2 sm:pt-3">
@@ -1889,16 +1996,21 @@ function StatsPageContent() {
 
               <section className="py-4 sm:py-5">
                 <div className="min-w-0">
-                  <h3 className="text-xl font-bold text-foreground">Model Share</h3>
+                  <h3 className="text-xl font-bold text-foreground">
+                    Model Share
+                  </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    How {selectedMode} concentrates across models in the selected window.
+                    How {selectedMode} concentrates across models in the
+                    selected window.
                   </p>
                 </div>
                 <div className="grid gap-6 pt-2 sm:pt-3 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-center">
                   <Skeleton className="mx-auto aspect-square h-[220px] w-[220px] rounded-full sm:h-[240px] sm:w-[240px]" />
                   <div>
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-xs font-medium text-foreground">Share Breakdown</p>
+                      <p className="text-xs font-medium text-foreground">
+                        Share Breakdown
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         Percent of selected total
                       </p>
@@ -1923,10 +2035,13 @@ function StatsPageContent() {
               </section>
             </div>
           ) : error ? (
-            <div className="py-24 text-center text-sm text-muted-foreground">{error}</div>
+            <div className="py-24 text-center text-sm text-muted-foreground">
+              {error}
+            </div>
           ) : !modelUsageMix || modelUsageMix.metrics.length === 0 ? (
             <div className="py-24 text-center text-sm text-muted-foreground">
-              Provider snapshots were found, but no usage was recorded in this window.
+              Provider snapshots were found, but no usage was recorded in this
+              window.
             </div>
           ) : (
             <div className="space-y-6">
@@ -1976,7 +2091,7 @@ export default function StatsPage() {
             refetchOnWindowFocus: false,
           },
         },
-      })
+      }),
   );
 
   return (
