@@ -14,11 +14,14 @@ export function LandingHero() {
       <div className="mx-auto flex min-h-[calc(100svh-72px)] w-full max-w-5xl flex-col items-start justify-center px-4 pb-10 pt-8 sm:min-h-[78svh] sm:px-6 sm:py-16 md:min-h-[85vh] md:px-12 md:py-20">
         <div className="relative z-50 mb-5 w-full text-left sm:mb-6">
           <Link
-            href="/openclaw"
+            href="/routstrd"
             className="group mb-7 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:mb-10 sm:px-4 sm:py-1.5 sm:text-xs"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-            Introducing OpenClaw Integration
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
+              <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </span>
+            Announcing Routstrd
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="12"
