@@ -73,6 +73,24 @@ export interface Provider {
   content: string;
 }
 
+type RawModel = {
+  id?: string;
+  name?: string;
+  created?: number;
+  description?: string;
+  context_length?: number;
+  architecture?: {
+    modality?: string;
+    input_modalities?: string[];
+    output_modalities?: string[];
+    tokenizer?: string;
+    instruct_type?: string | null;
+  };
+  pricing?: Partial<Model["pricing"]>;
+  sats_pricing?: Partial<Model["sats_pricing"]>;
+  per_request_limits?: PerRequestLimits | null;
+};
+
 function isUnknownProviderName(name: string): boolean {
   const normalized = name.trim().toLowerCase();
   return normalized === "unknown";
@@ -182,47 +200,18 @@ export async function fetchModels(
           if (modelsRes.status === "fulfilled" && modelsRes.value.ok) {
             try {
               const m = await modelsRes.value.json();
-              const arr: Array<{
-                id: string;
-                name: string;
-                created: number;
-                description?: string;
-                context_length?: number;
-                architecture?: {
-                  modality?: string;
-                  input_modalities?: string[];
-                  output_modalities?: string[];
-                  tokenizer?: string;
-                  instruct_type?: string | null;
-                };
-                pricing?: {
-                  prompt?: number;
-                  completion?: number;
-                  request?: number;
-                  image?: number;
-                  web_search?: number;
-                  internal_reasoning?: number;
-                  max_cost?: number;
-                };
-                sats_pricing?: {
-                  prompt?: number;
-                  completion?: number;
-                  request?: number;
-                  image?: number;
-                  web_search?: number;
-                  internal_reasoning?: number;
-                  max_cost?: number;
-                };
-                per_request_limits?: PerRequestLimits | null;
-                [key: string]: unknown;
-              }> = Array.isArray(m?.data) ? m.data : [];
-              providerModels = arr.map((rawModel) => {
+              const arr: RawModel[] = Array.isArray(m?.data) ? m.data : [];
+              providerModels = arr.flatMap((rawModel) => {
+                const id = rawModel.id || rawModel.name;
+                if (!id) return [];
+
+                const contextLength = rawModel.context_length ?? 0;
                 const model: Model = {
-                  id: rawModel.id,
-                  name: rawModel.name,
-                  created: rawModel.created,
+                  id,
+                  name: rawModel.name || id,
+                  created: rawModel.created ?? 0,
                   description: rawModel.description ?? "",
-                  context_length: rawModel.context_length ?? 0,
+                  context_length: contextLength,
                   architecture: {
                     modality: rawModel.architecture?.modality ?? "",
                     input_modalities:
@@ -254,12 +243,12 @@ export async function fetchModels(
                   },
                   per_request_limits: rawModel.per_request_limits ?? null,
                   top_provider: {
-                    context_length: rawModel.context_length ?? 0,
+                    context_length: contextLength,
                     max_completion_tokens: null,
                     is_moderated: false,
                   },
                 };
-                return model;
+                return [model];
               });
             } catch {
               // ignore per-provider errors
