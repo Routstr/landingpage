@@ -470,8 +470,9 @@ export default function TopUpPage() {
                 <Textarea
                   value={cashuToken}
                   onChange={(event) => setCashuToken(event.target.value)}
-                  className="min-h-40 border-border bg-card px-4 py-3 font-mono text-xs text-muted-foreground placeholder:text-muted-foreground"
-                  placeholder="cashuA..."
+                  disabled={!apiKey}
+                  className="min-h-40 border-border bg-card px-4 py-3 font-mono text-xs text-muted-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                  placeholder={!apiKey ? "Enter an API key first" : "cashuA..."}
                   rows={6}
                 />
                 <Button
@@ -490,7 +491,8 @@ export default function TopUpPage() {
                       key={presetAmount}
                       variant={amount === presetAmount.toString() ? "secondary" : "outline"}
                       onClick={() => setAmount(presetAmount.toString())}
-                      className="h-10 border-border bg-card px-0 font-mono text-xs text-muted-foreground hover:bg-muted"
+                      disabled={!apiKey}
+                      className="h-10 border-border bg-card px-0 font-mono text-xs text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {presetAmount}
                     </Button>
@@ -501,8 +503,9 @@ export default function TopUpPage() {
                   type="number"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
-                  className="h-12 border-border bg-card text-white placeholder:text-muted-foreground"
-                  placeholder="Custom amount (sats)"
+                  disabled={!apiKey}
+                  className="h-12 border-border bg-card text-white placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                  placeholder={!apiKey ? "Enter an API key first" : "Custom amount (sats)"}
                 />
 
                 {lightningInvoice ? (
@@ -534,7 +537,7 @@ export default function TopUpPage() {
                 ) : (
                   <Button
                     onClick={() => void generateLightningInvoice()}
-                    disabled={isGeneratingInvoice || !amount}
+                    disabled={isGeneratingInvoice || !amount || !apiKey}
                     variant="outline"
                     className="w-full border-border py-6 text-white"
                   >
