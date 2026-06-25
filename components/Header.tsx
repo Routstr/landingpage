@@ -61,12 +61,7 @@ const menuGroups: MenuGroup[] = [
         description: "Use Routstr through the hosted chat client.",
         external: true,
       },
-      {
-        title: "Platform",
-        href: "https://beta.platform.routstr.com",
-        description: "Manage keys, wallets, and node workflows.",
-        external: true,
-      },
+
     ],
   },
   {
@@ -255,16 +250,7 @@ export default function Header() {
                 Chat
                 <ArrowUpRight className="h-4 w-4" />
               </a>
-              <a
-                href="https://beta.platform.routstr.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={closeMobileMenu}
-                className="flex items-center gap-2 text-base font-medium text-foreground"
-              >
-                Platform
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
+
               <a
                 href="https://docs.routstr.com"
                 target="_blank"

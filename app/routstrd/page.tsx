@@ -254,7 +254,6 @@ export default function RoutstrdPage() {
                   { title: "Nostr Profile", url: "https://njump.app/npub1ftt05tgku25m2akgvw6v7aqy5ux5mseqcrzy05g26ml43xf74nyqsredsh" },
                   { title: "GitHub", url: "https://github.com/routstr/routstrd" },
                   { title: "Docs", url: "https://docs.routstr.com" },
-                  { title: "Platform", url: "https://beta.platform.routstr.com" },
                 ].map((item) => (
                   <a key={item.title} href={item.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between border border-border p-4 hover:bg-muted transition-colors">
                     <span className="text-sm font-bold text-foreground group-hover:underline underline-offset-4">{item.title}</span>

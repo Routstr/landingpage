@@ -60,7 +60,7 @@ You can obtain a Cashu token in two ways:
 **Option B: Via any Cashu Wallet**
 
 1. Use any Cashu wallet (e.g., Nutstash, Cashu.me, or a self-hosted wallet)
-2. Top up your wallet with e-cash in [Routstr Platform](https://beta.platform.routstr.com/wallet)
+2. Top up your wallet with e-cash in Routstr Platform
 3. Copy your Cashu token from the wallet
 
 Ensure you have sufficient balance for your intended usage before proceeding.

@@ -91,14 +91,9 @@ export function LandingProducts() {
             <p className="text-muted-foreground leading-relaxed text-sm mb-6 flex-grow">
               One developer console to manage nodes, create API keys, test in the playground, and run wallet operations.
             </p>
-            <Link 
-              href="https://beta.platform.routstr.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={CTA_LINK_CLASS}
-            >
+            <span className={CTA_LINK_CLASS}>
               Open Platform <ExternalLink className={CTA_ICON_CLASS} aria-hidden="true" />
-            </Link>
+            </span>
           </div>
         </div>
       </div>

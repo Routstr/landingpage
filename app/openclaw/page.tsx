@@ -181,7 +181,6 @@ export default function OpenClawPage() {
               { title: "GitHub", url: "https://github.com/openclaw/openclaw" },
               { title: "Docs", url: "https://docs.openclaw.ai" },
               { title: "LNVPS", url: "https://lnvps.net" },
-              { title: "Platform", url: "https://beta.platform.routstr.com" },
             ].map((item) => (
               <a key={item.title} href={item.url} target="_blank" rel="noopener noreferrer" className="group border border-border p-6 hover:bg-muted transition-colors flex items-center justify-between">
                 <span className="text-sm font-bold text-foreground group-hover:underline underline-offset-4">{item.title}</span>

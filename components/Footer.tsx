@@ -18,7 +18,6 @@ export default function Footer() {
   ];
 
   const developerLinks: FooterLink[] = [
-    { text: 'Platform', href: 'https://beta.platform.routstr.com', external: true },
     { text: 'Chat', href: 'https://chat.routstr.com', external: true },
     { text: 'Docs', href: 'https://docs.routstr.com', external: true },
     { text: 'GitHub', href: 'https://github.com/routstr', external: true },

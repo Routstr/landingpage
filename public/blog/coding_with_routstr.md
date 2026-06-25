@@ -43,13 +43,13 @@ Lastly, here's how you can top up your Cashu token and also manage your API keys
 
 ## Top-up and Key Management
 
-I've been using Roo Code and Goose via Routstr for a while now. The best way to keep track of all your Cashu tokens and API keys has been through Routstr Platform [here](https://beta.platform.routstr.com). Here's how:
-1.  Log in to Routstr Platform (beta.platform.routstr.com) using your Nostr extension or create a new nsec just for this.
+I've been using Roo Code and Goose via Routstr for a while now. The best way to keep track of all your Cashu tokens and API keys has been through Routstr Platform. Here's how:
+1.  Log in to Routstr Platform using your Nostr extension or create a new nsec just for this.
 2.  Deposit some sats using Lightning or Cashu into the NIP60 wallet we have. (If you already have a NIP60 wallet attached to your Nostr pubkey, it should show up.)
 3.  Go to the API keys section and create API keys that are encrypted and synced to Nostr relays using NIP44.
 4.  Be sure to back up your `nsec` if you just created it, as your wallet balance and API keys are attached to that private key.
 
-If you just want a way to top up your current Cashu token to avoid creating one every now and then, you can use Routstr Platform wallet [here](https://beta.platform.routstr.com/wallet).
+If you just want a way to top up your current Cashu token to avoid creating one every now and then, you can use Routstr Platform wallet.
 <TOPUP IMAGE>
 
 If you face any issues while trying any of these things, please tag us on Nostr. 
