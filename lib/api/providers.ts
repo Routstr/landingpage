@@ -1,6 +1,6 @@
 import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
 
-export const PROVIDERS_API_URL = "https://api.routstr.com/v1/providers/";
+export const PROVIDERS_API_URL = "https://routstr.otrta.me/v1/providers/";
 
 export interface ProviderApiRecord {
   id: string;
