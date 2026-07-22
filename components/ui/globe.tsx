@@ -275,6 +275,29 @@ export function Globe({ className }: { className?: string }) {
     };
   }, [mounted]);
 
+  // The controls consume wheel events over the canvas for zoom, killing native
+  // page scroll across most of the first screen; mirror the delta to the page.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const passWheelToPage = (event: WheelEvent) => {
+      if (!(event.target instanceof HTMLCanvasElement)) return;
+      // ctrlKey = trackpad pinch; !defaultPrevented = controls let native scroll through.
+      if (event.ctrlKey || !event.defaultPrevented) return;
+      const dy =
+        event.deltaMode === 1
+          ? event.deltaY * 16
+          : event.deltaMode === 2
+            ? event.deltaY * window.innerHeight
+            : event.deltaY;
+      window.scrollBy(0, dy);
+    };
+
+    el.addEventListener("wheel", passWheelToPage, { passive: true });
+    return () => el.removeEventListener("wheel", passWheelToPage);
+  }, [mounted]);
+
   useEffect(() => {
     if (!isMobile) {
       setMobileRotationLocked(false);
