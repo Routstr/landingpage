@@ -48,18 +48,6 @@ export const formatPublicKey = (publicKey: string): string => {
   }
 };
 
-// Decode a npub to get the raw public key
-export const decodePublicKey = (npub: string): string | null => {
-  try {
-    const { type, data } = nip19.decode(npub);
-    if (type !== 'npub') return null;
-    return data as string;
-  } catch (error) {
-    console.error('Error decoding npub:', error);
-    return null;
-  }
-};
-
 // Decode an nsec to get the private key
 export const decodePrivateKey = (nsec: string): Uint8Array | null => {
   try {
@@ -95,16 +83,6 @@ export const signEventWithPrivateKey = (
 // Get public key from private key
 export const getPublicKeyFromPrivateKey = (privateKey: Uint8Array): string => {
   return getPublicKeyFromPrivate(privateKey);
-};
-
-// Validate an nsec key
-export const validateNsec = (nsec: string): boolean => {
-  try {
-    const privateKey = decodePrivateKey(nsec);
-    return privateKey !== null;
-  } catch {
-    return false;
-  }
 };
 
 // Sign an event with the user's Nostr extension

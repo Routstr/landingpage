@@ -46,9 +46,3 @@ export const setLocalCashuToken = (baseUrl: string, token: string): void => {
   }
   setLocalCashuTokens(tokens);
 };
-
-export const removeLocalCashuToken = (baseUrl: string): void => {
-  const tokens = getLocalCashuTokens();
-  const updatedTokens = tokens.filter(entry => entry.baseUrl !== baseUrl);
-  setLocalCashuTokens(updatedTokens);
-};
