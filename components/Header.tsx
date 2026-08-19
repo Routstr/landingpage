@@ -51,9 +51,15 @@ const menuGroups: MenuGroup[] = [
     title: "Products",
     links: [
       {
-        title: "Top-Up",
-        href: "/topup",
-        description: "Fund an API key with Cashu or Lightning.",
+        title: "Routstr Daemon",
+        href: "/routstrd",
+        description: "Local daemon for uncensorable AI access.",
+      },
+      {
+        title: "Hosted Daemon",
+        href: "https://github.com/routstr/routstrd-auth",
+        description: "Serve routstrd to your team from a hosted instance.",
+        external: true,
       },
       {
         title: "Chat",
@@ -61,7 +67,11 @@ const menuGroups: MenuGroup[] = [
         description: "Use Routstr through the hosted chat client.",
         external: true,
       },
-
+      {
+        title: "Top-Up",
+        href: "/topup",
+        description: "Fund an API key with Cashu or Lightning.",
+      },
     ],
   },
   {
@@ -226,6 +236,9 @@ export default function Header() {
               <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
                 Stats
               </Link>
+              <Link href="/routstrd" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+                Routstr Daemon
+              </Link>
               <Link href="/topup" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
                 Top-Up
               </Link>
@@ -248,6 +261,17 @@ export default function Header() {
                 className="flex items-center gap-2 text-base font-medium text-foreground"
               >
                 Chat
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+
+              <a
+                href="https://github.com/routstr/routstrd-auth"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-2 text-base font-medium text-foreground"
+              >
+                Hosted Daemon
                 <ArrowUpRight className="h-4 w-4" />
               </a>
 
