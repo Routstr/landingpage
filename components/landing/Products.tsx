@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ExternalLink, ArrowRight, KeyRound, Paperclip } from "lucide-react";
+import { ExternalLink, ArrowRight, Paperclip } from "lucide-react";
 import Link from "next/link";
 
 const PREVIEW_CONTROL_CLASS =
@@ -13,7 +13,7 @@ const CHAT_PREVIEW_PANEL_STYLE = {
   backgroundSize: "cover",
   backgroundPosition: "center",
 };
-const PLATFORM_PREVIEW_PANEL_STYLE = {
+const DAEMON_PREVIEW_PANEL_STYLE = {
   backgroundImage: "url('/assets/products-preview-platform-bg.svg')",
   backgroundSize: "cover",
   backgroundPosition: "center",
@@ -65,35 +65,41 @@ export function LandingProducts() {
             </Link>
           </div>
 
-          {/* Platform Console */}
+          {/* Daemon */}
           <div className="group flex flex-col relative pt-4 border-t border-border">
             <span className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
               <span className="text-muted-foreground font-normal">02</span>
               <span>Developer</span>
             </span>
-            <div className={PREVIEW_PANEL_CLASS} style={PLATFORM_PREVIEW_PANEL_STYLE}>
-              <button
-                type="button"
-                className={`${PREVIEW_CONTROL_CLASS} inline-flex items-center justify-center gap-2 sm:gap-2.5 text-sm sm:text-base font-medium text-foreground whitespace-nowrap`}
-                aria-label="Create API key"
-              >
-                <KeyRound className="h-4 w-4" />
-                Create API key
-              </button>
+            <div className={PREVIEW_PANEL_CLASS} style={DAEMON_PREVIEW_PANEL_STYLE}>
+              <div className="w-full max-w-[300px] sm:max-w-[340px] rounded-lg border border-border bg-[#111113] overflow-hidden">
+                <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border">
+                  <span className="h-2 w-2 rounded-full bg-red-500/60" />
+                  <span className="h-2 w-2 rounded-full bg-yellow-500/60" />
+                  <span className="h-2 w-2 rounded-full bg-green-500/60" />
+                </div>
+                <div className="px-3 sm:px-4 py-3 font-mono text-[11px] sm:text-xs text-muted-foreground space-y-1">
+                  <div className="flex gap-2 whitespace-nowrap">
+                    <span className="text-green-500">$</span>
+                    <span>bun install -g routstrd</span>
+                  </div>
+                  <div className="flex gap-2 whitespace-nowrap">
+                    <span className="text-green-500">$</span>
+                    <span>routstrd onboard</span>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
-              Routstr Platform
-              <span className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                Beta
-              </span>
+              Routstr Daemon
             </h3>
             <p className="text-muted-foreground leading-relaxed text-sm mb-6 flex-grow">
-              One developer console to manage nodes, create API keys, test in the playground, and run wallet operations.
+              A local daemon for uncensorable access to AI. Discovers nodes on Nostr, auto-routes to the cheapest provider for your model, and pays per request over Lightning.
             </p>
-            <span className={CTA_LINK_CLASS}>
-              Open Platform <ExternalLink className={CTA_ICON_CLASS} aria-hidden="true" />
-            </span>
+            <Link href="/routstrd" className={CTA_LINK_CLASS}>
+              Explore Routstrd <ArrowRight className={CTA_ICON_CLASS} aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </div>

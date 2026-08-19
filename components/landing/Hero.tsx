@@ -55,21 +55,15 @@ export function LandingHero() {
         </p>
         <div className="relative z-50 grid w-full grid-cols-2 gap-3 sm:w-auto sm:flex sm:gap-4">
           <Button asChild className="h-10 w-full px-5 sm:w-auto">
+            <Link href="/routstrd">Run Routstrd Locally</Link>
+          </Button>
+          <Button asChild variant="outline" className="h-10 w-full px-5 sm:w-auto">
             <Link
               href="https://chat.routstr.com"
               target="_blank"
               rel="noreferrer"
             >
               Start Chatting
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="h-10 w-full px-5 sm:w-auto">
-            <Link
-              href="https://chat.routstr.com/?tab=apikeys"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Get API Key
             </Link>
           </Button>
         </div>
