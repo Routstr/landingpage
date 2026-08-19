@@ -342,28 +342,6 @@ export function getModelNameWithoutProvider(modelName: string): string {
   return modelName;
 }
 
-// Format price as a string
-export function formatPrice(model: Model): string {
-  const promptPrice = model.pricing.prompt.toExponential(6);
-  const completionPrice = model.pricing.completion.toExponential(6);
-
-  return `$${promptPrice} prompt / $${completionPrice} completion`;
-}
-
-// Format sats price as a string
-export function formatSatsPrice(model: Model): string {
-  const promptTokensPerSat =
-    model.sats_pricing.prompt > 0
-      ? (1 / model.sats_pricing.prompt).toFixed(2)
-      : "—";
-  const completionTokensPerSat =
-    model.sats_pricing.completion > 0
-      ? (1 / model.sats_pricing.completion).toFixed(2)
-      : "—";
-
-  return `${promptTokensPerSat} tokens/sat prompt / ${completionTokensPerSat} tokens/sat completion`;
-}
-
 // Get primary provider for a model (first provider in mapping)
 export function getPrimaryProviderForModel(
   modelId: string
@@ -382,43 +360,6 @@ export function getPrimaryProviderForModel(
   return providersForModel && providersForModel.length > 0
     ? providersForModel[0]
     : undefined;
-}
-
-// Get USD pricing short string for a model
-export function getUsdPricingShort(model: Model): string {
-  const inPerMTokens = model.pricing.prompt * 1_000_000;
-  const outPerMTokens = model.pricing.completion * 1_000_000;
-  const inStr = `$${inPerMTokens.toFixed(
-    inPerMTokens >= 0.1 ? 2 : 2
-  )}/M input tokens`;
-  const outStr = `$${outPerMTokens.toFixed(
-    outPerMTokens >= 0.1 ? 2 : 2
-  )}/M output tokens`;
-  return `${inStr}  |  ${outStr}`;
-}
-
-// Get the display name for a model (remove provider prefix if present)
-export function getModelDisplayName(model: Model): string {
-  const colonIndex = model.name.indexOf(":");
-  if (colonIndex !== -1) {
-    return model.name.substring(colonIndex + 1).trim();
-  }
-  return model.name;
-}
-
-// Group models by provider
-export function groupModelsByProvider(): Record<string, Model[]> {
-  const grouped: Record<string, Model[]> = {};
-
-  models.forEach((model) => {
-    const provider = getProviderFromModelName(model.name);
-    if (!grouped[provider]) {
-      grouped[provider] = [];
-    }
-    grouped[provider].push(model);
-  });
-
-  return grouped;
 }
 
 // Get popular models (for showcase)

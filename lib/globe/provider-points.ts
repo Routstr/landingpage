@@ -8,10 +8,6 @@ export type ProviderPoint = {
   mints?: string[];
 };
 
-export interface ProviderPointsResponse {
-  points?: ProviderPoint[];
-}
-
 export function isValidLatitude(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= -90 && value <= 90;
 }
