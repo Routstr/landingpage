@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PageContainer, SiteShell } from "@/components/layout/site-shell";
-import { Copy, Check, Search, Zap, Shield, ArrowRight, Terminal, Cpu, Network, ChevronDown } from "lucide-react";
+import { Copy, Check, Search, Zap, Shield, ArrowRight, Terminal, Cpu, Network, ChevronDown, Users } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -97,6 +97,15 @@ export default function RoutstrdPage() {
               <span className="flex items-center gap-2"><Shield className="w-3 h-3 text-green-500" /> No KYC</span>
               <span className="flex items-center gap-2"><Terminal className="w-3 h-3 text-blue-500" /> TUI Included</span>
             </div>
+            <button
+              type="button"
+              onClick={() => document.getElementById("teams")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:px-4 sm:py-1.5 sm:text-xs"
+            >
+              <Users className="w-3 h-3 text-amber-500" />
+              For teams? Click here for the hosted version
+              <ChevronDown className="w-3 h-3" />
+            </button>
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -193,6 +202,68 @@ export default function RoutstrdPage() {
                 <p className="text-muted-foreground text-sm leading-relaxed font-light">{feature.desc}</p>
               </div>
             ))}
+          </div>
+        </PageContainer>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      </section>
+
+      {/* Hosted for Teams */}
+      <section id="teams" className="relative py-16 md:py-20">
+        <PageContainer>
+          <h2 className="text-xl font-bold text-white mb-12">Hosted for Teams</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12">
+            <div>
+              <p className="text-muted-foreground font-light leading-relaxed mb-8">
+                Want to share routstrd with your whole team? <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer" className="text-white font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-auth</a> is a standalone auth proxy that sits in front of the daemon — the public-facing gatekeeper, while routstrd itself runs unauthenticated on localhost only.
+              </p>
+              <div className="space-y-4 text-sm text-muted-foreground font-light">
+                <div className="flex items-start gap-3">
+                  <Shield className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <span>Bearer-token auth (<span className="font-mono">sk-...</span>) in front of the daemon</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Users className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <span>Per-member Nostr keys (npubs) with admin-managed access via <span className="font-mono">routstrd npubs add</span></span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Terminal className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <span>Usage tracking per member and per client (<span className="font-mono">routstrd top</span>)</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Cpu className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <span>Deploy with vanilla Docker or Cloudron</span>
+                </div>
+              </div>
+              <a
+                href="https://github.com/routstr/routstrd-auth"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-amber-500"
+              >
+                View routstrd-auth on GitHub <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white mb-4">Connect your team members</h3>
+              <div className="bg-black/40 border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+                  <span className="text-[10px] text-muted-foreground">bash</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => copyToClipboard("routstrd remote <your-instance>\nroutstrd npubs add <member-npub>", 100)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    {copiedBlock === 100 ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                  </Button>
+                </div>
+                <div className="space-y-1 p-4 font-mono text-[11px] text-muted-foreground">
+                  <div className="flex gap-2 break-all"><span className="text-green-500">$</span><span>{"routstrd remote <your-instance>"}</span></div>
+                  <div className="flex gap-2 break-all"><span className="text-green-500">$</span><span>{"routstrd npubs add <member-npub>"}</span></div>
+                </div>
+              </div>
+            </div>
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
