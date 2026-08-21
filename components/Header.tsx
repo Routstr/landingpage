@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,6 +144,7 @@ function MenuPanel({ links }: { links: MenuLink[] }) {
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
   const closeMobileMenu = () => setMobileMenuOpen(false);
@@ -156,6 +157,31 @@ export default function Header() {
       document.body.style.overflow = previousOverflow;
     };
   }, [mobileMenuOpen]);
+
+  useGSAP(
+    () => {
+      const menu = mobileMenuRef.current;
+      if (!menu) return;
+
+      if (mobileMenuOpen) {
+        gsap.set(menu, { display: "block" });
+        gsap.fromTo(
+          menu,
+          { opacity: 0, y: -10 },
+          { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" }
+        );
+      } else {
+        gsap.to(menu, {
+          opacity: 0,
+          y: -10,
+          duration: 0.2,
+          ease: "power2.in",
+          onComplete: () => gsap.set(menu, { display: "none" }),
+        });
+      }
+    },
+    { dependencies: [mobileMenuOpen] }
+  );
 
   return (
     <header className="w-full bg-background z-[100] relative font-mono">
@@ -218,105 +244,101 @@ export default function Header() {
       </div>
 
       {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed inset-x-0 top-[72px] z-50 max-h-[calc(100vh-72px)] overflow-y-auto bg-background px-4 py-5 sm:top-[80px] sm:max-h-[calc(100vh-80px)] sm:px-6 md:hidden"
+      <div
+        ref={mobileMenuRef}
+        style={{ display: "none", opacity: 0 }}
+        aria-hidden={!mobileMenuOpen}
+        className="fixed inset-x-0 top-[72px] z-50 max-h-[calc(100vh-72px)] overflow-y-auto bg-background px-4 py-5 sm:top-[80px] sm:max-h-[calc(100vh-80px)] sm:px-6 md:hidden"
+      >
+        <div className="flex flex-col gap-5">
+          <Link href="/models" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Models
+          </Link>
+          <Link href="/providers" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Providers
+          </Link>
+          <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Stats
+          </Link>
+          <Link href="/routstrd" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Routstr Daemon
+          </Link>
+          <Link href="/topup" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Top-Up
+          </Link>
+          <Link href="/blog" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Blog
+          </Link>
+          <Link href="/roadmap" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Roadmap
+          </Link>
+        </div>
+
+        <div className="my-5 h-px bg-border" />
+
+        <div className="flex flex-col gap-5">
+          <a
+            href="https://chat.routstr.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeMobileMenu}
+            className="flex items-center gap-2 text-base font-medium text-foreground"
           >
-            <div className="flex flex-col gap-5">
-              <Link href="/models" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Models
-              </Link>
-              <Link href="/providers" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Providers
-              </Link>
-              <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Stats
-              </Link>
-              <Link href="/routstrd" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Routstr Daemon
-              </Link>
-              <Link href="/topup" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Top-Up
-              </Link>
-              <Link href="/blog" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Blog
-              </Link>
-              <Link href="/roadmap" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
-                Roadmap
-              </Link>
-            </div>
+            Chat
+            <ArrowUpRight className="h-4 w-4" />
+          </a>
 
-            <div className="my-5 h-px bg-border" />
+          <a
+            href="https://github.com/routstr/routstrd-auth"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeMobileMenu}
+            className="flex items-center gap-2 text-base font-medium text-foreground"
+          >
+            Hosted Daemon
+            <ArrowUpRight className="h-4 w-4" />
+          </a>
 
-            <div className="flex flex-col gap-5">
-              <a
-                href="https://chat.routstr.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={closeMobileMenu}
-                className="flex items-center gap-2 text-base font-medium text-foreground"
+          <a
+            href="https://docs.routstr.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeMobileMenu}
+            className="flex items-center gap-2 text-base font-medium text-foreground"
+          >
+            Docs
+            <ArrowUpRight className="h-4 w-4" />
+          </a>
+        </div>
+
+        <div className="flex flex-col gap-4 pt-4">
+          <Button
+            variant="outline"
+            asChild
+            className="h-11 w-full border-border bg-muted text-sm font-medium text-foreground hover:bg-muted"
+          >
+            <a
+              href="https://github.com/routstr"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={closeMobileMenu}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+                className="text-amber-400"
               >
-                Chat
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-
-              <a
-                href="https://github.com/routstr/routstrd-auth"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={closeMobileMenu}
-                className="flex items-center gap-2 text-base font-medium text-foreground"
-              >
-                Hosted Daemon
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-
-              <a
-                href="https://docs.routstr.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={closeMobileMenu}
-                className="flex items-center gap-2 text-base font-medium text-foreground"
-              >
-                Docs
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-            </div>
-
-            <div className="flex flex-col gap-4 pt-4">
-              <Button
-                variant="outline"
-                asChild
-                className="h-11 w-full border-border bg-muted text-sm font-medium text-foreground hover:bg-muted"
-              >
-                <a
-                  href="https://github.com/routstr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={closeMobileMenu}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                    className="text-amber-400"
-                  >
-                    <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
-                  </svg>
-                  Star on github
-                  <ArrowUpRight className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
+              </svg>
+              Star on github
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </Button>
+        </div>
+      </div>
     </header>
   );
 }

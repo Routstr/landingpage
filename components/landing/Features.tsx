@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence, useInView } from "framer-motion";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useInView } from "@/hooks/use-in-view";
 import { Bot, User, Zap } from "lucide-react";
 
 export function LandingFeatures() {
@@ -64,8 +65,40 @@ export function LandingFeatures() {
 // Skeletons
 
 const ApiRequestSkeleton = () => {
+    const rootRef = useRef<HTMLDivElement>(null);
+    const highlight1Ref = useRef<HTMLDivElement>(null);
+    const line1Ref = useRef<HTMLDivElement>(null);
+    const highlight2Ref = useRef<HTMLDivElement>(null);
+    const line2Ref = useRef<HTMLDivElement>(null);
+
+    useGSAP(
+      () => {
+        gsap.fromTo(
+          highlight1Ref.current,
+          { opacity: 0, x: -10 },
+          { opacity: 1, x: 0, duration: 0.5, delay: 0.2, ease: "power2.out" }
+        );
+        gsap.fromTo(
+          line1Ref.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.5, delay: 0.4 }
+        );
+        gsap.fromTo(
+          highlight2Ref.current,
+          { opacity: 0, x: -10 },
+          { opacity: 1, x: 0, duration: 0.5, delay: 0.3, ease: "power2.out" }
+        );
+        gsap.fromTo(
+          line2Ref.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.5, delay: 0.5 }
+        );
+      },
+      { scope: rootRef }
+    );
+
     return (
-        <div className="p-0 sm:p-2 md:p-6 w-full h-full flex flex-col justify-center items-center font-mono">
+        <div ref={rootRef} className="p-0 sm:p-2 md:p-6 w-full h-full flex flex-col justify-center items-center font-mono">
             <div className="w-full h-full bg-[#171717] border-0 sm:border border-[#333] sm:rounded-xl overflow-hidden shadow-lg flex flex-col">
                 {/* Terminal header */}
                 <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-[#333] bg-[#222] shrink-0">
@@ -76,41 +109,33 @@ const ApiRequestSkeleton = () => {
                     </div>
                     <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">app.py</span>
                 </div>
-                
+
                 {/* Code block */}
                 <div className="py-4 md:py-5 px-3 md:px-6 text-[9px] sm:text-[10px] md:text-[11px] leading-[1.8] md:leading-[2] text-[#a1a1a1] overflow-hidden flex-1 flex flex-col justify-center">
                     <div className="whitespace-nowrap"><span className="text-[#e5e5e5]">client</span> = <span className="text-[#e5e5e5]">OpenAI</span>(</div>
                     <div className="relative">
-                        <motion.div 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
+                        <div
+                            ref={highlight1Ref}
                             className="absolute -inset-x-3 md:-inset-x-4 inset-y-0 bg-emerald-500/[0.04] border-l-[3px] border-emerald-500/40"
                         />
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.5, delay: 0.4 }}
+                        <div
+                            ref={line1Ref}
                             className="pl-3 md:pl-6 relative whitespace-nowrap overflow-hidden text-ellipsis"
                         >
                             <span className="text-[#888]">base_url</span>=<span className="text-emerald-500/80">&quot;https://api.routstr.com/v1&quot;</span>,
-                        </motion.div>
+                        </div>
                     </div>
                     <div className="relative">
-                        <motion.div 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
+                        <div
+                            ref={highlight2Ref}
                             className="absolute -inset-x-3 md:-inset-x-4 inset-y-0 bg-emerald-500/[0.04] border-l-[3px] border-emerald-500/40"
                         />
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.5, delay: 0.5 }}
+                        <div
+                            ref={line2Ref}
                             className="pl-3 md:pl-6 relative whitespace-nowrap overflow-hidden text-ellipsis"
                         >
                             <span className="text-[#888]">api_key</span>=<span className="text-emerald-500/80">&quot;cashuA...&quot;</span>
-                        </motion.div>
+                        </div>
                     </div>
                     <div>)</div>
                 </div>
@@ -120,10 +145,17 @@ const ApiRequestSkeleton = () => {
 }
 
 const PaymentSkeleton = () => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [paymentStep, setPaymentStep] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: false, amount: 0.3 });
-  
+  const isInView = useInView(rootRef, 0.3);
+
+  const userRef = useRef<HTMLDivElement>(null);
+  const tokenRef = useRef<HTMLDivElement>(null);
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const requestDotRef = useRef<HTMLDivElement>(null);
+  const responseRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!isInView) return;
     const interval = setInterval(() => {
@@ -132,76 +164,116 @@ const PaymentSkeleton = () => {
     return () => clearInterval(interval);
   }, [isInView]);
 
+  useGSAP(
+    () => {
+      gsap.to(userRef.current, {
+        scale: paymentStep >= 1 ? 1.05 : 1,
+        borderColor: paymentStep >= 1 ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.05)",
+        duration: 0.5,
+        ease: "power2.out",
+      });
+
+      gsap.to(tokenRef.current, {
+        x: paymentStep >= 1 ? (paymentStep >= 2 ? 20 : 0) : -20,
+        opacity: paymentStep >= 1 ? (paymentStep >= 2 ? 0 : 1) : 0,
+        duration: 0.5,
+        ease: "power1.inOut",
+      });
+      if (paymentStep === 1) {
+        gsap.fromTo(
+          tokenRef.current,
+          { scale: 1 },
+          { scale: 1.1, duration: 0.25, yoyo: true, repeat: 1, ease: "power1.inOut" }
+        );
+      }
+
+      gsap.to(nodeRef.current, {
+        scale: paymentStep >= 2 ? 1.05 : 1,
+        borderColor: paymentStep >= 2 ? "rgba(245, 158, 11, 0.3)" : "rgba(255, 255, 255, 0.05)",
+        duration: 0.5,
+        ease: "power2.out",
+      });
+
+      gsap.to(requestDotRef.current, {
+        x: paymentStep >= 2 ? (paymentStep >= 3 ? 20 : 0) : -20,
+        opacity: paymentStep >= 2 ? (paymentStep >= 3 ? 0 : 1) : 0,
+        duration: 0.4,
+        ease: "power1.inOut",
+      });
+
+      gsap.to(responseRef.current, {
+        borderColor: paymentStep >= 3 ? "rgba(52, 211, 153, 0.3)" : "rgba(255, 255, 255, 0.05)",
+        duration: 0.4,
+        ease: "power2.out",
+      });
+      if (paymentStep >= 3) {
+        gsap.fromTo(
+          responseRef.current,
+          { scale: 0.95 },
+          { scale: 1.1, duration: 0.2, yoyo: true, repeat: 1, ease: "power2.out" }
+        );
+      } else {
+        gsap.to(responseRef.current, { scale: 1, duration: 0.2 });
+      }
+
+      gsap.to(statusRef.current, {
+        opacity: paymentStep >= 1 ? 1 : 0,
+        y: paymentStep >= 1 ? 0 : 5,
+        duration: 0.4,
+      });
+    },
+    { dependencies: [paymentStep], scope: rootRef }
+  );
+
   return (
-    <div ref={ref} className="w-full h-full relative overflow-hidden flex items-center justify-center scale-75 md:scale-100">
+    <div ref={rootRef} className="w-full h-full relative overflow-hidden flex items-center justify-center scale-75 md:scale-100">
         {/* Payment flow visualization */}
         <div className="relative flex items-center gap-4 md:gap-6 px-4">
             {/* User */}
-            <motion.div 
-                animate={{ 
-                    scale: paymentStep >= 1 ? 1.05 : 1,
-                    borderColor: paymentStep >= 1 ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.05)"
-                }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+            <div
+                ref={userRef}
                 className="w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-[#0a0a0a] flex items-center justify-center z-10"
             >
                 <User size={18} className={paymentStep >= 1 ? "text-[#e5e5e5]" : "text-[#555]"} />
-            </motion.div>
-            
+            </div>
+
             {/* Arrow & Token (Cashu/Lightning) */}
             <div className="flex flex-col items-center justify-center relative w-12 md:w-16">
                 <div className="h-px w-full bg-white/5 absolute top-1/2 -translate-y-1/2" />
-                <motion.div 
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ 
-                        x: paymentStep >= 1 ? (paymentStep >= 2 ? 20 : 0) : -20,
-                        opacity: paymentStep >= 1 ? (paymentStep >= 2 ? 0 : 1) : 0,
-                        scale: paymentStep === 1 ? [1, 1.1, 1] : 1
-                    }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                <div
+                    ref={tokenRef}
                     className="absolute z-20"
+                    style={{ transform: "translateX(-20px)", opacity: 0 }}
                 >
                     <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
                         <span className="text-amber-500/80 font-bold text-[8px] md:text-[10px]">₿</span>
                     </div>
-                </motion.div>
+                </div>
             </div>
-            
+
             {/* Routstr Node */}
-            <motion.div 
-                animate={{ 
-                    scale: paymentStep >= 2 ? 1.05 : 1,
-                    borderColor: paymentStep >= 2 ? "rgba(245, 158, 11, 0.3)" : "rgba(255, 255, 255, 0.05)",
-                }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+            <div
+                ref={nodeRef}
                 className="w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-[#0a0a0a] flex items-center justify-center z-10"
             >
                 <Zap size={18} className={paymentStep >= 2 ? "text-amber-500/90" : "text-[#555]"} />
-            </motion.div>
+            </div>
 
             {/* AI Request flow */}
             <div className="flex flex-col items-center justify-center relative w-12 md:w-16">
                 <div className="h-px w-full bg-white/5 absolute top-1/2 -translate-y-1/2" />
-                <motion.div 
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ 
-                        x: paymentStep >= 2 ? (paymentStep >= 3 ? 20 : 0) : -20,
-                        opacity: paymentStep >= 2 ? (paymentStep >= 3 ? 0 : 1) : 0
-                    }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                <div
+                    ref={requestDotRef}
                     className="absolute z-20"
+                    style={{ transform: "translateX(-20px)", opacity: 0 }}
                 >
                     <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400/80" />
-                </motion.div>
+                </div>
             </div>
 
             {/* AI Response indicator */}
-            <motion.div
-                animate={{
-                    scale: paymentStep >= 3 ? [0.95, 1.1, 1] : 1,
-                    borderColor: paymentStep >= 3 ? "rgba(52, 211, 153, 0.3)" : "rgba(255, 255, 255, 0.05)",
-                }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+            <div
+                ref={responseRef}
                 className="w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-[#0a0a0a] flex items-center justify-center z-10"
             >
                 {paymentStep >= 3 ? (
@@ -209,18 +281,14 @@ const PaymentSkeleton = () => {
                 ) : (
                     <Bot size={18} className="text-[#555]" />
                 )}
-            </motion.div>
+            </div>
         </div>
-        
+
         {/* Status text */}
-        <motion.div 
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ 
-                opacity: paymentStep >= 1 ? 1 : 0,
-                y: paymentStep >= 1 ? 0 : 5
-            }}
-            transition={{ duration: 0.4 }}
+        <div
+            ref={statusRef}
             className="absolute bottom-4 md:bottom-6 left-0 right-0 text-center"
+            style={{ opacity: 0, transform: "translateY(5px)" }}
         >
             <span className={cn(
                 "text-[9px] md:text-[11px] font-mono",
@@ -232,15 +300,20 @@ const PaymentSkeleton = () => {
                 {paymentStep === 2 && "Forwarding request..."}
                 {paymentStep >= 3 && "Streaming response"}
             </span>
-        </motion.div>
+        </div>
     </div>
   );
 };
 
 const NetworkSkeleton = () => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: false, amount: 0.3 });
+  const isInView = useInView(rootRef, 0.3);
+
+  const userNodeRef = useRef<HTMLDivElement>(null);
+  const relayRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const providerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const travelCircleRef = useRef<SVGCircleElement>(null);
 
   useEffect(() => {
     if (!isInView) return;
@@ -262,8 +335,80 @@ const NetworkSkeleton = () => {
     { id: 'p3', x: 85, y: 80 },
   ];
 
+  useGSAP(
+    () => {
+      gsap.to(userNodeRef.current, {
+        scale: step === 1 || step === 3 ? 1.05 : 1,
+        borderColor: step === 1 || step === 3 ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.05)",
+        duration: 0.3,
+      });
+      relayRefs.current.forEach((el) => {
+        gsap.to(el, {
+          scale: step === 1 || step === 2 ? 1.05 : 1,
+          borderColor: step === 1 || step === 2 ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.05)",
+          duration: 0.3,
+        });
+      });
+      providerRefs.current.forEach((el, i) => {
+        gsap.to(el, {
+          scale: step === 0 || (step === 3 && i === 1) ? 1.05 : 1,
+          borderColor: step === 0 || (step === 3 && i === 1) ? "rgba(245, 158, 11, 0.3)" : "rgba(255, 255, 255, 0.05)",
+          duration: 0.3,
+        });
+      });
+    },
+    { dependencies: [step], scope: rootRef }
+  );
+
+  // Traveling dots per step, replicating the framer keyframe fade in/out while moving.
+  useGSAP(
+    () => {
+      const el = travelCircleRef.current;
+      if (!el) return;
+
+      let from: { x: number; y: number };
+      let to: { x: number; y: number };
+      let color: string;
+
+      if (step === 0) {
+        // Providers announce to relays (only animate the first pair for simplicity of a single traveling dot)
+        from = providers[0];
+        to = relays[0];
+        color = "#f59e0b";
+      } else if (step === 1) {
+        from = userNode;
+        to = relays[0];
+        color = "#e5e5e5";
+      } else if (step === 2) {
+        from = relays[0];
+        to = userNode;
+        color = "#e5e5e5";
+      } else {
+        from = userNode;
+        to = providers[1];
+        color = "#10b981";
+      }
+
+      gsap.set(el, {
+        attr: { cx: `${from.x}%`, cy: `${from.y}%` },
+        fill: color,
+        opacity: 0,
+      });
+
+      const tl = gsap.timeline();
+      tl.to(el, { attr: { cx: `${to.x}%`, cy: `${to.y}%` }, duration: 1.2, ease: "power2.out" }, 0);
+      tl.to(el, { opacity: 0.5, duration: 0.6, ease: "none" }, 0);
+      tl.to(el, { opacity: 0, duration: 0.6, ease: "none" }, 0.6);
+
+      return () => {
+        tl.kill();
+      };
+    },
+    { dependencies: [step], scope: rootRef }
+  );
+
   return (
-    <div ref={ref} className="relative w-full h-full overflow-hidden flex items-center justify-center scale-90 md:scale-100">
+    <div ref={rootRef} className="relative w-full h-full overflow-hidden flex items-center justify-center scale-90 md:scale-100">
         <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.6 }}>
             {/* Lines from Relays to Providers */}
             {relays.map(r => providers.map(p => (
@@ -284,92 +429,50 @@ const NetworkSkeleton = () => {
                 />
             ))}
             {/* Direct line User to Provider 2 (for step 3) */}
-            <line 
-                x1={`${userNode.x}%`} y1={`${userNode.y}%`} 
-                x2={`${providers[1].x}%`} y2={`${providers[1].y}%`} 
-                stroke={step === 3 ? "#22c55e" : "transparent"} 
-                strokeWidth="1" 
+            <line
+                x1={`${userNode.x}%`} y1={`${userNode.y}%`}
+                x2={`${providers[1].x}%`} y2={`${providers[1].y}%`}
+                stroke={step === 3 ? "#22c55e" : "transparent"}
+                strokeWidth="1"
                 opacity="0.3"
             />
 
-            {/* Step 0: Providers announce to Relays */}
-            {step === 0 && providers.map((p, i) => (
-                <motion.circle key={`pub-${i}`} r="2.5" fill="#f59e0b"
-                    initial={{ cx: `${p.x}%`, cy: `${p.y}%`, opacity: 0 }}
-                    animate={{ cx: `${relays[i % 2].x}%`, cy: `${relays[i % 2].y}%`, opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                />
-            ))}
-
-            {/* Step 1: User searches Relays */}
-            {step === 1 && relays.map((r, i) => (
-                <motion.circle key={`search-${i}`} r="2.5" fill="#e5e5e5"
-                    initial={{ cx: `${userNode.x}%`, cy: `${userNode.y}%`, opacity: 0 }}
-                    animate={{ cx: `${r.x}%`, cy: `${r.y}%`, opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                />
-            ))}
-
-            {/* Step 2: Relays reply to User */}
-            {step === 2 && relays.map((r, i) => (
-                <motion.circle key={`reply-${i}`} r="2.5" fill="#e5e5e5"
-                    initial={{ cx: `${r.x}%`, cy: `${r.y}%`, opacity: 0 }}
-                    animate={{ cx: `${userNode.x}%`, cy: `${userNode.y}%`, opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                />
-            ))}
-
-            {/* Step 3: User connects to Provider */}
-            {step === 3 && (
-                <motion.circle r="2.5" fill="#10b981"
-                    initial={{ cx: `${userNode.x}%`, cy: `${userNode.y}%`, opacity: 0 }}
-                    animate={{ cx: `${providers[1].x}%`, cy: `${providers[1].y}%`, opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                />
-            )}
+            {/* Traveling dot, re-targeted per step by the effect above */}
+            <circle ref={travelCircleRef} r="2.5" opacity="0" />
         </svg>
 
         {/* Nodes */}
         {/* User */}
-        <motion.div 
-            animate={{ 
-                scale: step === 1 || step === 3 ? 1.05 : 1,
-                borderColor: step === 1 || step === 3 ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.05)"
-            }}
+        <div
+            ref={userNodeRef}
             className="absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-[#0a0a0a] border rounded-full text-[#e5e5e5]"
             style={{ left: `${userNode.x}%`, top: `${userNode.y}%` }}
         >
             <User size={14} />
-        </motion.div>
+        </div>
 
         {/* Relays */}
         {relays.map((r, i) => (
-            <motion.div 
+            <div
                 key={r.id}
-                animate={{ 
-                    scale: step === 1 || step === 2 ? 1.05 : 1,
-                    borderColor: step === 1 || step === 2 ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.05)"
-                }}
+                ref={(el) => { relayRefs.current[i] = el; }}
                 className="absolute w-9 h-9 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-[#0a0a0a] border rounded-full text-[9px] text-[#888] font-mono backdrop-blur-sm"
                 style={{ left: `${r.x}%`, top: `${r.y}%` }}
             >
                 R{i+1}
-            </motion.div>
+            </div>
         ))}
 
         {/* Providers */}
         {providers.map((p, i) => (
-            <motion.div 
+            <div
                 key={p.id}
-                animate={{ 
-                    scale: (step === 0) || (step === 3 && i === 1) ? 1.05 : 1,
-                    borderColor: (step === 0) || (step === 3 && i === 1) ? "rgba(245, 158, 11, 0.3)" : "rgba(255, 255, 255, 0.05)"
-                }}
+                ref={(el) => { providerRefs.current[i] = el; }}
                 className="absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-[#0a0a0a] border rounded-md text-[9px] text-amber-500/70 font-mono"
                 style={{ left: `${p.x}%`, top: `${p.y}%` }}
             >
                 P{i+1}
-            </motion.div>
+            </div>
         ))}
 
         {/* Status text */}
@@ -392,10 +495,13 @@ const NetworkSkeleton = () => {
 };
 
 const DockerSkeleton = () => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [logIndex, setLogIndex] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: false, amount: 0.3 });
-  
+  const isInView = useInView(rootRef, 0.3);
+  const statusDotRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const logRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   const logs = [
     { type: "info", text: "Starting Routstr Proxy v0.1.0..." },
     { type: "success", text: "Connected to relay: wss://relay.damus.io" },
@@ -404,7 +510,7 @@ const DockerSkeleton = () => {
     { type: "payment", text: "Cashu token validated: 150 sats" },
     { type: "success", text: "Response sent (200 OK) • 847 tokens" },
   ];
-  
+
   useEffect(() => {
     if (!isInView) return;
     const interval = setInterval(() => {
@@ -415,8 +521,53 @@ const DockerSkeleton = () => {
 
   const visibleLogs = logs.slice(0, Math.min(logIndex + 1, logs.length));
 
+  useGSAP(
+    () => {
+      if (!statusDotRef.current) return;
+      if (isInView) {
+        gsap.fromTo(
+          statusDotRef.current,
+          { opacity: 0.3 },
+          { opacity: 0.8, duration: 0.75, repeat: -1, yoyo: true, ease: "sine.inOut" }
+        );
+      } else {
+        gsap.to(statusDotRef.current, { opacity: 0.3, duration: 0.3 });
+      }
+    },
+    { dependencies: [isInView], scope: rootRef }
+  );
+
+  useGSAP(
+    () => {
+      if (!cursorRef.current) return;
+      if (isInView) {
+        gsap.fromTo(
+          cursorRef.current,
+          { opacity: 1 },
+          { opacity: 0, duration: 0.5, repeat: -1, yoyo: true, ease: "none" }
+        );
+      } else {
+        gsap.to(cursorRef.current, { opacity: 1, duration: 0.2 });
+      }
+    },
+    { dependencies: [isInView], scope: rootRef }
+  );
+
+  useGSAP(
+    () => {
+      const el = logRefs.current[visibleLogs.length - 1];
+      if (!el) return;
+      gsap.fromTo(
+        el,
+        { opacity: 0, x: -10 },
+        { opacity: 1, x: 0, duration: 0.3, ease: "power2.out" }
+      );
+    },
+    { dependencies: [visibleLogs.length], scope: rootRef }
+  );
+
   return (
-    <div ref={ref} className="w-full h-full p-0 sm:p-2 md:p-6 font-mono text-[9px] sm:text-[10px] md:text-[11px] overflow-hidden flex flex-col justify-center items-center">
+    <div ref={rootRef} className="w-full h-full p-0 sm:p-2 md:p-6 font-mono text-[9px] sm:text-[10px] md:text-[11px] overflow-hidden flex flex-col justify-center items-center">
         <div className="w-full h-full bg-[#171717] border-0 sm:border border-[#333] sm:rounded-xl overflow-hidden shadow-lg flex flex-col">
             {/* Terminal header */}
             <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-[#333] bg-[#222] shrink-0">
@@ -427,58 +578,52 @@ const DockerSkeleton = () => {
                 </div>
                 <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">routstr-proxy</span>
                 <div className="ml-auto flex items-center gap-1.5">
-                    <motion.div 
-                        animate={isInView ? { opacity: [0.3, 0.8, 0.3] } : { opacity: 0.3 }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    <div
+                        ref={statusDotRef}
                         className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white/40"
+                        style={{ opacity: 0.3 }}
                     />
                 </div>
             </div>
-            
+
             <div className="py-3 md:py-5 px-3 md:px-6 flex-1 flex flex-col overflow-hidden leading-[1.6] md:leading-[2]">
                 {/* Command line */}
                 <div className="text-[#e5e5e5] mb-2 md:mb-3 whitespace-nowrap overflow-hidden text-ellipsis shrink-0 text-[8px] sm:text-[10px] md:text-[11px]">
                     <span className="text-[#888] mr-1 md:mr-2">root@routstr:~#</span>docker run -p 8080:8080 routstr/proxy
                 </div>
-                
+
                 {/* Logs */}
                 <div className="flex-1 flex flex-col justify-start min-h-0 overflow-hidden text-[8px] sm:text-[10px] md:text-[11px]">
                     <div className="space-y-1 md:space-y-1.5 w-full flex flex-col">
-                        <AnimatePresence mode="popLayout">
-                            {visibleLogs.map((log, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.3, ease: "easeOut" }}
-                                    className="flex items-start gap-1.5 md:gap-2 w-full"
-                                >
-                                    <span className="text-[#666] shrink-0 hidden sm:inline">12:00:{String(i).padStart(2, '0')}</span>
-                                    <span className={cn(
-                                        "shrink-0 font-bold w-[32px] sm:w-auto",
-                                        log.type === "info" && "text-blue-400/70",
-                                        log.type === "success" && "text-green-400/70",
-                                        log.type === "request" && "text-[#e5e5e5]",
-                                        log.type === "payment" && "text-orange-400/70",
-                                    )}>
-                                        {log.type === "info" && "[INFO]"}
-                                        {log.type === "success" && "[OK]  "}
-                                        {log.type === "request" && "[REQ] "}
-                                        {log.type === "payment" && "[PAY] "}
-                                    </span>
-                                    <span className="text-[#a1a1a1] truncate whitespace-nowrap">{log.text}</span>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                        
-                        <motion.div
-                            animate={isInView ? { opacity: [1, 0, 1] } : { opacity: 1 }}
-                            transition={{ duration: 1, repeat: Infinity }}
+                        {visibleLogs.map((log, i) => (
+                            <div
+                                key={i}
+                                ref={(el) => { logRefs.current[i] = el; }}
+                                className="flex items-start gap-1.5 md:gap-2 w-full"
+                            >
+                                <span className="text-[#666] shrink-0 hidden sm:inline">12:00:{String(i).padStart(2, '0')}</span>
+                                <span className={cn(
+                                    "shrink-0 font-bold w-[32px] sm:w-auto",
+                                    log.type === "info" && "text-blue-400/70",
+                                    log.type === "success" && "text-green-400/70",
+                                    log.type === "request" && "text-[#e5e5e5]",
+                                    log.type === "payment" && "text-orange-400/70",
+                                )}>
+                                    {log.type === "info" && "[INFO]"}
+                                    {log.type === "success" && "[OK]  "}
+                                    {log.type === "request" && "[REQ] "}
+                                    {log.type === "payment" && "[PAY] "}
+                                </span>
+                                <span className="text-[#a1a1a1] truncate whitespace-nowrap">{log.text}</span>
+                            </div>
+                        ))}
+
+                        <div
+                            ref={cursorRef}
                             className="text-[#666] mt-1 shrink-0"
                         >
                             ▋
-                        </motion.div>
+                        </div>
                     </div>
                 </div>
             </div>
