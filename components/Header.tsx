@@ -185,7 +185,7 @@ export default function Header() {
 
   return (
     <header className="w-full bg-background z-[100] relative font-mono">
-      <div className="mx-auto flex min-h-[72px] w-full max-w-5xl items-center justify-between px-4 sm:min-h-[80px] sm:px-6 md:px-12">
+      <div className="mx-auto flex min-h-[72px] w-full max-w-[1800px] items-center justify-between px-4 sm:min-h-[80px] sm:px-[clamp(1rem,5vw,5rem)]">
         <div className="flex items-center gap-6 sm:gap-10">
           <Link href="/" className="flex items-center">
             <span className="text-xl font-bold tracking-tight text-foreground">

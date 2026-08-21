@@ -36,7 +36,7 @@ export function LandingFeatures() {
 
   return (
     <div className="w-full relative">
-      <div className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
+      <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
         <h2 className="text-xl font-bold text-[#e5e5e5] mb-12">Key capabilities</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
           {features.map((feature, index) => (

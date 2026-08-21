@@ -72,7 +72,7 @@ export function LandingBrowseModels() {
 
   return (
     <div className="w-full relative">
-      <div className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
+      <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
           <div>
             <h2 className="text-xl font-bold text-foreground mb-2">

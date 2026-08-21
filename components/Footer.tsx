@@ -29,8 +29,8 @@ export default function Footer() {
   ];
 
   return (
-    <div className="w-full border-t border-border bg-transparent px-4 py-16 font-mono sm:px-6 md:px-12 md:py-24">
-      <div className="mx-auto flex max-w-5xl flex-col justify-between gap-12 md:flex-row md:gap-16">
+    <div className="w-full border-t border-border bg-transparent px-4 py-16 font-mono sm:px-[clamp(1rem,5vw,5rem)] md:py-24">
+      <div className="mx-auto flex max-w-[1800px] flex-col justify-between gap-12 md:flex-row md:gap-16">
         {/* Logo and copyright */}
         <div className="flex-1">
           <Link href="/" className="inline-block mb-6">
@@ -106,7 +106,7 @@ export default function Footer() {
       </div>
 
       {/* Large brand text */}
-      <div className="mx-auto mt-16 max-w-5xl select-none overflow-hidden text-center md:mt-32">
+      <div className="mx-auto mt-16 max-w-[1800px] select-none overflow-hidden text-center md:mt-32">
         <span className="pointer-events-none block text-[3rem] font-bold leading-none tracking-tighter text-card sm:text-[6rem] md:text-[10rem] lg:text-[12rem]">
           Routstr
         </span>

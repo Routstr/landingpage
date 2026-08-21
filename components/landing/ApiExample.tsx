@@ -108,7 +108,7 @@ export function LandingApiExample() {
 
   return (
     <div className="w-full relative">
-      <div className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
+      <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
         <div className="flex flex-col lg:flex-row gap-12">
           <div className="flex-shrink-0 lg:w-1/3">
             <h2 className="text-xl font-bold text-foreground mb-4">

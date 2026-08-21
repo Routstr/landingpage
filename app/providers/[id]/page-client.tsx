@@ -96,7 +96,7 @@ export default function ProviderPage() {
     return (
       <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
         <Header />
-        <main className="flex-grow flex flex-col items-start justify-center px-6 md:px-12 max-w-5xl mx-auto w-full text-left">
+        <main className="flex-grow flex flex-col items-start justify-center px-[clamp(1rem,5vw,5rem)] max-w-[1800px] mx-auto w-full text-left">
           <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Provider Not Found</h1>
           <p className="text-muted-foreground mb-8">The provider you&#39;re looking for doesn&#39;t exist.</p>
           <Link href="/providers" className="text-foreground hover:underline underline-offset-4">Back to providers</Link>
@@ -112,7 +112,7 @@ export default function ProviderPage() {
     <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
       <Header />
       <main className="flex-grow py-12 md:py-20">
-        <div className="max-w-5xl mx-auto px-6 md:px-12">
+        <div className="max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)]">
           <BackButton fallbackHref="/providers" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-12">
             <ArrowLeft className="w-3 h-3" /> Back to Providers
           </BackButton>
@@ -245,7 +245,7 @@ export default function ProviderPage() {
           </div>
         </div>
       </main>
-      <div className="max-w-5xl mx-auto w-full">
+      <div className="max-w-[1800px] mx-auto w-full">
         <Footer />
       </div>
     </div>

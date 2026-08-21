@@ -11,7 +11,7 @@ export function LandingHero() {
 
   return (
     <div ref={parentRef} className="w-full relative overflow-hidden">
-      <div className="mx-auto flex min-h-[calc(100svh-72px)] w-full max-w-5xl flex-col items-start justify-center px-4 pb-10 pt-8 sm:min-h-[78svh] sm:px-6 sm:py-16 md:min-h-[85vh] md:px-12 md:py-20">
+      <div className="mx-auto flex min-h-[calc(100svh-72px)] w-full max-w-[1800px] flex-col items-start justify-center px-[clamp(1rem,5vw,5rem)] pb-10 pt-8 sm:min-h-[78svh] sm:py-16 md:min-h-[85vh] md:py-20">
         <div className="relative z-50 mb-5 w-full text-left sm:mb-6">
           <Link
             href="/routstrd"
