@@ -3,7 +3,23 @@ import "./globals.css";
 import { ModelsProvider } from "./contexts/ModelsContext";
 import { NostrProvider } from "@/context/NostrContext";
 import { PricingProvider } from "./contexts/PricingContext";
+import { ThemeProvider, THEME_STORAGE_KEY } from "./contexts/ThemeContext";
 import { GeistMono } from "geist/font/mono";
+
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("${THEME_STORAGE_KEY}");
+    if (stored === "light") {
+      document.documentElement.classList.remove("dark");
+    } else {
+      document.documentElement.classList.add("dark");
+    }
+  } catch (e) {
+    document.documentElement.classList.add("dark");
+  }
+})();
+`;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://routstr.com"),
@@ -55,7 +71,7 @@ export const metadata: Metadata = {
     creator: "@routstr",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.svg",
   },
 };
 
@@ -70,16 +86,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body
         suppressHydrationWarning
-        className={`${GeistMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground`}
+        className={`${GeistMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground`}
       >
-        <ModelsProvider>
-          <NostrProvider>
-            <PricingProvider>{children}</PricingProvider>
-          </NostrProvider>
-        </ModelsProvider>
+        <ThemeProvider>
+          <ModelsProvider>
+            <NostrProvider>
+              <PricingProvider>{children}</PricingProvider>
+            </NostrProvider>
+          </ModelsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
