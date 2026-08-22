@@ -37,16 +37,16 @@ export function LandingFeatures() {
   return (
     <div className="w-full relative">
       <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
-        <h2 className="text-xl font-bold text-[#e5e5e5] mb-12">Key capabilities</h2>
+        <h2 className="text-xl font-bold text-foreground mb-12">Key capabilities</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
           {features.map((feature, index) => (
             <div key={index} className="flex flex-col group gap-6">
               <div>
-                <h3 className="text-base font-bold text-[#e5e5e5] mb-3 flex items-center gap-2">
-                  <span className="text-[#555555] font-normal text-xs">[{index + 1}]</span>
+                <h3 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
+                  <span className="text-muted-foreground/70 font-normal text-xs">[{index + 1}]</span>
                   {feature.title}
                 </h3>
-                <p className="text-[#a1a1a1] text-sm leading-relaxed font-light">
+                <p className="text-muted-foreground text-sm leading-relaxed font-light">
                   {feature.description}
                 </p>
               </div>
@@ -57,7 +57,7 @@ export function LandingFeatures() {
           ))}
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2c2c2c] to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   );
 }

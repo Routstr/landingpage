@@ -94,7 +94,7 @@ export default function ProviderPage() {
 
   if (!isLoading && !provider) {
     return (
-      <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+      <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
         <Header />
         <main className="flex-grow flex flex-col items-start justify-center px-[clamp(1rem,5vw,5rem)] max-w-[1800px] mx-auto w-full text-left">
           <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Provider Not Found</h1>
@@ -109,7 +109,7 @@ export default function ProviderPage() {
   const features = provider ? getProviderFeatures(provider) : [];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+    <div className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
       <Header />
       <main className="flex-grow py-12 md:py-20">
         <div className="max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)]">
@@ -162,7 +162,7 @@ export default function ProviderPage() {
 
           <div className="flex flex-col mt-20">
             <div className="flex items-center justify-between gap-3 mb-8">
-              <h2 className="text-xl font-bold text-white">Models</h2>
+              <h2 className="text-xl font-bold text-foreground">Models</h2>
             </div>
 
             <div className="flex flex-col">
@@ -202,7 +202,7 @@ export default function ProviderPage() {
                 sortedModels.map((model) => (
                   <Link key={model.id} href={`/models/${model.id}`} className="grid grid-cols-12 gap-4 py-5 border-b border-border/30 px-4 hover:bg-card transition-colors group items-center">
                     <div className="col-span-6">
-                      <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
+                      <span className="font-bold text-sm text-foreground group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
                         {model.name}
                       </span>
                     </div>

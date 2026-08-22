@@ -180,7 +180,7 @@ export default function ModelDetailPage() {
 
   if (loading && !model) {
     return (
-      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
         <Header />
         <div className="px-[clamp(1rem,5vw,5rem)] py-12 max-w-[1800px] mx-auto w-full">
            <div className="h-4 bg-border rounded w-24 mb-12 animate-pulse" />
@@ -200,7 +200,7 @@ export default function ModelDetailPage() {
 
   if (error || notFound) {
     return (
-      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
         <Header />
         <div className="flex-1 flex flex-col items-start justify-center px-[clamp(1rem,5vw,5rem)] max-w-[1800px] mx-auto w-full">
           <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">{error ? "Error" : "Model not found"}</h1>
@@ -248,7 +248,7 @@ export default function ModelDetailPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+    <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
       <Header />
 
       <section className="py-12 md:py-20">

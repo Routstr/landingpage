@@ -19,7 +19,7 @@ export function SiteShell({
   return (
     <div
       className={cn(
-        "flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground",
+        "flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground",
         className
       )}
     >

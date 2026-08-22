@@ -114,13 +114,13 @@ export default function RoutstrdPage() {
       {/* How It Works - 3 Steps */}
       <section className="relative py-16 md:py-20">
         <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">Get Started in 3 Commands</h2>
+          <h2 className="text-xl font-bold text-foreground mb-12">Get Started in 3 Commands</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map((step, idx) => (
               <div key={idx} className="flex flex-col border border-border bg-card p-5 sm:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-xs text-muted-foreground font-bold">{step.step}</span>
-                  <h3 className="text-lg font-bold text-white">{step.title}</h3>
+                  <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
                 </div>
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:mb-8">{step.description}</p>
                 <div className="bg-black/40 border border-border overflow-hidden mb-8 mt-auto">
@@ -155,9 +155,9 @@ export default function RoutstrdPage() {
         <PageContainer>
           <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-16">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 tracking-tight">Beautiful TUI. Real-time visibility.</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6 tracking-tight">Beautiful TUI. Real-time visibility.</h2>
               <div className="space-y-6 text-muted-foreground font-light leading-relaxed">
-                <p><strong className="text-white font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you're connected to, what models are available, and how your balance is doing.</p>
+                <p><strong className="text-foreground font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you're connected to, what models are available, and how your balance is doing.</p>
                 <p>I've been using Routstrd for a month. It was easier to battle-test as its primary user. The competition between nodes is already heating up, which means you're getting the best price for your sats.</p>
               </div>
               <div className="flex gap-2 mt-8">
@@ -191,14 +191,14 @@ export default function RoutstrdPage() {
       {/* Features */}
       <section className="relative py-16 md:py-20">
         <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">How it works</h2>
+          <h2 className="text-xl font-bold text-foreground mb-12">How it works</h2>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
             {features.map((feature, i) => (
               <div key={i} className="flex flex-col border border-border bg-card p-5 sm:p-8">
                 <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center mb-6">
                   <feature.icon className="w-5 h-5 text-foreground" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-3">{feature.title}</h3>
+                <h3 className="text-base font-bold text-foreground mb-3">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed font-light">{feature.desc}</p>
               </div>
             ))}
@@ -210,11 +210,11 @@ export default function RoutstrdPage() {
       {/* Hosted for Teams */}
       <section id="teams" className="relative py-16 md:py-20">
         <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">Hosted for Teams</h2>
+          <h2 className="text-xl font-bold text-foreground mb-12">Hosted for Teams</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12">
             <div>
               <p className="text-muted-foreground font-light leading-relaxed mb-8">
-                Want to share routstrd with your whole team? <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer" className="text-white font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-auth</a> is a standalone auth proxy that sits in front of the daemon — the public-facing gatekeeper, while routstrd itself runs unauthenticated on localhost only.
+                Want to share routstrd with your whole team? <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer" className="text-foreground font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-auth</a> is a standalone auth proxy that sits in front of the daemon — the public-facing gatekeeper, while routstrd itself runs unauthenticated on localhost only.
               </p>
               <div className="space-y-4 text-sm text-muted-foreground font-light">
                 <div className="flex items-start gap-3">
@@ -244,7 +244,7 @@ export default function RoutstrdPage() {
               </a>
             </div>
             <div>
-              <h3 className="text-base font-bold text-white mb-4">Connect your team members</h3>
+              <h3 className="text-base font-bold text-foreground mb-4">Connect your team members</h3>
               <div className="bg-black/40 border border-border overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
                   <span className="text-[10px] text-muted-foreground">bash</span>
@@ -294,7 +294,7 @@ export default function RoutstrdPage() {
         <PageContainer>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div>
-              <h2 className="text-xl font-bold text-white mb-6">Try it out</h2>
+              <h2 className="text-xl font-bold text-foreground mb-6">Try it out</h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">
                 Please give Routstrd a spin. If you face any issues, let us know and we'll fix it fast.
               </p>
@@ -319,7 +319,7 @@ export default function RoutstrdPage() {
               </div>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white mb-6">Resources</h2>
+              <h2 className="text-xl font-bold text-foreground mb-6">Resources</h2>
               <div className="space-y-4">
                 {[
                   { title: "Nostr Profile", url: "https://njump.app/npub1ftt05tgku25m2akgvw6v7aqy5ux5mseqcrzy05g26ml43xf74nyqsredsh" },
@@ -328,7 +328,7 @@ export default function RoutstrdPage() {
                 ].map((item) => (
                   <a key={item.title} href={item.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between border border-border p-4 hover:bg-muted transition-colors">
                     <span className="text-sm font-bold text-foreground group-hover:underline underline-offset-4">{item.title}</span>
-                    <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-white" />
+                    <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
                   </a>
                 ))}
               </div>

@@ -121,7 +121,7 @@ export function LandingBrowseModels() {
                 className="grid grid-cols-12 gap-4 py-5 border-b border-border/30 px-4 hover:bg-card transition-colors group"
               >
                 <div className="col-span-6 md:col-span-6 lg:col-span-6 flex items-center">
-                  <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate">
+                  <span className="font-bold text-sm text-foreground group-hover:underline decoration-muted-foreground underline-offset-4 truncate">
                     {model.name}
                   </span>
                 </div>
@@ -159,7 +159,7 @@ export function LandingBrowseModels() {
         <div className="mt-8">
           <Link
             href="/models"
-            className="inline-flex items-center gap-2 text-sm text-foreground hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-foreground hover:text-foreground transition-colors"
           >
             View all models
             <ArrowRight className="w-3 h-3" />

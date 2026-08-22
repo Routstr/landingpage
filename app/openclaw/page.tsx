@@ -67,7 +67,7 @@ export default function OpenClawPage() {
               OpenClaw in &lt; 5 mins with ₿
             </h1>
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed mb-10">
-              Setup <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer" className="text-white hover:underline underline-offset-4">OpenClaw</a> with a single lightning payment to deploy a VPS with Routstr balance.
+              Setup <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline underline-offset-4">OpenClaw</a> with a single lightning payment to deploy a VPS with Routstr balance.
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-2"><Zap className="w-3 h-3 text-yellow-500" /> Lightning Network</span>
@@ -81,13 +81,13 @@ export default function OpenClawPage() {
 
       <section className="relative py-16 md:py-20">
         <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">Installation</h2>
+          <h2 className="text-xl font-bold text-foreground mb-12">Installation</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {setupOptions.map((option, idx) => (
               <div key={idx} className="flex flex-col border border-border bg-card p-5 sm:p-8">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-1">{option.title}</h3>
+                    <h3 className="text-lg font-bold text-foreground mb-1">{option.title}</h3>
                     <p className="text-xs text-muted-foreground">{option.subtitle}</p>
                   </div>
                   <option.icon className="w-5 h-5 text-muted-foreground" />
@@ -130,10 +130,10 @@ export default function OpenClawPage() {
         <PageContainer>
           <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-16">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 tracking-tight">Your personal AI, running on your hardware.</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6 tracking-tight">Your personal AI, running on your hardware.</h2>
               <div className="space-y-6 text-muted-foreground font-light leading-relaxed">
-                <p><strong className="text-white font-bold">OpenClaw</strong> connects to your life—WhatsApp, Telegram, Slack, Discord, and iMessage. It&apos;s an agent that lives in your terminal and talks to your services.</p>
-                <p>By connecting it to <strong className="text-white font-bold">Routstr</strong>, you bypass subscriptions. Just top up with sats and pay only for what you use.</p>
+                <p><strong className="text-foreground font-bold">OpenClaw</strong> connects to your life—WhatsApp, Telegram, Slack, Discord, and iMessage. It&apos;s an agent that lives in your terminal and talks to your services.</p>
+                <p>By connecting it to <strong className="text-foreground font-bold">Routstr</strong>, you bypass subscriptions. Just top up with sats and pay only for what you use.</p>
               </div>
             </div>
             <div className="relative overflow-hidden border border-border bg-card p-5 font-mono text-[11px] sm:p-6">
@@ -153,7 +153,7 @@ export default function OpenClawPage() {
 
       <section className="relative py-16 md:py-20">
         <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">Skills included</h2>
+          <h2 className="text-xl font-bold text-foreground mb-12">Skills included</h2>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
             {[
               { title: "Balance manager", desc: "Monitor spending and request top-ups automatically.", icon: Zap },
@@ -164,7 +164,7 @@ export default function OpenClawPage() {
                 <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center">
                   <skill.icon className="w-5 h-5 text-foreground" />
                 </div>
-                <h3 className="text-base font-bold text-white">{skill.title}</h3>
+                <h3 className="text-base font-bold text-foreground">{skill.title}</h3>
                 <p className="text-muted-foreground text-xs leading-relaxed font-light">{skill.desc}</p>
               </div>
             ))}
@@ -184,7 +184,7 @@ export default function OpenClawPage() {
             ].map((item) => (
               <a key={item.title} href={item.url} target="_blank" rel="noopener noreferrer" className="group border border-border p-6 hover:bg-muted transition-colors flex items-center justify-between">
                 <span className="text-sm font-bold text-foreground group-hover:underline underline-offset-4">{item.title}</span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-white" />
+                <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
               </a>
             ))}
           </div>

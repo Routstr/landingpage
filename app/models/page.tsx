@@ -347,7 +347,7 @@ export default function ModelsPage() {
                     className="grid grid-cols-12 gap-4 py-5 border-b border-border/30 px-4 hover:bg-card transition-colors group items-center"
                   >
                     <div className="col-span-6 md:col-span-4">
-                      <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
+                      <span className="font-bold text-sm text-foreground group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
                         {model.name}
                       </span>
                     </div>
