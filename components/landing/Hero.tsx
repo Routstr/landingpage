@@ -1,13 +1,25 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Globe } from "@/components/ui/globe";
 import { WordFlip } from "@/components/WordFlip";
+import { ConceptObject } from "@/components/landing/ConceptObject";
 import { Button } from "@/components/ui/button";
+
+const HERO_WORDS = ["Permissionless.", "Decentralized.", "Private."];
+const HERO_WORD_DURATION = 3000;
 
 export function LandingHero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((i) => (i + 1) % HERO_WORDS.length);
+    }, HERO_WORD_DURATION);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div ref={parentRef} className="w-full relative overflow-hidden">
@@ -41,11 +53,13 @@ export function LandingHero() {
 
           <h1 className="mb-0 flex w-full max-w-3xl flex-col items-start text-left text-[2.2rem] font-medium leading-[1.08] text-foreground sm:text-[2.6rem] md:text-4xl lg:text-5xl">
             <span>Access to AI is Now</span>
-            <span className="mt-1.5 text-muted-foreground sm:mt-2 md:mt-3">
+            <span className="mt-1.5 flex items-center gap-3 text-muted-foreground sm:mt-2 sm:gap-4 md:mt-3">
               <WordFlip
-                words={["Permissionless.", "Decentralized.", "Private."]}
+                words={HERO_WORDS}
+                word={HERO_WORDS[wordIndex]}
                 className="font-mono text-left"
               />
+              <ConceptObject stateIndex={wordIndex} className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20" />
             </span>
           </h1>
         </div>
