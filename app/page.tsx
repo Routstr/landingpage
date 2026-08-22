@@ -1,6 +1,7 @@
 "use client";
 import { SiteShell } from "@/components/layout/site-shell";
 import { LandingHero } from "@/components/landing/Hero";
+import { LandingNetworkGlobe } from "@/components/landing/NetworkGlobe";
 import { LandingFeatures } from "@/components/landing/Features";
 import { LandingHowItWorks } from "@/components/landing/HowItWorks";
 import { LandingBrowseModels } from "@/components/landing/BrowseModels";
@@ -13,6 +14,7 @@ export default function Home() {
   return (
     <SiteShell useMain={false}>
       <LandingHero />
+      <LandingNetworkGlobe />
       <LandingFeatures />
       <LandingHowItWorks />
       <LandingProducts />
