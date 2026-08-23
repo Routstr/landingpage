@@ -7,6 +7,7 @@ import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoutstrMark } from "@/components/RoutstrMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { cn } from "@/lib/utils";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -146,6 +147,8 @@ function MenuPanel({ links }: { links: MenuLink[] }) {
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
@@ -160,12 +163,61 @@ export default function Header() {
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const nextScrolled = window.scrollY > 80;
+        setScrolled((current) => (current === nextScrolled ? current : nextScrolled));
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useGSAP(
+    () => {
+      const intro = gsap.timeline({ delay: 1.55 });
+      intro.fromTo(
+        "[data-header-brand]",
+        { opacity: 0, y: -12, filter: "blur(8px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out" }
+      );
+      intro.fromTo(
+        "[data-header-nav-item]",
+        { opacity: 0, y: -8 },
+        { opacity: 1, y: 0, duration: 0.42, stagger: 0.07, ease: "power3.out" },
+        "-=0.28"
+      );
+      intro.fromTo(
+        "[data-header-announcement]",
+        { opacity: 0, y: -8, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.38, ease: "back.out(1.4)" },
+        "-=0.24"
+      );
+      intro.fromTo(
+        "[data-header-actions]",
+        { opacity: 0, y: -8, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "back.out(1.4)" },
+        "-=0.26"
+      );
+    },
+    { scope: headerRef }
+  );
+
   useGSAP(
     () => {
       const menu = mobileMenuRef.current;
       if (!menu) return;
 
       if (mobileMenuOpen) {
+        gsap.killTweensOf(menu);
         gsap.set(menu, { display: "block" });
         gsap.fromTo(
           menu,
@@ -173,6 +225,7 @@ export default function Header() {
           { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" }
         );
       } else {
+        gsap.killTweensOf(menu);
         gsap.to(menu, {
           opacity: 0,
           y: -10,
@@ -186,20 +239,36 @@ export default function Header() {
   );
 
   return (
-    <header className="w-full bg-background z-[100] relative font-mono">
+    <header
+      ref={headerRef}
+      className={cn(
+        "fixed inset-x-0 top-0 z-[100] w-full font-mono transition-[background-color,border-color,box-shadow] duration-300 ease-out",
+        scrolled
+          ? "border-b border-border bg-background/70 backdrop-blur-md"
+          : "border-b border-transparent bg-transparent"
+      )}
+    >
       <div className="mx-auto flex min-h-[72px] w-full max-w-[1800px] items-center justify-between px-4 sm:min-h-[80px] sm:px-[clamp(1rem,5vw,5rem)]">
         <div className="flex items-center gap-6 sm:gap-10">
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" data-header-brand className="flex items-center gap-2.5">
             <RoutstrMark className="h-6 w-6 shrink-0 text-foreground" />
             <span className="text-sm sm:text-base font-medium tracking-[0.28em] text-foreground">
               ROUTSTR
             </span>
           </Link>
+          <Link
+            href="/routstrd"
+            data-header-announcement
+            className="group inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-1 text-[9px] text-muted-foreground transition-colors hover:text-foreground md:hidden"
+          >
+            Routstrd
+            <ArrowUpRight className="h-2.5 w-2.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
 
           <NavigationMenu className="hidden md:flex" viewport>
             <NavigationMenuList>
               {menuGroups.map((group) => (
-                <NavigationMenuItem key={group.title}>
+                <NavigationMenuItem key={group.title} data-header-nav-item>
                   <NavigationMenuTrigger>{group.title}</NavigationMenuTrigger>
                   <NavigationMenuContent className="md:w-[32rem]">
                     <MenuPanel links={group.links} />
@@ -208,9 +277,17 @@ export default function Header() {
               ))}
             </NavigationMenuList>
           </NavigationMenu>
+          <Link
+            href="/routstrd"
+            data-header-announcement
+            className="group hidden items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground lg:inline-flex"
+          >
+            Announcing Routstrd
+            <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div data-header-actions className="hidden items-center gap-3 md:flex">
           <Button
             variant="outline"
             size="sm"
@@ -224,7 +301,7 @@ export default function Header() {
                 height="14"
                 fill="currentColor"
                 viewBox="0 0 16 16"
-                className="text-amber-400"
+                className="mr-1 text-foreground"
               >
                 <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
               </svg>
@@ -235,7 +312,7 @@ export default function Header() {
           <ThemeToggle />
         </div>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div data-header-actions className="flex items-center gap-2 md:hidden">
           <ThemeToggle />
           <button
             className="inline-flex h-10 w-10 items-center justify-center text-foreground"
@@ -336,7 +413,7 @@ export default function Header() {
                 height="16"
                 fill="currentColor"
                 viewBox="0 0 16 16"
-                className="text-amber-400"
+                className="mr-1 text-foreground"
               >
                 <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z" />
               </svg>

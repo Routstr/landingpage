@@ -24,13 +24,21 @@ export function LandingNetworkGlobe() {
             <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background via-transparent to-transparent z-10" />
           </div>
 
-          <div className="absolute bottom-2 left-0 right-0 z-20 text-center sm:bottom-4">
+          <div className="absolute bottom-2 left-0 right-0 z-20 flex flex-wrap items-center justify-center gap-2 px-4 sm:bottom-4">
             <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur-sm sm:text-xs">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
                 <span className="relative h-2 w-2 rounded-full bg-emerald-400" />
               </span>
               Live node activity
+            </p>
+            <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur-sm sm:text-xs">
+              <span className="h-2 w-2 rounded-full bg-orange-400" />
+              API nodes
+              <span className="h-px w-4 bg-orange-400/80" />
+              Request flow
+              <span className="h-2 w-2 rounded-full bg-purple-400" />
+              Nostr relays
             </p>
           </div>
         </div>

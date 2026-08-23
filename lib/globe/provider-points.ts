@@ -6,6 +6,8 @@ export type ProviderPoint = {
   description?: string;
   createdAt?: number;
   mints?: string[];
+  /** Provider's Nostr pubkey — used to match live kind-38422 activity events to this point. */
+  pubkey?: string;
 };
 
 export function isValidLatitude(value: unknown): value is number {
@@ -24,6 +26,7 @@ export function isProviderPoint(value: unknown): value is ProviderPoint {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Record<string, unknown>;
   return (
+    candidate.kind !== "relay" &&
     typeof candidate.id === "string" &&
     typeof candidate.name === "string" &&
     hasValidCoordinates(candidate.lat, candidate.lng)

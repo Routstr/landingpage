@@ -7,7 +7,13 @@ declare module 'three' {
     set(x: number, y: number, z: number): this;
     clone(): Vector3;
     copy(v: Vector3): this;
+    sub(v: Vector3): this;
+    add(v: Vector3): this;
+    normalize(): this;
+    lengthSq(): number;
+    length(): number;
     multiplyScalar(s: number): this;
+    setScalar(s: number): this;
     distanceTo(v: Vector3): number;
   }
 
@@ -15,6 +21,7 @@ declare module 'three' {
     x: number;
     y: number;
     z: number;
+    set(x: number, y: number, z: number): this;
   }
 
   export class Color {
@@ -23,6 +30,7 @@ declare module 'three' {
     b: number;
     constructor(color?: number | string);
     set(color: number | string): this;
+    setHex(hex: number): this;
   }
 
   export class Object3D {
@@ -30,6 +38,8 @@ declare module 'three' {
     rotation: Euler;
     scale: Vector3;
     userData: Record<string, unknown>;
+    renderOrder: number;
+    visible: boolean;
     add(...objects: Object3D[]): this;
     remove(...objects: Object3D[]): this;
   }
@@ -76,6 +86,24 @@ declare module 'three' {
     constructor(radius?: number, detail?: number);
   }
 
+  export class EdgesGeometry extends BufferGeometry {
+    constructor(geometry?: BufferGeometry, thresholdAngle?: number);
+  }
+
+  export class SphereGeometry extends BufferGeometry {
+    constructor(radius?: number, widthSegments?: number, heightSegments?: number);
+  }
+
+  export class CircleGeometry extends BufferGeometry {
+    constructor(radius?: number, segments?: number);
+  }
+
+  export class BoxGeometry extends BufferGeometry {
+    constructor(width?: number, height?: number, depth?: number);
+  }
+
+  export const BackSide: number;
+
   export class TorusGeometry extends BufferGeometry {
     constructor(radius?: number, tube?: number, radialSegments?: number, tubularSegments?: number);
   }
@@ -84,6 +112,33 @@ declare module 'three' {
     constructor(geometry?: BufferGeometry, material?: Material);
     geometry: BufferGeometry;
     material: Material;
+  }
+
+  export class SpriteMaterial {
+    constructor(params?: Record<string, unknown>);
+    opacity: number;
+    color: Color;
+    map: CanvasTexture | null;
+    transparent: boolean;
+    depthWrite: boolean;
+    blending: number;
+    dispose(): void;
+  }
+
+  export class Sprite extends Object3D {
+    constructor(material?: SpriteMaterial);
+    material: SpriteMaterial;
+    center: { x: number; y: number };
+    scale: Vector3;
+  }
+
+  export const NormalBlending: number;
+  export const AdditiveBlending: number;
+
+  export class CanvasTexture {
+    constructor(canvas: HTMLCanvasElement);
+    needsUpdate: boolean;
+    dispose(): void;
   }
 
   export class LineSegments extends Object3D {

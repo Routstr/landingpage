@@ -2,19 +2,25 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import type { Event } from "nostr-tools";
 import GlobeTooltip, { type GlobeTooltipProvider } from "../client/GlobeTooltip";
 import type { GlobeMethods } from "react-globe.gl";
 import dynamic from "next/dynamic";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import {
   fetchProviderPointsFromEndpointIpProgressive,
 } from "@/lib/globe/provider-points-client";
+import { fetchRelayPoints } from "@/lib/globe/relay-points-client";
 import { cn } from "@/lib/utils";
 import {
   isProviderPoint,
   mergeProviderPoints,
   type ProviderPoint,
 } from "@/lib/globe/provider-points";
+import type { RelayPoint } from "@/lib/globe/relay-points";
+import { createPool, getDefaultRelays } from "@/lib/nostr";
+import { gsap } from "@/lib/gsap";
 
 const GlobeComp = dynamic(() => import("react-globe.gl"), { ssr: false });
 const POINT_FETCH_DELAY_MS = 200;
@@ -26,6 +32,26 @@ const STACK_POINT_ALTITUDE_STEP = 0.006;
 const STACK_POINT_RADIUS = 0.34;
 const STACK_SPREAD_DEGREES_BASE = 0.18;
 const STACK_SPREAD_DEGREES_STEP = 0.12;
+// Relay markers are deliberately purple: they identify the Nostr publication
+// rail, while orange remains reserved for paid API request flow.
+const RELAY_POINT_ALTITUDE = 0.008;
+const RELAY_POINT_RADIUS = 0.22;
+const RELAY_COLOR_LIGHT = "#7e22ce";
+const RELAY_COLOR_DARK = "#c084fc";
+// Live-activity pulses at provider node locations — brand orange, used the
+// same sparing way the rest of the design system reserves it (one status
+// dot, one lit facet, here: one ping per live node).
+const ACTIVITY_RING_MAX_RADIUS_DEG = 3.2;
+const ACTIVITY_RING_PROPAGATION_SPEED = 1.6;
+const ACTIVITY_RING_REPEAT_PERIOD_MS = 2600;
+const ANALYTICS_KIND = 38422;
+const ACTIVITY_ROUTE_LIMIT = 18;
+const ACTIVITY_ROUTE_TTL_MS = 12_000;
+const PACKET_FRAME_INTERVAL_MS = 100;
+const PACKET_TRAVEL_MS = 2_200;
+const ACTIVITY_RELAYS = Array.from(
+  new Set([...getDefaultRelays(), "wss://relay.routstr.com", "wss://nos.lol"])
+);
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 type RenderPoint = ProviderPoint & {
@@ -34,6 +60,44 @@ type RenderPoint = ProviderPoint & {
   plotAltitude: number;
   plotRadius: number;
 };
+
+type RelayRenderPoint = RelayPoint & {
+  plotLat: number;
+  plotLng: number;
+  plotAltitude: number;
+  plotRadius: number;
+};
+
+type CombinedRenderPoint = RenderPoint | RelayRenderPoint;
+
+type ActivityRoute = {
+  id: string;
+  startLat: number;
+  startLng: number;
+  endLat: number;
+  endLng: number;
+  color: string;
+  rail: "api" | "nostr";
+  startedAt: number;
+};
+
+type ActivityPacket = {
+  kind: "packet";
+  id: string;
+  lat: number;
+  lng: number;
+  altitude: number;
+  radius: number;
+  color: string;
+};
+
+function isRelayRenderPoint(point: CombinedRenderPoint): point is RelayRenderPoint {
+  return "kind" in point && point.kind === "relay";
+}
+
+function isActivityPacket(point: CombinedRenderPoint | ActivityPacket): point is ActivityPacket {
+  return "kind" in point && point.kind === "packet";
+}
 
 type GlobeRenderBoundaryProps = {
   fallback: React.ReactNode;
@@ -80,9 +144,10 @@ function wrapLongitude(lng: number): number {
   return ((lng + 180) % 360 + 360) % 360 - 180;
 }
 
-async function fetchCountriesGeoJson(): Promise<{ features: Record<string, unknown>[] }> {
+async function fetchCountriesGeoJson(signal: AbortSignal): Promise<{ features: Record<string, unknown>[] }> {
   const res = await fetch(
-    "https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson"
+    "https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson",
+    { signal }
   );
   return res.json();
 }
@@ -135,20 +200,40 @@ export function Globe({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
   const [supportsWebGL, setSupportsWebGL] = useState<boolean | null>(null);
   const isMobile = useIsMobile();
+  const { theme } = useTheme();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hexData, setHexData] = useState<Record<string, unknown>[]>([]);
   const [points, setPoints] = useState<ProviderPoint[]>([]);
+  const [relayPoints, setRelayPoints] = useState<RelayPoint[]>([]);
+  const [activityRoutes, setActivityRoutes] = useState<ActivityRoute[]>([]);
+  const [activityPackets, setActivityPackets] = useState<ActivityPacket[]>([]);
+  const activeRelayIdsRef = useRef(new Set<string>());
   const [size, setSize] = useState(600);
   
   const [selectedProvider, setSelectedProvider] = useState<GlobeTooltipProvider | null>(null);
   const [selectedPos, setSelectedPos] = useState<{ x: number; y: number } | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const mousePosRef = useRef({ x: 0, y: 0 });
+  const pointsRef = useRef<ProviderPoint[]>([]);
+  const relayPointsRef = useRef<RelayPoint[]>([]);
+  const themeRef = useRef(theme);
   
   const [isHoveringTooltip, setIsHoveringTooltip] = useState(false);
   const [mobileRotationLocked, setMobileRotationLocked] = useState(false);
   const hideTimeoutRef = useRef<TimeoutHandle | null>(null);
   const suppressNextGlobeClickRef = useRef(false);
+
+  useEffect(() => {
+    pointsRef.current = points;
+  }, [points]);
+
+  useEffect(() => {
+    relayPointsRef.current = relayPoints;
+  }, [relayPoints]);
+
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   const buildTooltipProvider = (point: ProviderPoint): GlobeTooltipProvider => ({
     ...point,
@@ -202,13 +287,13 @@ export function Globe({ className }: { className?: string }) {
     setSupportsWebGL(browserSupportsWebGL());
     const updateSize = () => {
       const width = window.innerWidth;
-      const targetSize = Math.min(width - 48, 1200);
+      const targetSize = Math.max(1, Math.min(width - 48, 1200));
       setSize(targetSize);
     };
     updateSize();
     window.addEventListener("resize", updateSize);
 
-    void fetchCountriesGeoJson()
+    void fetchCountriesGeoJson(abortController.signal)
       .then((geo) => {
         if (!isMounted) return;
         setHexData(geo.features);
@@ -216,6 +301,15 @@ export function Globe({ className }: { className?: string }) {
       .catch(() => {
         if (!isMounted) return;
         setHexData([]);
+      });
+
+    void fetchRelayPoints({ signal: abortController.signal })
+      .then((fetched) => {
+        if (!isMounted) return;
+        setRelayPoints(fetched);
+      })
+      .catch(() => {
+        // Ignore relay lookup failures — provider nodes still render fine.
       });
 
     // Defer point geolocation work so the globe itself paints first.
@@ -241,7 +335,125 @@ export function Globe({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
+    if (points.length === 0 || relayPoints.length === 0) return;
+
+    const pool = createPool();
+    let closed = false;
+    let relayCursor = 0;
+    const cleanupTimer = window.setInterval(() => {
+      const cutoff = Date.now() - ACTIVITY_ROUTE_TTL_MS;
+      setActivityRoutes((routes) => {
+        const activeRoutes = routes.filter((route) => route.startedAt > cutoff);
+        return activeRoutes.length === routes.length ? routes : activeRoutes;
+      });
+    }, 2_000);
+
+    const sub = pool.subscribeMany(
+      ACTIVITY_RELAYS,
+      { kinds: [ANALYTICS_KIND], limit: 100 },
+      {
+        onevent(event: Event) {
+          if (closed) return;
+          const providers = pointsRef.current;
+          const provider = providers.find((point) => point.pubkey === event.pubkey);
+          if (!provider) return;
+          try {
+            const payload = JSON.parse(event.content) as { schema?: unknown };
+            if (typeof payload.schema !== "string" || !payload.schema.startsWith("routstr.analytics.")) return;
+          } catch {
+            return;
+          }
+
+          const relays = relayPointsRef.current;
+          const activeRelays = relays.filter((relay) => activeRelayIdsRef.current.has(relay.id));
+          const relaySet = activeRelays.length > 0 ? activeRelays : relays;
+          if (relaySet.length === 0) return;
+          const relay = relaySet[relayCursor % relaySet.length];
+          relayCursor += 1;
+          const timestamp = Date.now();
+          const routeId = `${event.id}:${timestamp}`;
+          const nostrRoute: ActivityRoute = {
+            id: `${routeId}:nostr`,
+            startLat: provider.lat,
+            startLng: provider.lng,
+            endLat: relay.lat,
+            endLng: relay.lng,
+            color: themeRef.current === "light" ? "rgba(126, 34, 206, 0.72)" : "rgba(192, 132, 252, 0.88)",
+            rail: "nostr",
+            startedAt: timestamp,
+          };
+          const providerIndex = providers.findIndex((point) => point.id === provider.id);
+          const destination = providers[(providerIndex + 1 + event.id.charCodeAt(0)) % providers.length];
+          const apiRoute: ActivityRoute | null = destination && destination.id !== provider.id
+            ? {
+                id: `${routeId}:api`,
+                startLat: provider.lat,
+                startLng: provider.lng,
+                endLat: destination.lat,
+                endLng: destination.lng,
+                color: "rgba(247, 147, 26, 0.88)",
+                rail: "api",
+                startedAt: timestamp + 350,
+              }
+            : null;
+          setActivityRoutes((routes) => [
+            ...routes.slice(-(ACTIVITY_ROUTE_LIMIT - (apiRoute ? 2 : 1))),
+            nostrRoute,
+            ...(apiRoute ? [apiRoute] : []),
+          ]);
+        },
+        receivedEvent(relay) {
+          activeRelayIdsRef.current.add(relay.url);
+        },
+      }
+    );
+
+    return () => {
+      closed = true;
+      window.clearInterval(cleanupTimer);
+      sub.close();
+      pool.close(ACTIVITY_RELAYS);
+    };
+  }, [points.length, relayPoints.length]);
+
+  useEffect(() => {
+    if (activityRoutes.length === 0) {
+      setActivityPackets((packets) => (packets.length === 0 ? packets : []));
+      return;
+    }
+    let lastFrameAt = 0;
+    const updatePackets = () => {
+      const now = Date.now();
+      if (now - lastFrameAt < PACKET_FRAME_INTERVAL_MS) return;
+      lastFrameAt = now;
+      setActivityPackets(
+        activityRoutes.flatMap((route) => {
+          const age = now - route.startedAt;
+          if (age < 0 || age > ACTIVITY_ROUTE_TTL_MS) return [];
+          const progress = (age % PACKET_TRAVEL_MS) / PACKET_TRAVEL_MS;
+          const arcLift = Math.sin(progress * Math.PI) * 0.16;
+          return [{
+            kind: "packet" as const,
+            id: `${route.id}:packet`,
+            lat: route.startLat + (route.endLat - route.startLat) * progress,
+            lng: route.startLng + (route.endLng - route.startLng) * progress,
+            altitude: 0.026 + arcLift,
+            radius: route.rail === "api" ? 0.28 : 0.23,
+            color: route.rail === "api" ? "#f7931a" : theme === "light" ? "#7e22ce" : "#c084fc",
+          }];
+        })
+      );
+    };
+    gsap.ticker.add(updatePackets);
+    updatePackets();
+    return () => {
+      gsap.ticker.remove(updatePackets);
+    };
+  }, [activityRoutes, theme]);
+
+  useEffect(() => {
     if (!mounted) return;
+    let dampingTimer: TimeoutHandle | null = null;
 
     const checkRef = setInterval(() => {
       if (globeRef.current) {
@@ -261,7 +473,7 @@ export function Globe({ className }: { className?: string }) {
           controls.update();
           
           // Re-enable damping after snap
-          setTimeout(() => {
+          dampingTimer = setTimeout(() => {
             if (globeRef.current) {
               globeRef.current.controls().enableDamping = true;
             }
@@ -272,6 +484,23 @@ export function Globe({ className }: { className?: string }) {
 
     return () => {
       clearInterval(checkRef);
+      if (dampingTimer) clearTimeout(dampingTimer);
+    };
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || !globeRef.current) return;
+    const controls = globeRef.current.controls();
+    if (!controls) return;
+    const breathe = gsap.to(controls, {
+      autoRotateSpeed: -1.35,
+      duration: 3.2,
+      ease: "sine.inOut",
+      repeat: -1,
+      yoyo: true,
+    });
+    return () => {
+      breathe.kill();
     };
   }, [mounted]);
 
@@ -333,9 +562,15 @@ export function Globe({ className }: { className?: string }) {
   }, [isMobile, mobileRotationLocked]);
 
   const globeMaterial = useMemo(
-    () => new THREE.MeshBasicMaterial({ color: 0x141414 }),
-    []
+    () => new THREE.MeshBasicMaterial({ color: theme === "light" ? 0xffffff : 0x141414 }),
+    [theme]
   );
+
+  useEffect(() => {
+    return () => {
+      globeMaterial.dispose();
+    };
+  }, [globeMaterial]);
 
   const renderPoints = useMemo<RenderPoint[]>(() => {
     if (points.length <= 1) {
@@ -410,6 +645,28 @@ export function Globe({ className }: { className?: string }) {
     return output;
   }, [points]);
 
+  const relayRenderPoints = useMemo<RelayRenderPoint[]>(
+    () =>
+      relayPoints.map((point) => ({
+        ...point,
+        plotLat: point.lat,
+        plotLng: point.lng,
+        plotAltitude: RELAY_POINT_ALTITUDE,
+        plotRadius: RELAY_POINT_RADIUS,
+      })),
+    [relayPoints]
+  );
+
+  const combinedRenderPoints = useMemo<CombinedRenderPoint[]>(
+    () => [...renderPoints, ...relayRenderPoints],
+    [renderPoints, relayRenderPoints]
+  );
+
+  const globePoints = useMemo<Array<CombinedRenderPoint | ActivityPacket>>(
+    () => [...combinedRenderPoints, ...activityPackets],
+    [combinedRenderPoints, activityPackets]
+  );
+
   const clearHideTimeout = () => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
@@ -427,7 +684,7 @@ export function Globe({ className }: { className?: string }) {
       ref={containerRef}
       className={className}
       onMouseMove={(e) => {
-        setMousePos({ x: e.clientX, y: e.clientY });
+        mousePosRef.current = { x: e.clientX, y: e.clientY };
       }}
       onMouseEnter={() => {
         if (isMobile) return;
@@ -451,21 +708,63 @@ export function Globe({ className }: { className?: string }) {
           hexPolygonResolution={3}
           hexPolygonMargin={0.3}
           hexPolygonUseDots
-          hexPolygonColor={() => "rgba(255, 255, 255, 0.15)"}
-          pointsData={renderPoints}
-          pointLat={(point: object) => (point as RenderPoint).plotLat}
-          pointLng={(point: object) => (point as RenderPoint).plotLng}
-          pointRadius={(point: object) => (point as RenderPoint).plotRadius}
-          pointAltitude={(point: object) => (point as RenderPoint).plotAltitude}
-          pointColor={() => "#e5e5e5"}
+          hexPolygonColor={() => (theme === "light" ? "rgba(10, 10, 10, 0.15)" : "rgba(255, 255, 255, 0.15)")}
+          pointsData={globePoints}
+          pointLat={(point: object) => {
+            const p = point as CombinedRenderPoint | ActivityPacket;
+            return isActivityPacket(p) ? p.lat : p.plotLat;
+          }}
+          pointLng={(point: object) => {
+            const p = point as CombinedRenderPoint | ActivityPacket;
+            return isActivityPacket(p) ? p.lng : p.plotLng;
+          }}
+          pointRadius={(point: object) => {
+            const p = point as CombinedRenderPoint | ActivityPacket;
+            return isActivityPacket(p) ? p.radius : p.plotRadius;
+          }}
+          pointAltitude={(point: object) => {
+            const p = point as CombinedRenderPoint | ActivityPacket;
+            return isActivityPacket(p) ? p.altitude : p.plotAltitude;
+          }}
+          pointColor={(point: object) => {
+            const p = point as CombinedRenderPoint | ActivityPacket;
+            if (isActivityPacket(p)) return p.color;
+            if (isRelayRenderPoint(p)) return theme === "light" ? RELAY_COLOR_LIGHT : RELAY_COLOR_DARK;
+            return theme === "light" ? "#0a0a0a" : "#e5e5e5";
+          }}
           pointLabel={() => ""}
           showAtmosphere={false}
+          ringsData={combinedRenderPoints}
+          ringLat={(point: object) => (point as CombinedRenderPoint).plotLat}
+          ringLng={(point: object) => (point as CombinedRenderPoint).plotLng}
+          ringColor={(point: object) => {
+            const p = point as CombinedRenderPoint;
+            const color = isRelayRenderPoint(p)
+              ? theme === "light" ? "126, 34, 206" : "192, 132, 252"
+              : "247, 147, 26";
+            const alpha = isRelayRenderPoint(p) ? 0.26 : 0.4;
+            return (t: number) => `rgba(${color}, ${(alpha * (1 - t)).toFixed(3)})`;
+          }}
+          ringMaxRadius={ACTIVITY_RING_MAX_RADIUS_DEG}
+          ringPropagationSpeed={ACTIVITY_RING_PROPAGATION_SPEED}
+          ringRepeatPeriod={ACTIVITY_RING_REPEAT_PERIOD_MS}
+          arcsData={activityRoutes}
+          arcStartLat={(route: object) => (route as ActivityRoute).startLat}
+          arcStartLng={(route: object) => (route as ActivityRoute).startLng}
+          arcEndLat={(route: object) => (route as ActivityRoute).endLat}
+          arcEndLng={(route: object) => (route as ActivityRoute).endLng}
+          arcColor={(route: object) => (route as ActivityRoute).color}
+          arcAltitude={0.18}
+          arcStroke={0.35}
+          arcDashLength={0.35}
+          arcDashGap={0.8}
+          arcDashAnimateTime={1_500}
           onPointHover={(p: unknown) => {
             if (isMobile) return;
             clearHideTimeout();
             if (isProviderPoint(p)) {
               setSelectedProvider(buildTooltipProvider(p));
-              setSelectedPos({ x: mousePos.x, y: mousePos.y });
+              setSelectedPos(mousePosRef.current);
               if (globeRef.current) globeRef.current.controls().autoRotate = false;
             } else {
               hideTimeoutRef.current = setTimeout(() => {
@@ -494,7 +793,7 @@ export function Globe({ className }: { className?: string }) {
             if (eventPos) {
               setSelectedPos(eventPos);
             } else {
-              setSelectedPos({ x: mousePos.x, y: mousePos.y });
+              setSelectedPos(mousePosRef.current);
             }
 
             if (isMobile) {
