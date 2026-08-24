@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import type { Event } from "nostr-tools";
 import GlobeTooltip, { type GlobeTooltipProvider } from "../client/GlobeTooltip";
@@ -144,6 +144,28 @@ function wrapLongitude(lng: number): number {
   return ((lng + 180) % 360 + 360) % 360 - 180;
 }
 
+function getNetworkCenter(points: ProviderPoint[], relayPoints: RelayPoint[]): { lat: number; lng: number } | null {
+  const locations = [...points, ...relayPoints];
+  if (locations.length === 0) return null;
+
+  const { x, y, lat } = locations.reduce(
+    (total, point) => {
+      const longitude = (point.lng * Math.PI) / 180;
+      return {
+        x: total.x + Math.cos(longitude),
+        y: total.y + Math.sin(longitude),
+        lat: total.lat + point.lat,
+      };
+    },
+    { x: 0, y: 0, lat: 0 }
+  );
+
+  return {
+    lat: lat / locations.length,
+    lng: (Math.atan2(y, x) * 180) / Math.PI,
+  };
+}
+
 async function fetchCountriesGeoJson(signal: AbortSignal): Promise<{ features: Record<string, unknown>[] }> {
   const res = await fetch(
     "https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson",
@@ -196,7 +218,12 @@ function GlobeFallback({
   );
 }
 
-export function Globe({ className }: { className?: string }) {
+type GlobeProps = {
+  className?: string;
+  viewportTargetRef?: RefObject<HTMLElement | null>;
+};
+
+export function Globe({ className, viewportTargetRef }: GlobeProps) {
   const [mounted, setMounted] = useState(false);
   const [supportsWebGL, setSupportsWebGL] = useState<boolean | null>(null);
   const isMobile = useIsMobile();
@@ -222,6 +249,13 @@ export function Globe({ className }: { className?: string }) {
   const [mobileRotationLocked, setMobileRotationLocked] = useState(false);
   const hideTimeoutRef = useRef<TimeoutHandle | null>(null);
   const suppressNextGlobeClickRef = useRef(false);
+  const scrollGuidedRef = useRef(false);
+  const selectedProviderRef = useRef<GlobeTooltipProvider | null>(null);
+  const isHoveringTooltipRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const cameraRef = useRef({ lat: 18, lng: -42 });
+  const hasPositionedNetworkRef = useRef(false);
+  const networkCenter = useMemo(() => getNetworkCenter(points, relayPoints), [points, relayPoints]);
 
   useEffect(() => {
     pointsRef.current = points;
@@ -234,6 +268,20 @@ export function Globe({ className }: { className?: string }) {
   useEffect(() => {
     themeRef.current = theme;
   }, [theme]);
+
+  useEffect(() => {
+    selectedProviderRef.current = selectedProvider;
+  }, [selectedProvider]);
+
+  useEffect(() => {
+    isHoveringTooltipRef.current = isHoveringTooltip;
+  }, [isHoveringTooltip]);
+
+  useEffect(() => {
+    if (!networkCenter || hasPositionedNetworkRef.current) return;
+    cameraRef.current = networkCenter;
+    hasPositionedNetworkRef.current = true;
+  }, [networkCenter]);
 
   const buildTooltipProvider = (point: ProviderPoint): GlobeTooltipProvider => ({
     ...point,
@@ -417,6 +465,48 @@ export function Globe({ className }: { className?: string }) {
   }, [points.length, relayPoints.length]);
 
   useEffect(() => {
+    if (points.length < 2 || relayPoints.length === 0) return;
+
+    let cursor = 0;
+    const addRoute = () => {
+      const source = points[cursor % points.length];
+      const destination = points[(cursor + 1) % points.length];
+      const relay = relayPoints[cursor % relayPoints.length];
+      const startedAt = Date.now();
+      const routeId = `network-heartbeat:${startedAt}`;
+      cursor += 1;
+
+      setActivityRoutes((routes) => [
+        ...routes.slice(-(ACTIVITY_ROUTE_LIMIT - 2)),
+        {
+          id: `${routeId}:nostr`,
+          startLat: source.lat,
+          startLng: source.lng,
+          endLat: relay.lat,
+          endLng: relay.lng,
+          color: themeRef.current === "light" ? "rgba(126, 34, 206, 0.72)" : "rgba(192, 132, 252, 0.88)",
+          rail: "nostr",
+          startedAt,
+        },
+        {
+          id: `${routeId}:api`,
+          startLat: source.lat,
+          startLng: source.lng,
+          endLat: destination.lat,
+          endLng: destination.lng,
+          color: "rgba(247, 147, 26, 0.88)",
+          rail: "api",
+          startedAt: startedAt + 350,
+        },
+      ]);
+    };
+
+    addRoute();
+    const heartbeat = window.setInterval(addRoute, 2_600);
+    return () => window.clearInterval(heartbeat);
+  }, [points, relayPoints]);
+
+  useEffect(() => {
     if (activityRoutes.length === 0) {
       setActivityPackets((packets) => (packets.length === 0 ? packets : []));
       return;
@@ -487,6 +577,82 @@ export function Globe({ className }: { className?: string }) {
       if (dampingTimer) clearTimeout(dampingTimer);
     };
   }, [mounted]);
+
+  // Scroll adds angular velocity instead of mapping directly to a camera
+  // position. The resulting deceleration makes trackpad direction changes
+  // feel like a physical globe rather than a scroll-linked slideshow.
+  useEffect(() => {
+    const target = viewportTargetRef?.current;
+    if (!mounted || !target) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame: number | null = null;
+    let previousScrollY = window.scrollY;
+    let previousTime = performance.now();
+    let velocity = 0;
+    let longitude = cameraRef.current.lng;
+    let latitude = cameraRef.current.lat;
+
+    const updateView = (now: number) => {
+      const elapsed = Math.min(now - previousTime, 64);
+      previousTime = now;
+      const globe = globeRef.current;
+      if (!globe) {
+        frame = window.requestAnimationFrame(updateView);
+        return;
+      }
+
+      const rect = target.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const isVisible = rect.top < viewportHeight && rect.bottom > 0;
+      const controls = globe.controls();
+
+      scrollGuidedRef.current = isVisible;
+      if (
+        isVisible &&
+        !reducedMotion.matches &&
+        !isDraggingRef.current &&
+        !selectedProviderRef.current &&
+        !isHoveringTooltipRef.current
+      ) {
+        controls.autoRotate = false;
+        longitude += velocity * (elapsed / 16.67);
+        velocity *= Math.pow(0.93, elapsed / 16.67);
+        cameraRef.current = { lat: latitude, lng: longitude };
+        globe.pointOfView(
+          {
+            lat: latitude + Math.sin((longitude * Math.PI) / 180) * 7,
+            lng: longitude,
+            altitude: 2.8,
+          },
+          0
+        );
+      } else if (!isVisible && !selectedProviderRef.current && !isHoveringTooltipRef.current) {
+        controls.autoRotate = true;
+      }
+
+      frame = window.requestAnimationFrame(updateView);
+    };
+
+    const addScrollMomentum = () => {
+      const scrollY = window.scrollY;
+      const delta = scrollY - previousScrollY;
+      previousScrollY = scrollY;
+      if (isDraggingRef.current && Math.abs(delta) > 0.5) {
+        longitude = cameraRef.current.lng;
+        latitude = cameraRef.current.lat;
+      }
+      velocity = Math.max(-3.2, Math.min(3.2, velocity + delta * 0.012));
+      if (Math.abs(delta) > 0.5) isDraggingRef.current = false;
+    };
+
+    frame = window.requestAnimationFrame(updateView);
+    window.addEventListener("scroll", addScrollMomentum, { passive: true });
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", addScrollMomentum);
+    };
+  }, [mounted, networkCenter, viewportTargetRef]);
 
   useEffect(() => {
     if (!mounted || !globeRef.current) return;
@@ -686,13 +852,25 @@ export function Globe({ className }: { className?: string }) {
       onMouseMove={(e) => {
         mousePosRef.current = { x: e.clientX, y: e.clientY };
       }}
+      onPointerDown={() => {
+        isDraggingRef.current = true;
+      }}
+      onPointerUp={() => {
+        if (!isDraggingRef.current || !globeRef.current) return;
+        const pointOfView = globeRef.current.pointOfView();
+        // Continue from the user's chosen orientation; scrolling later adds
+        // momentum from this position instead of snapping back to a preset.
+        if (typeof pointOfView.lng === "number") {
+          cameraRef.current = { lat: pointOfView.lat, lng: pointOfView.lng };
+        }
+      }}
       onMouseEnter={() => {
         if (isMobile) return;
         if (globeRef.current) globeRef.current.controls().autoRotate = false;
       }}
       onMouseLeave={() => {
         if (isMobile) return;
-        if (globeRef.current && !selectedProvider && !isHoveringTooltip) {
+        if (globeRef.current && !scrollGuidedRef.current && !selectedProvider && !isHoveringTooltip) {
           globeRef.current.controls().autoRotate = true;
         }
       }}
@@ -771,7 +949,7 @@ export function Globe({ className }: { className?: string }) {
                 if (!isHoveringTooltip) {
                   setSelectedProvider(null);
                   setSelectedPos(null);
-                  if (globeRef.current && !containerRef.current?.matches(':hover')) {
+                  if (globeRef.current && !scrollGuidedRef.current && !containerRef.current?.matches(':hover')) {
                     globeRef.current.controls().autoRotate = true;
                   }
                 }
@@ -810,7 +988,7 @@ export function Globe({ className }: { className?: string }) {
               if (globeRef.current) globeRef.current.controls().autoRotate = false;
               return;
             }
-            if (globeRef.current) globeRef.current.controls().autoRotate = true;
+            if (globeRef.current && !scrollGuidedRef.current) globeRef.current.controls().autoRotate = true;
           }}
         />
       </GlobeRenderBoundary>
@@ -825,7 +1003,7 @@ export function Globe({ className }: { className?: string }) {
           setIsHoveringTooltip(false);
           setSelectedProvider(null);
           setSelectedPos(null);
-          if (globeRef.current && !containerRef.current?.matches(':hover')) {
+          if (globeRef.current && !scrollGuidedRef.current && !containerRef.current?.matches(':hover')) {
             globeRef.current.controls().autoRotate = true;
           }
         }}

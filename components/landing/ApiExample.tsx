@@ -59,12 +59,12 @@ print(completion.choices[0].message.content)`,
 type CodeLanguage = "curl" | "javascript" | "python";
 
 const syntaxTokenClasses = {
-  command: "text-[#4FC1FF]",
-  keyword: "text-[#C586C0]",
-  string: "text-[#CE9178]",
-  symbol: "text-[#DCDCAA]",
-  value: "text-[#9CDCFE]",
-  plain: "text-[#D4D4D4]",
+  command: "text-code-blue",
+  keyword: "text-code-purple",
+  string: "text-code-orange",
+  symbol: "text-code-yellow",
+  value: "text-code-lightblue",
+  plain: "text-code-plain",
 } as const;
 
 type SyntaxTokenKind = keyof typeof syntaxTokenClasses;
@@ -186,7 +186,7 @@ const CodeBlock = ({
 }) => {
   if (activeTab === "curl") {
     return (
-      <pre className="text-xs leading-relaxed whitespace-pre text-[#D4D4D4]">
+      <pre className="text-xs leading-relaxed whitespace-pre text-code-plain">
         <code>
           <Tok kind="command">curl</Tok>
           {" -X POST "}
@@ -235,7 +235,7 @@ const CodeBlock = ({
 
   if (activeTab === "javascript") {
     return (
-      <pre className="text-xs leading-relaxed whitespace-pre text-[#D4D4D4]">
+      <pre className="text-xs leading-relaxed whitespace-pre text-code-plain">
         <code>
           <Tok kind="keyword">import</Tok> <Tok kind="symbol">OpenAI</Tok>{" "}
           <Tok kind="keyword">from</Tok> <Tok kind="string">{`'openai'`}</Tok>;{"\n\n"}
@@ -298,7 +298,7 @@ const CodeBlock = ({
 
   if (activeTab === "python") {
     return (
-      <pre className="text-xs leading-relaxed whitespace-pre text-[#D4D4D4]">
+      <pre className="text-xs leading-relaxed whitespace-pre text-code-plain">
         <code>
           <Tok kind="keyword">from</Tok> openai <Tok kind="keyword">import</Tok>{" "}
           <Tok kind="symbol">OpenAI</Tok>
@@ -358,7 +358,7 @@ const TokenInput = ({
     onMouseDown={(e) => e.stopPropagation()}
     onTouchStart={(e) => e.stopPropagation()}
     placeholder="cashuA..."
-    className="inline-block align-middle min-w-0 w-[12ch] sm:w-[18ch] max-w-[50vw] bg-transparent border-b border-border px-1 py-0 text-xs text-[#CE9178] placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
+    className="inline-block align-middle min-w-0 w-[12ch] sm:w-[18ch] max-w-[50vw] bg-transparent border-b border-border px-1 py-0 text-xs text-code-orange placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
   />
 );
 

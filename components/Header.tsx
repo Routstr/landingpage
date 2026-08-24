@@ -183,7 +183,7 @@ export default function Header() {
 
   useGSAP(
     () => {
-      const intro = gsap.timeline({ delay: 1.55 });
+      const intro = gsap.timeline({ delay: 2.75 });
       intro.fromTo(
         "[data-header-brand]",
         { opacity: 0, y: -12, filter: "blur(8px)" },

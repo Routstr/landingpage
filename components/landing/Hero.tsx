@@ -62,29 +62,29 @@ export function LandingHero() {
   // Reveal each part of the message in reading order without layout-affecting tweens.
   useGSAP(
     () => {
-      const intro = gsap.timeline({ delay: 0.16 });
+      const intro = gsap.timeline({ delay: 0.3 });
       intro.fromTo(
-        "[data-hero-title-line]",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.82, ease: "power3.out" }
+        "[data-hero-title-character]",
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, stagger: 0.13, ease: "power3.out" }
       );
       intro.fromTo(
         "[data-hero-word]",
         { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.72, ease: "power3.out" },
-        "-=0.4"
+        { y: 0, opacity: 1, duration: 0.9, ease: "power3.out" },
+        "-=0.28"
       );
       intro.fromTo(
         "[data-hero-description]",
         { y: 14, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.65, ease: "power3.out" },
-        "-=0.28"
+        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+        "-=0.22"
       );
       intro.fromTo(
         "[data-hero-button]",
         { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.52, stagger: 0.16, ease: "power3.out" },
-        "-=0.2"
+        { y: 0, opacity: 1, duration: 0.65, stagger: 0.22, ease: "power3.out" },
+        "-=0.18"
       );
     },
     { scope: rootRef }
@@ -97,7 +97,13 @@ export function LandingHero() {
           data-hero-title
           className="order-1 flex w-full flex-col items-start text-left text-[2.75rem] font-medium leading-[1.08] text-foreground sm:text-[3.25rem] md:order-none md:col-start-1 md:row-start-2 md:text-[2.8125rem] lg:text-[3.75rem]"
         >
-          <span data-hero-title-line className="will-change-transform">AI is Now</span>
+          <span data-hero-title-line className="inline-flex will-change-transform" aria-label="AI is Now">
+            {"AI is Now".split("").map((character, index) => (
+              <span key={`${character}-${index}`} data-hero-title-character className="inline-block whitespace-pre">
+                {character}
+              </span>
+            ))}
+          </span>
           <span data-hero-word className="mt-1.5 will-change-transform text-muted-foreground sm:mt-2 md:mt-3">
             <WordFlip words={HERO_WORDS} word={HERO_WORDS[wordIndex]} className="font-mono text-left" />
           </span>
@@ -106,7 +112,7 @@ export function LandingHero() {
         {/* Mobile: object sits inline in flow. Desktop: full-bleed canvas behind
             the text, pointer-events-none so the CTAs stay clickable. */}
         <div
-          className="order-2 relative min-h-[38svh] w-full md:absolute md:inset-0 md:min-h-0 md:pointer-events-none"
+          className="pointer-events-none order-2 relative min-h-[38svh] w-full md:absolute md:inset-0 md:min-h-0"
           aria-hidden="true"
         >
           <ConceptObject

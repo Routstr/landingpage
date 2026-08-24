@@ -3,23 +3,21 @@ import "./globals.css";
 import { ModelsProvider } from "./contexts/ModelsContext";
 import { NostrProvider } from "@/context/NostrContext";
 import { PricingProvider } from "./contexts/PricingContext";
-import { ThemeProvider, THEME_STORAGE_KEY } from "./contexts/ThemeContext";
-import { GeistMono } from "geist/font/mono";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { Michroma, JetBrains_Mono } from "next/font/google";
 
-const THEME_INIT_SCRIPT = `
-(function () {
-  try {
-    var stored = localStorage.getItem("${THEME_STORAGE_KEY}");
-    if (stored === "light") {
-      document.documentElement.classList.remove("dark");
-    } else {
-      document.documentElement.classList.add("dark");
-    }
-  } catch (e) {
-    document.documentElement.classList.add("dark");
-  }
-})();
-`;
+const michroma = Michroma({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-michroma",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://routstr.com"),
@@ -87,12 +85,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      </head>
       <body
         suppressHydrationWarning
-        className={`${GeistMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground`}
+        className={`${michroma.variable} ${jetbrainsMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground`}
       >
         <ThemeProvider>
           <ModelsProvider>

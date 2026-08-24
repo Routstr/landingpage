@@ -6,6 +6,14 @@ import { gsap, useGSAP } from "@/lib/gsap";
 import { useInView } from "@/hooks/use-in-view";
 import { Bot, User, Zap } from "lucide-react";
 
+// Reads a design-token CSS variable at call time so GSAP-driven SVG/inline
+// values follow the active theme instead of hardcoded dark-mode colors.
+function cssVar(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
 export function LandingFeatures() {
   const features = [
     {
@@ -99,20 +107,20 @@ const ApiRequestSkeleton = () => {
 
     return (
         <div ref={rootRef} className="p-0 sm:p-2 md:p-6 w-full h-full flex flex-col justify-center items-center font-mono">
-            <div className="w-full h-full bg-[#171717] border-0 sm:border border-[#333] sm:rounded-xl overflow-hidden shadow-lg flex flex-col">
+            <div className="w-full h-full bg-card border-0 sm:border border-border sm:rounded-xl overflow-hidden shadow-lg flex flex-col">
                 {/* Terminal header */}
-                <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-[#333] bg-[#222] shrink-0">
+                <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-border bg-muted shrink-0">
                     <div className="flex gap-1.5">
-                        <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
-                        <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
-                        <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
+                        <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-muted-foreground/30"></div>
+                        <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-muted-foreground/30"></div>
+                        <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-muted-foreground/30"></div>
                     </div>
-                    <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">app.py</span>
+                    <span className="text-muted-foreground text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">app.py</span>
                 </div>
 
                 {/* Code block */}
-                <div className="py-4 md:py-5 px-3 md:px-6 text-[9px] sm:text-[10px] md:text-[11px] leading-[1.8] md:leading-[2] text-[#a1a1a1] overflow-hidden flex-1 flex flex-col justify-center">
-                    <div className="whitespace-nowrap"><span className="text-[#e5e5e5]">client</span> = <span className="text-[#e5e5e5]">OpenAI</span>(</div>
+                <div className="py-4 md:py-5 px-3 md:px-6 text-[9px] sm:text-[10px] md:text-[11px] leading-[1.8] md:leading-[2] text-muted-foreground overflow-hidden flex-1 flex flex-col justify-center">
+                    <div className="whitespace-nowrap"><span className="text-foreground">client</span> = <span className="text-foreground">OpenAI</span>(</div>
                     <div className="relative">
                         <div
                             ref={highlight1Ref}
@@ -122,7 +130,7 @@ const ApiRequestSkeleton = () => {
                             ref={line1Ref}
                             className="pl-3 md:pl-6 relative whitespace-nowrap overflow-hidden text-ellipsis"
                         >
-                            <span className="text-[#888]">base_url</span>=<span className="text-emerald-500/80">&quot;https://api.routstr.com/v1&quot;</span>,
+                            <span className="text-muted-foreground">base_url</span>=<span className="text-emerald-500/80">&quot;https://api.routstr.com/v1&quot;</span>,
                         </div>
                     </div>
                     <div className="relative">
@@ -134,7 +142,7 @@ const ApiRequestSkeleton = () => {
                             ref={line2Ref}
                             className="pl-3 md:pl-6 relative whitespace-nowrap overflow-hidden text-ellipsis"
                         >
-                            <span className="text-[#888]">api_key</span>=<span className="text-emerald-500/80">&quot;cashuA...&quot;</span>
+                            <span className="text-muted-foreground">api_key</span>=<span className="text-emerald-500/80">&quot;cashuA...&quot;</span>
                         </div>
                     </div>
                     <div>)</div>
@@ -168,7 +176,6 @@ const PaymentSkeleton = () => {
     () => {
       gsap.to(userRef.current, {
         scale: paymentStep >= 1 ? 1.05 : 1,
-        borderColor: paymentStep >= 1 ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.05)",
         duration: 0.5,
         ease: "power2.out",
       });
@@ -189,7 +196,6 @@ const PaymentSkeleton = () => {
 
       gsap.to(nodeRef.current, {
         scale: paymentStep >= 2 ? 1.05 : 1,
-        borderColor: paymentStep >= 2 ? "rgba(245, 158, 11, 0.3)" : "rgba(255, 255, 255, 0.05)",
         duration: 0.5,
         ease: "power2.out",
       });
@@ -201,11 +207,6 @@ const PaymentSkeleton = () => {
         ease: "power1.inOut",
       });
 
-      gsap.to(responseRef.current, {
-        borderColor: paymentStep >= 3 ? "rgba(52, 211, 153, 0.3)" : "rgba(255, 255, 255, 0.05)",
-        duration: 0.4,
-        ease: "power2.out",
-      });
       if (paymentStep >= 3) {
         gsap.fromTo(
           responseRef.current,
@@ -232,14 +233,17 @@ const PaymentSkeleton = () => {
             {/* User */}
             <div
                 ref={userRef}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-[#0a0a0a] flex items-center justify-center z-10"
+                className={cn(
+                  "w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-card flex items-center justify-center z-10 transition-colors",
+                  paymentStep >= 1 ? "border-foreground/30" : "border-border"
+                )}
             >
-                <User size={18} className={paymentStep >= 1 ? "text-[#e5e5e5]" : "text-[#555]"} />
+                <User size={18} className={paymentStep >= 1 ? "text-foreground" : "text-muted-foreground/40"} />
             </div>
 
             {/* Arrow & Token (Cashu/Lightning) */}
             <div className="flex flex-col items-center justify-center relative w-12 md:w-16">
-                <div className="h-px w-full bg-white/5 absolute top-1/2 -translate-y-1/2" />
+                <div className="h-px w-full bg-border absolute top-1/2 -translate-y-1/2" />
                 <div
                     ref={tokenRef}
                     className="absolute z-20"
@@ -254,14 +258,17 @@ const PaymentSkeleton = () => {
             {/* Routstr Node */}
             <div
                 ref={nodeRef}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-[#0a0a0a] flex items-center justify-center z-10"
+                className={cn(
+                  "w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-card flex items-center justify-center z-10 transition-colors",
+                  paymentStep >= 2 ? "border-amber-500/40" : "border-border"
+                )}
             >
-                <Zap size={18} className={paymentStep >= 2 ? "text-amber-500/90" : "text-[#555]"} />
+                <Zap size={18} className={paymentStep >= 2 ? "text-amber-500/90" : "text-muted-foreground/40"} />
             </div>
 
             {/* AI Request flow */}
             <div className="flex flex-col items-center justify-center relative w-12 md:w-16">
-                <div className="h-px w-full bg-white/5 absolute top-1/2 -translate-y-1/2" />
+                <div className="h-px w-full bg-border absolute top-1/2 -translate-y-1/2" />
                 <div
                     ref={requestDotRef}
                     className="absolute z-20"
@@ -274,12 +281,15 @@ const PaymentSkeleton = () => {
             {/* AI Response indicator */}
             <div
                 ref={responseRef}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-[#0a0a0a] flex items-center justify-center z-10"
+                className={cn(
+                  "w-10 h-10 md:w-12 md:h-12 rounded-xl border bg-card flex items-center justify-center z-10 transition-colors",
+                  paymentStep >= 3 ? "border-emerald-400/40" : "border-border"
+                )}
             >
                 {paymentStep >= 3 ? (
                     <Bot size={18} className="text-emerald-400" />
                 ) : (
-                    <Bot size={18} className="text-[#555]" />
+                    <Bot size={18} className="text-muted-foreground/40" />
                 )}
             </div>
         </div>
@@ -339,20 +349,17 @@ const NetworkSkeleton = () => {
     () => {
       gsap.to(userNodeRef.current, {
         scale: step === 1 || step === 3 ? 1.05 : 1,
-        borderColor: step === 1 || step === 3 ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.05)",
         duration: 0.3,
       });
       relayRefs.current.forEach((el) => {
         gsap.to(el, {
           scale: step === 1 || step === 2 ? 1.05 : 1,
-          borderColor: step === 1 || step === 2 ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.05)",
           duration: 0.3,
         });
       });
       providerRefs.current.forEach((el, i) => {
         gsap.to(el, {
           scale: step === 0 || (step === 3 && i === 1) ? 1.05 : 1,
-          borderColor: step === 0 || (step === 3 && i === 1) ? "rgba(245, 158, 11, 0.3)" : "rgba(255, 255, 255, 0.05)",
           duration: 0.3,
         });
       });
@@ -378,11 +385,11 @@ const NetworkSkeleton = () => {
       } else if (step === 1) {
         from = userNode;
         to = relays[0];
-        color = "#e5e5e5";
+        color = cssVar("--foreground", "#e5e5e5");
       } else if (step === 2) {
         from = relays[0];
         to = userNode;
-        color = "#e5e5e5";
+        color = cssVar("--foreground", "#e5e5e5");
       } else {
         from = userNode;
         to = providers[1];
@@ -409,14 +416,14 @@ const NetworkSkeleton = () => {
 
   return (
     <div ref={rootRef} className="relative w-full h-full overflow-hidden flex items-center justify-center scale-90 md:scale-100">
-        <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.6 }}>
+        <svg className="absolute inset-0 w-full h-full text-border" style={{ opacity: 0.6 }}>
             {/* Lines from Relays to Providers */}
             {relays.map(r => providers.map(p => (
                 <line
                     key={`${r.id}-${p.id}`}
                     x1={`${r.x}%`} y1={`${r.y}%`}
                     x2={`${p.x}%`} y2={`${p.y}%`}
-                    stroke="#ffffff" strokeWidth="1" strokeDasharray="3 3" opacity="0.1"
+                    stroke="currentColor" strokeWidth="1" strokeDasharray="3 3"
                 />
             )))}
             {/* Lines from User to Relays */}
@@ -425,7 +432,7 @@ const NetworkSkeleton = () => {
                     key={`u-${r.id}`}
                     x1={`${userNode.x}%`} y1={`${userNode.y}%`}
                     x2={`${r.x}%`} y2={`${r.y}%`}
-                    stroke="#ffffff" strokeWidth="1" strokeDasharray="3 3" opacity="0.1"
+                    stroke="currentColor" strokeWidth="1" strokeDasharray="3 3"
                 />
             ))}
             {/* Direct line User to Provider 2 (for step 3) */}
@@ -445,7 +452,10 @@ const NetworkSkeleton = () => {
         {/* User */}
         <div
             ref={userNodeRef}
-            className="absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-[#0a0a0a] border rounded-full text-[#e5e5e5]"
+            className={cn(
+              "absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-card border rounded-full text-foreground transition-colors",
+              step === 1 || step === 3 ? "border-foreground/30" : "border-border"
+            )}
             style={{ left: `${userNode.x}%`, top: `${userNode.y}%` }}
         >
             <User size={14} />
@@ -456,7 +466,10 @@ const NetworkSkeleton = () => {
             <div
                 key={r.id}
                 ref={(el) => { relayRefs.current[i] = el; }}
-                className="absolute w-9 h-9 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-[#0a0a0a] border rounded-full text-[9px] text-[#888] font-mono backdrop-blur-sm"
+                className={cn(
+                  "absolute w-9 h-9 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-card border rounded-full text-[9px] text-muted-foreground font-mono backdrop-blur-sm transition-colors",
+                  step === 1 || step === 2 ? "border-foreground/30" : "border-border"
+                )}
                 style={{ left: `${r.x}%`, top: `${r.y}%` }}
             >
                 R{i+1}
@@ -468,7 +481,10 @@ const NetworkSkeleton = () => {
             <div
                 key={p.id}
                 ref={(el) => { providerRefs.current[i] = el; }}
-                className="absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-[#0a0a0a] border rounded-md text-[9px] text-amber-500/70 font-mono"
+                className={cn(
+                  "absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-card border rounded-md text-[9px] text-amber-500/70 font-mono transition-colors",
+                  step === 0 || (step === 3 && i === 1) ? "border-amber-500/40" : "border-border"
+                )}
                 style={{ left: `${p.x}%`, top: `${p.y}%` }}
             >
                 P{i+1}
@@ -480,8 +496,8 @@ const NetworkSkeleton = () => {
             <span className={cn(
                 "text-[9px] md:text-[11px] font-mono",
                 step === 0 && "text-amber-500/60",
-                step === 1 && "text-[#e5e5e5]/80",
-                step === 2 && "text-[#e5e5e5]/80",
+                step === 1 && "text-foreground/80",
+                step === 2 && "text-foreground/80",
                 step === 3 && "text-emerald-500/60"
             )}>
                 {step === 0 && "Providers announce to relays"}
@@ -568,19 +584,19 @@ const DockerSkeleton = () => {
 
   return (
     <div ref={rootRef} className="w-full h-full p-0 sm:p-2 md:p-6 font-mono text-[9px] sm:text-[10px] md:text-[11px] overflow-hidden flex flex-col justify-center items-center">
-        <div className="w-full h-full bg-[#171717] border-0 sm:border border-[#333] sm:rounded-xl overflow-hidden shadow-lg flex flex-col">
+        <div className="w-full h-full bg-card border-0 sm:border border-border sm:rounded-xl overflow-hidden shadow-lg flex flex-col">
             {/* Terminal header */}
-            <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-[#333] bg-[#222] shrink-0">
+            <div className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b border-border bg-muted shrink-0">
                 <div className="flex gap-1.5">
-                    <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
-                    <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
-                    <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#444]"></div>
+                    <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-muted-foreground/30"></div>
+                    <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-muted-foreground/30"></div>
+                    <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-muted-foreground/30"></div>
                 </div>
-                <span className="text-[#888] text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">routstr-proxy</span>
+                <span className="text-muted-foreground text-[9px] md:text-[10px] ml-1 md:ml-2 font-mono">routstr-proxy</span>
                 <div className="ml-auto flex items-center gap-1.5">
                     <div
                         ref={statusDotRef}
-                        className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white/40"
+                        className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-foreground/40"
                         style={{ opacity: 0.3 }}
                     />
                 </div>
@@ -588,8 +604,8 @@ const DockerSkeleton = () => {
 
             <div className="py-3 md:py-5 px-3 md:px-6 flex-1 flex flex-col overflow-hidden leading-[1.6] md:leading-[2]">
                 {/* Command line */}
-                <div className="text-[#e5e5e5] mb-2 md:mb-3 whitespace-nowrap overflow-hidden text-ellipsis shrink-0 text-[8px] sm:text-[10px] md:text-[11px]">
-                    <span className="text-[#888] mr-1 md:mr-2">root@routstr:~#</span>docker run -p 8080:8080 routstr/proxy
+                <div className="text-foreground mb-2 md:mb-3 whitespace-nowrap overflow-hidden text-ellipsis shrink-0 text-[8px] sm:text-[10px] md:text-[11px]">
+                    <span className="text-muted-foreground mr-1 md:mr-2">root@routstr:~#</span>docker run -p 8080:8080 routstr/proxy
                 </div>
 
                 {/* Logs */}
@@ -601,12 +617,12 @@ const DockerSkeleton = () => {
                                 ref={(el) => { logRefs.current[i] = el; }}
                                 className="flex items-start gap-1.5 md:gap-2 w-full"
                             >
-                                <span className="text-[#666] shrink-0 hidden sm:inline">12:00:{String(i).padStart(2, '0')}</span>
+                                <span className="text-muted-foreground/70 shrink-0 hidden sm:inline">12:00:{String(i).padStart(2, '0')}</span>
                                 <span className={cn(
                                     "shrink-0 font-bold w-[32px] sm:w-auto",
                                     log.type === "info" && "text-blue-400/70",
                                     log.type === "success" && "text-green-400/70",
-                                    log.type === "request" && "text-[#e5e5e5]",
+                                    log.type === "request" && "text-foreground",
                                     log.type === "payment" && "text-orange-400/70",
                                 )}>
                                     {log.type === "info" && "[INFO]"}
@@ -614,13 +630,13 @@ const DockerSkeleton = () => {
                                     {log.type === "request" && "[REQ] "}
                                     {log.type === "payment" && "[PAY] "}
                                 </span>
-                                <span className="text-[#a1a1a1] truncate whitespace-nowrap">{log.text}</span>
+                                <span className="text-muted-foreground truncate whitespace-nowrap">{log.text}</span>
                             </div>
                         ))}
 
                         <div
                             ref={cursorRef}
-                            className="text-[#666] mt-1 shrink-0"
+                            className="text-muted-foreground/70 mt-1 shrink-0"
                         >
                             ▋
                         </div>

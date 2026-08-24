@@ -585,7 +585,7 @@ export default function TopUpPage() {
                 <h3 className="mb-4 text-xs font-bold tracking-widest text-green-500">
                   Refund issued
                 </h3>
-                <div className="mb-4 overflow-hidden border border-green-500/20 bg-black/40 p-3">
+                <div className="mb-4 overflow-hidden border border-green-500/20 bg-muted p-3">
                   <p className="line-clamp-4 break-all font-mono text-[9px] text-green-500/70">
                     {refundedToken}
                   </p>

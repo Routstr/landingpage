@@ -93,8 +93,8 @@ export default function OpenClawPage() {
                   <option.icon className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:mb-8">{option.description}</p>
-                <div className="bg-black/40 border border-border overflow-hidden mb-8">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+                <div className="bg-muted border border-border overflow-hidden mb-8">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-foreground/5">
                     <span className="text-[10px] text-muted-foreground">bash</span>
                     <Button
                       type="button"

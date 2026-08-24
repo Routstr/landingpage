@@ -24,7 +24,11 @@ export function SiteShell({
       )}
     >
       <Header />
-      {useMain ? <main className={cn("flex-grow", contentClassName)}>{children}</main> : children}
+      {useMain ? (
+        <main className={cn("flex-grow pt-[72px] sm:pt-[80px]", contentClassName)}>{children}</main>
+      ) : (
+        children
+      )}
       <div className="mx-auto w-full max-w-[1800px]">
         <Footer />
       </div>

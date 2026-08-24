@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Logo lab — Routstr</title>
+<link rel="icon" href="/icon.svg">
+<script>
+  (function () {
+    try {
+      var KEY = "routstr-logo-lab-theme";
+      var stored = localStorage.getItem(KEY);
+      var theme = stored === "light" || stored === "dark" ? stored : "dark";
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+</script>
+<style>
+/* lifted from app/globals.css — dark tokens are the default (:root), light tokens override
+   under [data-theme="light"]. This governs page CHROME only — the light/dark preview tiles
+   inside each card are hardcoded to routstr's real background/foreground pairs and never move. */
+:root{
+  --background:#111111; --foreground:#e5e5e5; --card:#161616; --card-foreground:#e5e5e5;
+  --border:#2c2c2c; --input:#2c2c2c; --muted:#1a1a1a; --muted-foreground:#a1a1a1; --ring:#7a7a7a;
+  --radius:1rem; --radius-md:calc(1rem - 2px); --radius-sm:calc(1rem - 4px); --radius-xl:calc(1rem + 4px);
+  --destructive:oklch(0.704 0.191 22.216);
+  --font-mono: ui-monospace, SFMono-Regular, "Geist Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+:root[data-theme="light"]{
+  --background:#fafafa; --foreground:#0a0a0a; --card:#ffffff; --card-foreground:#0a0a0a;
+  --border:#e2e2e2; --input:#e2e2e2; --muted:#f0f0f0; --muted-foreground:#6b6b6b; --ring:#b5b5b5;
+  --destructive:oklch(0.577 0.245 27.325);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-mono);padding:48px clamp(16px,4vw,64px) 140px;line-height:1.5;overflow-x:hidden;transition:background 0.15s ease,color 0.15s ease}
+a{color:inherit}
+.kicker{color:var(--muted-foreground);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;font-size:0.72rem;margin:0 0 12px}
+h1{margin:0 0 10px;font-size:clamp(1.9rem,4vw,2.9rem);font-weight:600;letter-spacing:-0.01em}
+
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.intro{max-width:78ch}
+.intro p{color:var(--muted-foreground);font-size:0.92rem;margin:0}
+
+.theme-toggle{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;background:var(--card)}
+.theme-toggle button{border:none;background:transparent;color:var(--muted-foreground);border-radius:999px;padding:7px 16px;font:inherit;font-weight:700;font-size:0.78rem;cursor:pointer}
+.theme-toggle button[aria-pressed="true"]{background:var(--foreground);color:var(--background)}
+
+.tabs{position:sticky;top:0;z-index:10;display:flex;gap:8px;padding:14px 0;background:var(--background);margin-bottom:22px;border-bottom:1px solid var(--border);flex-wrap:wrap;overflow-x:auto}
+.tabs button{border:1px solid var(--border);background:var(--card);color:var(--muted-foreground);border-radius:999px;padding:9px 18px;font:inherit;font-weight:600;font-size:0.85rem;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--foreground);color:var(--background);border-color:var(--foreground)}
+.panel{display:none}.panel.active{display:block}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(360px,100%),1fr));gap:16px}
+.card{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);padding:18px}
+.card header{display:flex;gap:8px;align-items:baseline;margin-bottom:12px}
+.num{color:var(--muted-foreground);font-weight:700;font-size:0.8rem}
+.card h3{margin:0;font-size:0.98rem;font-weight:700}
+.score{margin-left:auto;font-size:0.72rem;color:var(--muted-foreground);white-space:nowrap;border:1px solid var(--border);border-radius:999px;padding:2px 8px}
+
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tile{border-radius:var(--radius-sm);padding:12px;display:grid;gap:10px;justify-items:start;align-content:start}
+/* hardcoded to routstr's real background/foreground pairs — deliberately NOT tied to the page
+   toggle tokens above, so each candidate's light/dark behavior is always visible together. */
+.tile.light{background:#fafafa;color:#0a0a0a;border:1px solid rgba(10,10,10,0.1)}
+.tile.dark{background:#111111;color:#e5e5e5;border:1px solid #2c2c2c}
+.m{display:block;height:auto}
+.lockup{display:flex;align-items:center;gap:8px}
+.lockup span{font-weight:700;font-size:0.85rem;letter-spacing:-0.01em}
+
+.card p{margin:0 0 8px;color:var(--muted-foreground);font-size:0.8rem;line-height:1.5}
+.card p:last-child{margin-bottom:0}
+.card b{display:block;color:var(--muted-foreground);font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:3px}
+.weak b{color:var(--destructive)}
+
+footer.note{max-width:78ch;margin-top:34px;color:var(--muted-foreground);font-size:0.76rem}
+</style>
+</head><body>
+
+<div class="topbar">
+  <div class="intro">
+    <p class="kicker">Logo lab</p>
+    <h1>Pick a mark.</h1>
+    <p>Seven angles, one surviving candidate each. Every mark is rendered here against routstr's actual tokens — <code>#111111</code> background, <code>#161616</code> card, <code>#2c2c2c</code> border, Geist Mono — not a generic mockup, because the brand is fixed-dark and monochrome with no accent hue to fake. Each candidate sits on both a light and a dark ground at three sizes (64px display, 24px icon, and a favicon-scale mark in the "routstr" lockup) so weaknesses that only show up at small size are visible here too. Those two tiles never move — they're the candidate's own light/dark behavior. The toggle at right only recolors this gallery page's own chrome.</p>
+  </div>
+  <div class="theme-toggle" role="group" aria-label="Gallery preview theme">
+    <button type="button" id="theme-btn-light" data-theme-btn="light" aria-pressed="false">Light</button>
+    <button type="button" id="theme-btn-dark" data-theme-btn="dark" aria-pressed="true">Dark</button>
+  </div>
+</div>
+
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="torn-stub">Torn Stub (1)</button>
+  <button role="tab" aria-selected="false" data-tab="single-pass-gate">Single-Pass Gate (1)</button>
+  <button role="tab" aria-selected="false" data-tab="constant-notch">Constant Notch (1)</button>
+  <button role="tab" aria-selected="false" data-tab="open-seal">Open Seal (1)</button>
+  <button role="tab" aria-selected="false" data-tab="flip-seam">Flip Seam (1)</button>
+  <button role="tab" aria-selected="false" data-tab="strike">Strike (1)</button>
+  <button role="tab" aria-selected="false" data-tab="low-channel">Low Channel (1)</button>
+</div>
+
+<div class="panel active" id="panel-torn-stub">
+<div class="grid">
+  <article class="card">
+    <header><span class="num">01</span><h3>Severed Pass</h3><span class="score">5/5</span></header>
+    <div class="tiles">
+      <div class="tile light"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M6,0 H26 A6,6 0 0 1 32,6 V26 A6,6 0 0 1 26,32 H6 A6,6 0 0 1 0,26 V6 A6,6 0 0 1 6,0 Z M11,0 L7,32 L11.03,32 L15.03,0 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M6,0 H26 A6,6 0 0 1 32,6 V26 A6,6 0 0 1 26,32 H6 A6,6 0 0 1 0,26 V6 A6,6 0 0 1 6,0 Z M11,0 L7,32 L11.03,32 L15.03,0 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M6,0 H26 A6,6 0 0 1 32,6 V26 A6,6 0 0 1 26,32 H6 A6,6 0 0 1 0,26 V6 A6,6 0 0 1 6,0 Z M11,0 L7,32 L11.03,32 L15.03,0 Z"/></svg><span>routstr</span></div></div>
+      <div class="tile dark"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M6,0 H26 A6,6 0 0 1 32,6 V26 A6,6 0 0 1 26,32 H6 A6,6 0 0 1 0,26 V6 A6,6 0 0 1 6,0 Z M11,0 L7,32 L11.03,32 L15.03,0 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M6,0 H26 A6,6 0 0 1 32,6 V26 A6,6 0 0 1 26,32 H6 A6,6 0 0 1 0,26 V6 A6,6 0 0 1 6,0 Z M11,0 L7,32 L11.03,32 L15.03,0 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M6,0 H26 A6,6 0 0 1 32,6 V26 A6,6 0 0 1 26,32 H6 A6,6 0 0 1 0,26 V6 A6,6 0 0 1 6,0 Z M11,0 L7,32 L11.03,32 L15.03,0 Z"/></svg><span>routstr</span></div></div>
+    </div>
+    <p><b>Concept</b> A rounded-square token cut clean through by a single full-height diagonal slit, splitting it into an unequal sliver (~25%) and a main body (~75%). The break is total and irreversible: nothing can rejoin the two pieces, standing for a single-use proof that leaves no reissued record.</p>
+    <p><b>Why it fits</b> The cut runs the full height, top edge to bottom edge, so a 15% inset crop still shows it clearly — it can't be sliced away by a badge/safe-area crop the way an edge-corner notch could. Checked at 512/128/64/32/16px: at 16px it's still unmistakably a rounded square split by a bold gap. A shape severed into two pieces that can never be rejoined is a sharp metaphor for "single-use, no reissue."</p>
+    <p class="weak"><b>Weakness</b> Encodes only the Cashu/bearer-token leg of routstr's identity — nothing about Nostr discovery or auto-routing to the cheapest provider. Risks reading generically as "a card with a slash" to a viewer with zero context; it trades a strong-but-wrong association (coupon/voucher) for a weaker, more ambiguous one, and earns specificity more from the routstr story than from the silhouette alone.</p>
+    <p><b>One-color test</b> Already true flat #0a0a0a with the cut as genuine cut-through negative space (evenodd), no gradient, no second value — the concept is the silhouette.</p>
+  </article>
+</div>
+</div>
+
+<div class="panel" id="panel-single-pass-gate">
+<div class="grid">
+  <article class="card">
+    <header><span class="num">02</span><h3>Single-Pass Gate (v2)</h3><span class="score">4/5</span></header>
+    <div class="tiles">
+      <div class="tile light"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M28,12.5 L28,10 A6,6 0 0 0 22,4 L10,4 A6,6 0 0 0 4,10 L4,22 A6,6 0 0 0 10,28 L22,28 A6,6 0 0 0 28,22 L28,19.5" fill="none" stroke="#0a0a0a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="13.75" width="12.5" height="4.5" rx="2.25" fill="#0a0a0a"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M28,12.5 L28,10 A6,6 0 0 0 22,4 L10,4 A6,6 0 0 0 4,10 L4,22 A6,6 0 0 0 10,28 L22,28 A6,6 0 0 0 28,22 L28,19.5" fill="none" stroke="#0a0a0a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="13.75" width="12.5" height="4.5" rx="2.25" fill="#0a0a0a"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M28,12.5 L28,10 A6,6 0 0 0 22,4 L10,4 A6,6 0 0 0 4,10 L4,22 A6,6 0 0 0 10,28 L22,28 A6,6 0 0 0 28,22 L28,19.5" fill="none" stroke="#0a0a0a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="13.75" width="12.5" height="4.5" rx="2.25" fill="#0a0a0a"/></svg><span>routstr</span></div></div>
+      <div class="tile dark"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M28,12.5 L28,10 A6,6 0 0 0 22,4 L10,4 A6,6 0 0 0 4,10 L4,22 A6,6 0 0 0 10,28 L22,28 A6,6 0 0 0 28,22 L28,19.5" fill="none" stroke="#e5e5e5" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="13.75" width="12.5" height="4.5" rx="2.25" fill="#e5e5e5"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M28,12.5 L28,10 A6,6 0 0 0 22,4 L10,4 A6,6 0 0 0 4,10 L4,22 A6,6 0 0 0 10,28 L22,28 A6,6 0 0 0 28,22 L28,19.5" fill="none" stroke="#e5e5e5" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="13.75" width="12.5" height="4.5" rx="2.25" fill="#e5e5e5"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M28,12.5 L28,10 A6,6 0 0 0 22,4 L10,4 A6,6 0 0 0 4,10 L4,22 A6,6 0 0 0 10,28 L22,28 A6,6 0 0 0 28,22 L28,19.5" fill="none" stroke="#e5e5e5" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="13.75" width="12.5" height="4.5" rx="2.25" fill="#e5e5e5"/></svg><span>routstr</span></div></div>
+    </div>
+    <p><b>Concept</b> A thick sealed bracket, broken once on its right side, with a single bold bar caught mid-slide through the break — overshooting the boundary as if in transit.</p>
+    <p><b>Why it fits</b> Fixes the prior version's cliché match (double-parallel-wall-plus-crossing-line, which collapsed into dagger/turnstile/battery-terminal glyphs) and its occlusion failure: crop the frame away and what's left is an inert capsule with no independent glyph identity, so boundary and bar now depend on each other for meaning.</p>
+    <p class="weak"><b>Weakness</b> Reads as a squared bracket with a plug/tab sliding through a slot — a drawer-eject or socket-and-plug pictogram, still a borrowed mechanical metaphor rather than something derived from what routstr uniquely does. It's also a heavy filled weight class, a real departure from a thin uniform-stroke sibling system if one exists.</p>
+    <p><b>One-color test</b> True by construction — one fill/stroke color (#0a0a0a) throughout, no gradient, no second hue, rendered and checked flat at both 512px and 64px; stays legible at 64px where earlier hairline versions of this idea vanished or resolved into an unrelated glyph.</p>
+  </article>
+</div>
+</div>
+
+<div class="panel" id="panel-constant-notch">
+<div class="grid">
+  <article class="card">
+    <header><span class="num">03</span><h3>Sat Gate</h3><span class="score">4/5</span></header>
+    <div class="tiles">
+      <div class="tile light"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M 9,3 L 23,3 A 6,6 0 0 1 29,9 L 29,23 A 6,6 0 0 1 23,29 L 9,29 A 6,6 0 0 1 3,23 L 3,9 A 6,6 0 0 1 9,3 Z M 11,13 L 18,13 L 21,15 L 18,17 L 11,17 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M 9,3 L 23,3 A 6,6 0 0 1 29,9 L 29,23 A 6,6 0 0 1 23,29 L 9,29 A 6,6 0 0 1 3,23 L 3,9 A 6,6 0 0 1 9,3 Z M 11,13 L 18,13 L 21,15 L 18,17 L 11,17 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M 9,3 L 23,3 A 6,6 0 0 1 29,9 L 29,23 A 6,6 0 0 1 23,29 L 9,29 A 6,6 0 0 1 3,23 L 3,9 A 6,6 0 0 1 9,3 Z M 11,13 L 18,13 L 21,15 L 18,17 L 11,17 Z"/></svg><span>routstr</span></div></div>
+      <div class="tile dark"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M 9,3 L 23,3 A 6,6 0 0 1 29,9 L 29,23 A 6,6 0 0 1 23,29 L 9,29 A 6,6 0 0 1 3,23 L 3,9 A 6,6 0 0 1 9,3 Z M 11,13 L 18,13 L 21,15 L 18,17 L 11,17 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M 9,3 L 23,3 A 6,6 0 0 1 29,9 L 29,23 A 6,6 0 0 1 23,29 L 9,29 A 6,6 0 0 1 3,23 L 3,9 A 6,6 0 0 1 9,3 Z M 11,13 L 18,13 L 21,15 L 18,17 L 11,17 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M 9,3 L 23,3 A 6,6 0 0 1 29,9 L 29,23 A 6,6 0 0 1 23,29 L 9,29 A 6,6 0 0 1 3,23 L 3,9 A 6,6 0 0 1 9,3 Z M 11,13 L 18,13 L 21,15 L 18,17 L 11,17 Z"/></svg><span>routstr</span></div></div>
+    </div>
+    <p><b>Concept</b> A sealed rounded-square housing with a single directional slot cut fully inside it (never touching the outer boundary): flat-backed on the trailing edge, pointed on the leading edge, sized for exactly one token to pass, one orientation only.</p>
+    <p><b>Why it fits</b> A sealed housing with a slot sized for exactly one token, insertable only one way, pointing onward — reads as pay-per-request rather than a persistent open connection. Cropping the 512px render 30% from top+bottom and separately from the left edge leaves the slot fully intact both times, since it never touches the canvas boundary, directly fixing the prior corner-notch version's occlusion failure.</p>
+    <p class="weak"><b>Weakness</b> Says nothing about Nostr discovery — visualizes the payment/metering half only. Remains a category-level metaphor (single-use gated access, vending/turnstile-adjacent) rather than something no other product could plausibly use. The directional point carrying most of the "keyed" meaning is favicon-fragile: below ~48px it's present in outline but doing little rhetorical work.</p>
+    <p><b>One-color test</b> Rendered and checked at 512/64/24px in flat #0a0a0a. Holds cleanly at 512 and 64px. At 24px the point softens and it reads mostly as a plain pale rectangle inside a rounded square — degrades gracefully into "plate with a slot," never regressing into a letterform or ambiguous blob.</p>
+  </article>
+</div>
+</div>
+
+<div class="panel" id="panel-open-seal">
+<div class="grid">
+  <article class="card">
+    <header><span class="num">04</span><h3>Route Fork</h3><span class="score">3.5/5</span></header>
+    <div class="tiles">
+      <div class="tile light"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M 6,4 H 12 V 16 L 18,15 A 8,10 0 0 0 20,4 Z M 18,15 L 29,28 L 22,28 L 15,18 Z M 12,16 L 15,18 L 11,24 Z M 13,7 H 17 A 3,3 0 0 1 20,10 A 3,3 0 0 1 17,13 H 13 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M 6,4 H 12 V 16 L 18,15 A 8,10 0 0 0 20,4 Z M 18,15 L 29,28 L 22,28 L 15,18 Z M 12,16 L 15,18 L 11,24 Z M 13,7 H 17 A 3,3 0 0 1 20,10 A 3,3 0 0 1 17,13 H 13 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M 6,4 H 12 V 16 L 18,15 A 8,10 0 0 0 20,4 Z M 18,15 L 29,28 L 22,28 L 15,18 Z M 12,16 L 15,18 L 11,24 Z M 13,7 H 17 A 3,3 0 0 1 20,10 A 3,3 0 0 1 17,13 H 13 Z"/></svg><span>routstr</span></div></div>
+      <div class="tile dark"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M 6,4 H 12 V 16 L 18,15 A 8,10 0 0 0 20,4 Z M 18,15 L 29,28 L 22,28 L 15,18 Z M 12,16 L 15,18 L 11,24 Z M 13,7 H 17 A 3,3 0 0 1 20,10 A 3,3 0 0 1 17,13 H 13 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M 6,4 H 12 V 16 L 18,15 A 8,10 0 0 0 20,4 Z M 18,15 L 29,28 L 22,28 L 15,18 Z M 12,16 L 15,18 L 11,24 Z M 13,7 H 17 A 3,3 0 0 1 20,10 A 3,3 0 0 1 17,13 H 13 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M 6,4 H 12 V 16 L 18,15 A 8,10 0 0 0 20,4 Z M 18,15 L 29,28 L 22,28 L 15,18 Z M 12,16 L 15,18 L 11,24 Z M 13,7 H 17 A 3,3 0 0 1 20,10 A 3,3 0 0 1 17,13 H 13 Z"/></svg><span>routstr</span></div></div>
+    </div>
+    <p><b>Concept</b> A bold geometric "R" (Routstr's initial) whose leg splits into two diverging prongs: one long dominant stroke, one short tapered sliver, with a clean triangular gap of negative space wedged between them where they part ways.</p>
+    <p><b>Why it fits</b> The silhouette is no longer a ring and has no gap-in-a-loop reading, so it can't be lifted onto an unrelated "open" brand — it's built from Routstr's own initial letter. The dominant prong is the request going out; the shorter tapered prong is the path not taken this time, present but subordinate, exactly like the un-selected providers in Routstr's auto-routing.</p>
+    <p class="weak"><b>Weakness</b> The fork is the single element carrying the entire "routing" concept — delete it and the mark reverts to a plain, unremarkable capital R. A viewer who doesn't consciously parse "two paths splitting from one stroke" can still read it as nothing more than an R with an odd notch in the leg.</p>
+    <p><b>One-color test</b> Single flat #0a0a0a fill, evenodd rule cutting the one true hole (the bowl counter), no gradient or second color. At 512px and 128px reads cleanly as a bold R with a visible forked leg; at true 32px favicon scale it still reads unambiguously as R, with the fork surviving as a smaller but legible notch.</p>
+  </article>
+</div>
+</div>
+
+<div class="panel" id="panel-flip-seam">
+<div class="grid">
+  <article class="card">
+    <header><span class="num">05</span><h3>Flip Seam</h3><span class="score">3.5/5</span></header>
+    <div class="tiles">
+      <div class="tile light"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" fill="#0a0a0a" d="M10,4 H22 A6,6 0 0 1 28,10 V22 A6,6 0 0 1 22,28 H10 A6,6 0 0 1 4,22 V10 A6,6 0 0 1 10,4 Z M4,18 H28 V19.5 H4 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" fill="#0a0a0a" d="M10,4 H22 A6,6 0 0 1 28,10 V22 A6,6 0 0 1 22,28 H10 A6,6 0 0 1 4,22 V10 A6,6 0 0 1 10,4 Z M4,18 H28 V19.5 H4 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" fill="#0a0a0a" d="M10,4 H22 A6,6 0 0 1 28,10 V22 A6,6 0 0 1 22,28 H10 A6,6 0 0 1 4,22 V10 A6,6 0 0 1 10,4 Z M4,18 H28 V19.5 H4 Z"/></svg><span>routstr</span></div></div>
+      <div class="tile dark"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" fill="#e5e5e5" d="M10,4 H22 A6,6 0 0 1 28,10 V22 A6,6 0 0 1 22,28 H10 A6,6 0 0 1 4,22 V10 A6,6 0 0 1 10,4 Z M4,18 H28 V19.5 H4 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" fill="#e5e5e5" d="M10,4 H22 A6,6 0 0 1 28,10 V22 A6,6 0 0 1 22,28 H10 A6,6 0 0 1 4,22 V10 A6,6 0 0 1 10,4 Z M4,18 H28 V19.5 H4 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" fill="#e5e5e5" d="M10,4 H22 A6,6 0 0 1 28,10 V22 A6,6 0 0 1 22,28 H10 A6,6 0 0 1 4,22 V10 A6,6 0 0 1 10,4 Z M4,18 H28 V19.5 H4 Z"/></svg><span>routstr</span></div></div>
+    </div>
+    <p><b>Concept</b> A rounded-square silhouette cut by one off-center hairline seam, split ~14:8.5 (close to the golden section) rather than a bisecting 50/50 line.</p>
+    <p><b>Why it fits</b> A single rounded-square silhouette cut by one off-center hairline reads as a still frame of a reading that just resettled — the per-request cheapest-provider recompute — without borrowing generic sync/pulse/network iconography. No banned symbol (bolt, gem, node-graph, sync loop) appears anywhere.</p>
+    <p class="weak"><b>Weakness</b> Reduced this far, the mark is a rounded square with a line through it — untethered from LLM-inference/marketplace/pay-per-request semantics without the surrounding brand story. Fails the occlusion test (identity is entirely corner-dependent) and the swap test decisively: the rationale sentence is interchangeable with any "process mid-recompute" product.</p>
+    <p><b>One-color test</b> Holds up at 512px — the seam is genuine negative space and reads crisply as one silhouette with one deliberate cut. Does NOT fully hold up at true favicon scale: at 48px the hairline band (&lt;5% of height) is already reduced to a faint sliver and will likely anti-alias into a smear or vanish at real 16–32px favicon size.</p>
+    <p><b>Cliché match</b> Not from the explicitly banned list, but lands in a different generic bucket: a rounded-square "card" divided unevenly by a thin bar reads as stock UI-component iconography (a content card with a footer/divider) or, depending on context, a coin-slot/SD-card/cassette-notch silhouette — borrowed app-icon grammar, not a shape invented from the product.</p>
+  </article>
+</div>
+</div>
+
+<div class="panel" id="panel-strike">
+<div class="grid">
+  <article class="card">
+    <header><span class="num">06</span><h3>Strike</h3><span class="score">3/5</span></header>
+    <div class="tiles">
+      <div class="tile light"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="m-strike-light-lg" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><path fill="#fff" d="M10 4 L22 4 Q28 4 28 10 L28 22 Q28 28 22 28 L10 28 Q4 28 4 22 L4 10 Q4 4 10 4 Z"/><line x1="14.5" y1="21.5" x2="23.5" y2="17.5" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></mask></defs>
+<rect x="0" y="0" width="32" height="32" fill="#0a0a0a" mask="url(#m-strike-light-lg)"/>
+</svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="m-strike-light-sm" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><path fill="#fff" d="M10 4 L22 4 Q28 4 28 10 L28 22 Q28 28 22 28 L10 28 Q4 28 4 22 L4 10 Q4 4 10 4 Z"/><line x1="14.5" y1="21.5" x2="23.5" y2="17.5" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></mask></defs>
+<rect x="0" y="0" width="32" height="32" fill="#0a0a0a" mask="url(#m-strike-light-sm)"/>
+</svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="m-strike-light-lockup" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><path fill="#fff" d="M10 4 L22 4 Q28 4 28 10 L28 22 Q28 28 22 28 L10 28 Q4 28 4 22 L4 10 Q4 4 10 4 Z"/><line x1="14.5" y1="21.5" x2="23.5" y2="17.5" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></mask></defs>
+<rect x="0" y="0" width="32" height="32" fill="#0a0a0a" mask="url(#m-strike-light-lockup)"/>
+</svg><span>routstr</span></div></div>
+      <div class="tile dark"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="m-strike-dark-lg" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><path fill="#fff" d="M10 4 L22 4 Q28 4 28 10 L28 22 Q28 28 22 28 L10 28 Q4 28 4 22 L4 10 Q4 4 10 4 Z"/><line x1="14.5" y1="21.5" x2="23.5" y2="17.5" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></mask></defs>
+<rect x="0" y="0" width="32" height="32" fill="#e5e5e5" mask="url(#m-strike-dark-lg)"/>
+</svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="m-strike-dark-sm" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><path fill="#fff" d="M10 4 L22 4 Q28 4 28 10 L28 22 Q28 28 22 28 L10 28 Q4 28 4 22 L4 10 Q4 4 10 4 Z"/><line x1="14.5" y1="21.5" x2="23.5" y2="17.5" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></mask></defs>
+<rect x="0" y="0" width="32" height="32" fill="#e5e5e5" mask="url(#m-strike-dark-sm)"/>
+</svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="m-strike-dark-lockup" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><path fill="#fff" d="M10 4 L22 4 Q28 4 28 10 L28 22 Q28 28 22 28 L10 28 Q4 28 4 22 L4 10 Q4 4 10 4 Z"/><line x1="14.5" y1="21.5" x2="23.5" y2="17.5" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></mask></defs>
+<rect x="0" y="0" width="32" height="32" fill="#e5e5e5" mask="url(#m-strike-dark-lockup)"/>
+</svg><span>routstr</span></div></div>
+    </div>
+    <p><b>Concept</b> An off-center hairline crease cut as true negative space into a solid rounded square, its diagonal angle deliberately left off-grid — the bid can land anywhere.</p>
+    <p><b>Why it fits</b> Built from the token system's own vocabulary — one soft rounded-square radius, one hairline-weight interruption, strict grayscale — and the crease reads as a bid landing arbitrarily rather than a fixed, designed-in badge. Its stroke width was bumped from 1.5 to 1.8 units after rendering showed the thinner version nearly disappearing at small size.</p>
+    <p class="weak"><b>Weakness</b> This is squarely the generic-AI-logo pattern — a decorative geometric interruption in a soft rounded square, a shape family saturated in current minimalist tech branding. Nothing about the mark is derived from what routstr specifically does — no route, no cheapest-price selection, no permissionless discovery, no settlement — it needed a paragraph of designer explanation to mean "bid."</p>
+    <p><b>One-color test</b> This claim holds up: the crease is a true mask cutout, not a stroke needing a second color, so it renders as a clean, legible cutout with no gradient dependency and would invert cleanly to the opposite ground. The strongest part of the execution.</p>
+    <p><b>Cliché match</b> A single diagonal stroke inside a soft rounded square is one of the most saturated tropes in current SaaS/AI-startup identity work (the "rounded-square-plus-one-geometric-interruption" pattern across dozens of 2023–2026 fintech/AI rebrands). Also reads instantly as a generic UI glyph family — mute/off slash, minus icon, swipe affordance — before it reads as anything routstr-specific.</p>
+  </article>
+</div>
+</div>
+
+<div class="panel" id="panel-low-channel">
+<div class="grid">
+  <article class="card">
+    <header><span class="num">07</span><h3>Low Channel</h3><span class="score">3/5</span></header>
+    <div class="tiles">
+      <div class="tile light"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M8,4 H24 A4,4 0 0 1 28,8 V24 A4,4 0 0 1 24,28 H8 A4,4 0 0 1 4,24 V8 A4,4 0 0 1 8,4 Z M4,10 C11,11.5 17,22.6 22,24.05 C25,24.55 27,23.6 28,22 C27,24.4 25,25.45 22,24.95 C17,23.4 11,12.5 4,10 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M8,4 H24 A4,4 0 0 1 28,8 V24 A4,4 0 0 1 24,28 H8 A4,4 0 0 1 4,24 V8 A4,4 0 0 1 8,4 Z M4,10 C11,11.5 17,22.6 22,24.05 C25,24.55 27,23.6 28,22 C27,24.4 25,25.45 22,24.95 C17,23.4 11,12.5 4,10 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0a0a0a" fill-rule="evenodd" d="M8,4 H24 A4,4 0 0 1 28,8 V24 A4,4 0 0 1 24,28 H8 A4,4 0 0 1 4,24 V8 A4,4 0 0 1 8,4 Z M4,10 C11,11.5 17,22.6 22,24.05 C25,24.55 27,23.6 28,22 C27,24.4 25,25.45 22,24.95 C17,23.4 11,12.5 4,10 Z"/></svg><span>routstr</span></div></div>
+      <div class="tile dark"><svg class="m" style="width:64px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M8,4 H24 A4,4 0 0 1 28,8 V24 A4,4 0 0 1 24,28 H8 A4,4 0 0 1 4,24 V8 A4,4 0 0 1 8,4 Z M4,10 C11,11.5 17,22.6 22,24.05 C25,24.55 27,23.6 28,22 C27,24.4 25,25.45 22,24.95 C17,23.4 11,12.5 4,10 Z"/></svg><svg class="m" style="width:24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M8,4 H24 A4,4 0 0 1 28,8 V24 A4,4 0 0 1 24,28 H8 A4,4 0 0 1 4,24 V8 A4,4 0 0 1 8,4 Z M4,10 C11,11.5 17,22.6 22,24.05 C25,24.55 27,23.6 28,22 C27,24.4 25,25.45 22,24.95 C17,23.4 11,12.5 4,10 Z"/></svg><div class="lockup"><svg class="m" style="width:20px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#e5e5e5" fill-rule="evenodd" d="M8,4 H24 A4,4 0 0 1 28,8 V24 A4,4 0 0 1 24,28 H8 A4,4 0 0 1 4,24 V8 A4,4 0 0 1 8,4 Z M4,10 C11,11.5 17,22.6 22,24.05 C25,24.55 27,23.6 28,22 C27,24.4 25,25.45 22,24.95 C17,23.4 11,12.5 4,10 Z"/></svg><span>routstr</span></div></div>
+    </div>
+    <p><b>Concept</b> A single hairline groove cut into a rounded square, sagging low and off-center toward one corner like a shallow trough at rest — not a straight cut, not a symmetric dip.</p>
+    <p><b>Why it fits</b> A single continuous line that visibly settles toward whichever corner is lower — never centered, never straight — is a literal visual translation of "the request drains to whatever provider is cheapest right now," with no hub-spoke, arrow, or bolt required to say it. Rendered and viewed at both 512px and 64px, the single-path construction holds up as flat one-color silhouette with no gradient crutch.</p>
+    <p class="weak"><b>Weakness</b> Stripped of the routing story, this is a generic sine-wave/swoosh mark — a shape family already heavily used for "flow," "audio," or "motion" branding. Cropping the outer ~30% removes both terminal anchor points, leaving only an unremarkable S-shaped stroke that reads as a fragment of any generic wave/swoosh icon; the sentence "settles toward whichever corner is lower" ports cleanly to a water utility or a sleep app.</p>
+    <p><b>One-color test</b> Holds up: the mark is a single evenodd path (square minus a tapered sliver), so it renders as a clean, legible cutout with no gradient dependency, and would invert cleanly to the opposite ground. The construction claim is honest — the failure is conceptual/associative, not colorimetric.</p>
+    <p><b>Cliché match</b> Sine-wave / swoosh / audio-waveform mark — one of the most heavily used shape families in tech branding: signal icons, "flow"/"trend" branding, audio-visualizer logos, and Nike-swoosh-adjacent sport marks all live in exactly this territory.</p>
+  </article>
+</div>
+</div>
+
+<footer class="note">Local review file, not deployed — <code>public/logo-lab/index.html</code>. Scores are out of 5 from an adversarial critic pass. Torn Stub (5/5) is the current lead; Single-Pass Gate and Sat Gate (4/5) are close seconds addressing routing and metering respectively; Route Fork and Flip Seam (3.5/5) are viable but concept-thin; Strike and Low Channel (3/5) were marked down chiefly for landing in saturated generic shape families (rounded-square-plus-slash, sine-wave/swoosh) rather than for production quality.</footer>
+
+<script>
+  var THEME_KEY = "routstr-logo-lab-theme";
+  var lightBtn = document.getElementById("theme-btn-light");
+  var darkBtn = document.getElementById("theme-btn-dark");
+
+  function updateThemeButtons(name) {
+    lightBtn.setAttribute("aria-pressed", String(name === "light"));
+    darkBtn.setAttribute("aria-pressed", String(name === "dark"));
+  }
+
+  function applyTheme(name) {
+    document.documentElement.setAttribute("data-theme", name);
+    try { localStorage.setItem(THEME_KEY, name); } catch (e) {}
+    updateThemeButtons(name);
+  }
+
+  lightBtn.addEventListener("click", function () { applyTheme("light"); });
+  darkBtn.addEventListener("click", function () { applyTheme("dark"); });
+
+  updateThemeButtons(document.documentElement.getAttribute("data-theme") || "dark");
+
+  var tabs = document.querySelectorAll("[data-tab]");
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].addEventListener("click", function (e) {
+      var tab = e.currentTarget;
+      for (var j = 0; j < tabs.length; j++) tabs[j].setAttribute("aria-selected", String(tabs[j] === tab));
+      var panels = document.querySelectorAll(".panel");
+      for (var k = 0; k < panels.length; k++) panels[k].classList.toggle("active", panels[k].id === "panel-" + tab.dataset.tab);
+      location.hash = tab.dataset.tab;
+    });
+  }
+  var wanted = location.hash.slice(1);
+  if (wanted) {
+    var target = document.querySelector('[data-tab="' + wanted + '"]');
+    if (target) target.click();
+  }
+</script>
+</body></html>

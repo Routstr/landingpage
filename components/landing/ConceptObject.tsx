@@ -47,9 +47,10 @@ const SHIELD_RADIUS = 0.36;
 const SHIELD_FILL_OPACITY = 0.1;
 const SHIELD_WIRE_OPACITY = 0.3;
 
-// Permissionless portal — a flat luminous ring that laser-draws itself into
-// existence. Every node streams through it on the z axis.
+// Permissionless portal — a layered vault opens around a real central aperture
+// that nodes pass through on the z axis.
 const PORTAL_RADIUS = 0.34;
+const PORTAL_APERTURE_RADIUS = 0.16;
 const PORTAL_INNER_RADIUS = 0.3;
 const PORTAL_OUTER_RADIUS = 0.48;
 const PORTAL_ECHO_RADIUS = 0.25;
@@ -227,11 +228,18 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
       const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 40);
       camera.position.set(0, 0, MOBILE_Z);
 
-      const renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: true,
-        powerPreference: "high-performance",
-      });
+      let renderer: THREE.WebGLRenderer;
+      try {
+        renderer = new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true,
+          powerPreference: "high-performance",
+        });
+      } catch {
+        // A WebGL failure must not prevent the rest of the page from
+        // hydrating; the hero remains usable without this decorative canvas.
+        return;
+      }
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       mount.appendChild(renderer.domElement);
 
@@ -367,7 +375,10 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
-      const glow = new THREE.Mesh(new THREE.CircleGeometry(PORTAL_OUTER_RADIUS * 0.95, 64), glowMaterial);
+      const glow = new THREE.Mesh(
+        new THREE.RingGeometry(PORTAL_APERTURE_RADIUS, PORTAL_OUTER_RADIUS * 0.95, 64),
+        glowMaterial
+      );
       glow.position.z = -0.03;
       glow.renderOrder = 8;
       const discMaterial = new THREE.MeshBasicMaterial({
@@ -377,10 +388,15 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
-      const disc = new THREE.Mesh(new THREE.CircleGeometry(PORTAL_INNER_RADIUS, 48), discMaterial);
+      const disc = new THREE.Mesh(
+        new THREE.RingGeometry(PORTAL_APERTURE_RADIUS, PORTAL_INNER_RADIUS, 48),
+        discMaterial
+      );
       disc.position.z = -0.02;
       disc.renderOrder = 9;
-      const shellGeometry = new THREE.SphereGeometry(PORTAL_OUTER_RADIUS, 18, 12);
+      // Annular shell geometry preserves a genuinely clear aperture even while
+      // the surrounding vault layers twist and expand.
+      const shellGeometry = new THREE.TorusGeometry(PORTAL_INNER_RADIUS + 0.09, 0.05, 8, 24);
       const portalShells = [0.78, 1, 1.24].map((scale, index) => {
         const material = new THREE.MeshBasicMaterial({
           color: themeColor,
@@ -754,6 +770,7 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           gsap.set(portalMats[5], { opacity: PORTAL_GLOW_OPACITY });
           portalShellsRef.current.forEach((shell, index) => {
             gsap.set(shell.scale, { x: 0.18 + index * 0.06, y: 0.18 + index * 0.06, z: 0.08 });
+            gsap.set(shell.rotation, { z: 0 });
             gsap.set(shell.material, { opacity: 0 });
           });
           portalRingsRef.current.forEach((portalRing) => portalRing.geometry.setDrawRange(0, 0));
@@ -789,6 +806,7 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           portalShellsRef.current.forEach((shell, index) => {
             const scale = 0.78 + index * 0.23;
             tl.to(shell.scale, { x: scale, y: scale, z: 0.28 + index * 0.12, duration: 0.32, ease: "power3.out" }, index * 0.055);
+            tl.to(shell.rotation, { z: (index % 2 ? -1 : 1) * (0.34 + index * 0.12), duration: 0.32, ease: "power3.out" }, index * 0.055);
             tl.to(shell.material, { opacity: 0.17 - index * 0.025, duration: 0.2, ease: "power2.out" }, index * 0.055 + 0.06);
           });
 
@@ -834,6 +852,7 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           shellsClosing.forEach((shell, reverseIndex) => {
             const closeAt = tD + reverseIndex * 0.055;
             tl.to(shell.scale, { x: 0.18, y: 0.18, z: 0.08, duration: 0.32, ease: "power3.in" }, closeAt);
+            tl.to(shell.rotation, { z: 0, duration: 0.32, ease: "power3.in" }, closeAt);
             tl.to(shell.material, { opacity: 0, duration: 0.2, ease: "power2.in" }, closeAt + 0.1);
           });
           tl.to(portalMats.slice(0, 6), { opacity: 0, duration: 0.18, ease: "power2.in" }, tD + 0.12);
@@ -906,6 +925,7 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           portalRingsRef.current.forEach((portalRing) => portalRing.geometry.setDrawRange(0, 0));
           portalShellsRef.current.forEach((shell) => {
             gsap.set(shell.scale, { x: 0.06, y: 0.06, z: 0.03 });
+            gsap.set(shell.rotation, { z: 0 });
             gsap.set(shell.material, { opacity: 0 });
           });
 
@@ -926,12 +946,14 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           portalShellsRef.current.forEach((shell, index) => {
             const scale = 0.42 + index * 0.12;
             seedPortal.to(shell.scale, { x: scale, y: scale, z: 0.16 + index * 0.06, duration: 0.24, ease: "power3.out" }, index * 0.04);
+            seedPortal.to(shell.rotation, { z: (index % 2 ? -1 : 1) * (0.28 + index * 0.1), duration: 0.24, ease: "power3.out" }, index * 0.04);
             seedPortal.to(shell.material, { opacity: 0.15 - index * 0.02, duration: 0.16, ease: "power2.out" }, index * 0.04 + 0.04);
           });
 
           const closeAt = 0.52;
           [...portalShellsRef.current].reverse().forEach((shell, index) => {
             seedPortal.to(shell.scale, { x: 0.06, y: 0.06, z: 0.03, duration: 0.2, ease: "power3.in" }, closeAt + index * 0.04);
+            seedPortal.to(shell.rotation, { z: 0, duration: 0.2, ease: "power3.in" }, closeAt + index * 0.04);
             seedPortal.to(shell.material, { opacity: 0, duration: 0.12, ease: "power2.in" }, closeAt + index * 0.04 + 0.06);
           });
           const undraw = { p: 1 };

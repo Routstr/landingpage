@@ -29,19 +29,27 @@ export function WordFlip({ words, word, className }: WordFlipProps) {
     wipeRef.current?.kill();
     const width = Math.max(container.clientWidth, activeRef.current?.getBoundingClientRect().width ?? 0);
     const endX = width + 40;
-    gsap.set([shine, laserCore], { x: -40, opacity: 0 });
+    gsap.set([shine, laserCore], { x: endX, opacity: 0 });
     const wipe = gsap.timeline({ defaults: { ease: "power2.inOut" } });
-    wipe.to(shine, { opacity: 0.42, duration: 0.16, ease: "power2.out" }, 0);
-    wipe.to(laserCore, { opacity: 1, duration: 0.08, ease: "power2.out" }, 0.08);
-    wipe.to(active, { opacity: 0.72, duration: 0.1, ease: "power1.out" }, 0.18);
+    // The outgoing label is erased right-to-left before the existing forward
+    // scan writes the next label in, so neither word disappears abruptly.
+    wipe.to(shine, { opacity: 0.34, duration: 0.1, ease: "power2.out" }, 0);
+    wipe.to(laserCore, { opacity: 1, duration: 0.06, ease: "power2.out" }, 0);
+    wipe.to(laserCore, { x: -40, duration: 0.28, ease: "power1.inOut" }, 0.04);
+    wipe.to(shine, { x: -52, opacity: 0, duration: 0.32, ease: "power1.inOut" }, 0);
+    wipe.to(active, { opacity: 0.7, duration: 0.12, ease: "power1.out" }, 0.14);
     wipe.call(() => {
       shownWordRef.current = word;
       setShownWord(word);
-    }, [], 0.24);
-    wipe.to(active, { opacity: 1, duration: 0.16, ease: "power2.out" }, 0.28);
-    wipe.to(laserCore, { x: endX, duration: 0.62 }, 0.12);
-    wipe.to(shine, { x: endX + 12, opacity: 0, duration: 0.72 }, 0.08);
-    wipe.to(laserCore, { opacity: 0, duration: 0.14, ease: "power1.out" }, 0.68);
+    }, [], 0.3);
+    wipe.set(active, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, 0.31);
+    wipe.set([shine, laserCore], { x: -40, opacity: 0 }, 0.32);
+    wipe.to(shine, { opacity: 0.42, duration: 0.16, ease: "power2.out" }, 0.32);
+    wipe.to(laserCore, { opacity: 1, duration: 0.08, ease: "power2.out" }, 0.4);
+    wipe.to(active, { clipPath: "inset(0 0% 0 0)", duration: 0.62, ease: "power1.inOut" }, 0.44);
+    wipe.to(laserCore, { x: endX, duration: 0.62 }, 0.44);
+    wipe.to(shine, { x: endX + 12, opacity: 0, duration: 0.72 }, 0.4);
+    wipe.to(laserCore, { opacity: 0, duration: 0.14, ease: "power1.out" }, 1);
     wipeRef.current = wipe;
     return () => {
       wipe.kill();

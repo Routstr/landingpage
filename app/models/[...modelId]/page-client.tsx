@@ -42,13 +42,13 @@ import {
 type CodeLanguage = "curl" | "javascript" | "python";
 
 const codeTokenClasses = {
-  command: "text-[#4FC1FF]",
-  keyword: "text-[#C586C0]",
-  string: "text-[#CE9178]",
-  property: "text-[#9CDCFE]",
-  symbol: "text-[#D4D4D4]",
-  value: "text-[#DCDCAA]",
-  plain: "text-[#D4D4D4]",
+  command: "text-code-blue",
+  keyword: "text-code-purple",
+  string: "text-code-orange",
+  property: "text-code-lightblue",
+  symbol: "text-code-plain",
+  value: "text-code-yellow",
+  plain: "text-code-plain",
 } as const;
 
 type CodeTokenKind = keyof typeof codeTokenClasses;
@@ -383,8 +383,8 @@ export default function ModelDetailPage() {
                     {copied ? "Copied" : "Copy"}
                   </Button>
                 </div>
-                <div className="p-4 overflow-x-auto min-h-[200px] bg-black/20">
-                  <pre className="text-xs leading-relaxed text-[#D4D4D4] font-mono">
+                <div className="p-4 overflow-x-auto min-h-[200px] bg-muted">
+                  <pre className="text-xs leading-relaxed text-code-plain font-mono">
                     {activeTab === 'curl' && (
                       <code>
                         <CodeTok kind="command">curl</CodeTok>{" "}
@@ -400,7 +400,7 @@ export default function ModelDetailPage() {
                           value={tokenInput} 
                           onChange={e => setTokenInput(e.target.value)} 
                           onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
-                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-code-yellow shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
                           placeholder="token"
                         />
                         <CodeTok kind="string">{'"'}</CodeTok>{" "}
@@ -438,7 +438,7 @@ export default function ModelDetailPage() {
                           value={tokenInput} 
                           onChange={e => setTokenInput(e.target.value)} 
                           onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
-                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-code-yellow shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
                           placeholder="token"
                         />
                         <CodeTok kind="string">{"'"}</CodeTok><br/>
@@ -473,7 +473,7 @@ export default function ModelDetailPage() {
                           value={tokenInput} 
                           onChange={e => setTokenInput(e.target.value)} 
                           onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
-                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-code-yellow shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
                           placeholder="token"
                         />
                         <CodeTok kind="string">{`"`}</CodeTok><br/>

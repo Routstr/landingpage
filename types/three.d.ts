@@ -98,6 +98,10 @@ declare module 'three' {
     constructor(radius?: number, segments?: number);
   }
 
+  export class RingGeometry extends BufferGeometry {
+    constructor(innerRadius?: number, outerRadius?: number, thetaSegments?: number);
+  }
+
   export class BoxGeometry extends BufferGeometry {
     constructor(width?: number, height?: number, depth?: number);
   }

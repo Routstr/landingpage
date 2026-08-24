@@ -41,6 +41,13 @@
   --brand-foreground: #0a0a0a;
   --success: #34d399;
   --success-foreground: #0a0a0a;
+  /* Syntax-highlight preset (VS Code Light+) for code blocks */
+  --code-blue: #0451a5;
+  --code-purple: #af00db;
+  --code-orange: #a31515;
+  --code-yellow: #795e26;
+  --code-lightblue: #001080;
+  --code-plain: #383a42;
 }
 
 .dark {
@@ -79,6 +86,13 @@
   --brand-foreground: #0a0a0a;
   --success: #34d399;
   --success-foreground: #0a0a0a;
+  /* Syntax-highlight preset (VS Code Dark+) for code blocks */
+  --code-blue: #4fc1ff;
+  --code-purple: #c586c0;
+  --code-orange: #ce9178;
+  --code-yellow: #dcdcaa;
+  --code-lightblue: #9cdcfe;
+  --code-plain: #d4d4d4;
 }
 
 @theme inline {
@@ -89,8 +103,9 @@
   --color-border: var(--border);
   --color-card: var(--card);
   --font-mono:
-    var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-heading: var(--font-michroma), var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -120,6 +135,12 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-code-blue: var(--code-blue);
+  --color-code-purple: var(--code-purple);
+  --color-code-orange: var(--code-orange);
+  --color-code-yellow: var(--code-yellow);
+  --color-code-lightblue: var(--code-lightblue);
+  --color-code-plain: var(--code-plain);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -129,6 +150,10 @@
 body {
   font-family: var(--font-mono);
   overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
 }
 
 @layer base {

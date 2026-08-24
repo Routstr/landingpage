@@ -89,7 +89,7 @@ export default function RoutstrdPage() {
               The Only Tool you Need for Uncensorable Access to AI
             </h1>
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed mb-10">
-              Routstrd is unlike any other inference provider — because it's <em>not</em> an inference provider. It's a tool, powered by Nostr and Bitcoin, that works for you.
+              Routstrd is unlike any other inference provider — because it&apos;s <em>not</em> an inference provider. It&apos;s a tool, powered by Nostr and Bitcoin, that works for you.
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-2"><Network className="w-3 h-3 text-purple-500" /> Nostr Network</span>
@@ -123,8 +123,8 @@ export default function RoutstrdPage() {
                   <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
                 </div>
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:mb-8">{step.description}</p>
-                <div className="bg-black/40 border border-border overflow-hidden mb-8 mt-auto">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+                <div className="bg-muted border border-border overflow-hidden mb-8 mt-auto">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-foreground/5">
                     <span className="text-[10px] text-muted-foreground">bash</span>
                     <Button
                       type="button"
@@ -157,8 +157,8 @@ export default function RoutstrdPage() {
             <div>
               <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6 tracking-tight">Beautiful TUI. Real-time visibility.</h2>
               <div className="space-y-6 text-muted-foreground font-light leading-relaxed">
-                <p><strong className="text-foreground font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you're connected to, what models are available, and how your balance is doing.</p>
-                <p>I've been using Routstrd for a month. It was easier to battle-test as its primary user. The competition between nodes is already heating up, which means you're getting the best price for your sats.</p>
+                <p><strong className="text-foreground font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you&apos;re connected to, what models are available, and how your balance is doing.</p>
+                <p>I&apos;ve been using Routstrd for a month. It was easier to battle-test as its primary user. The competition between nodes is already heating up, which means you&apos;re getting the best price for your sats.</p>
               </div>
               <div className="flex gap-2 mt-8">
                 {tuiImages.map((_, idx) => (
@@ -245,8 +245,8 @@ export default function RoutstrdPage() {
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground mb-4">Connect your team members</h3>
-              <div className="bg-black/40 border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+              <div className="bg-muted border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-foreground/5">
                   <span className="text-[10px] text-muted-foreground">bash</span>
                   <Button
                     type="button"
@@ -275,7 +275,7 @@ export default function RoutstrdPage() {
           <div className="max-w-3xl">
             <div className="border-l-2 border-amber-500/50 pl-6 md:pl-8">
               <p className="text-lg md:text-xl text-foreground font-light leading-relaxed italic mb-6">
-                &ldquo;Bitcoiners get the best price! And with Routstrd, Bitcoiners also get the best experience. The competition between Routstr nodes is getting heated right now and thus you're getting the best price for your sats.&rdquo;
+                &ldquo;Bitcoiners get the best price! And with Routstrd, Bitcoiners also get the best experience. The competition between Routstr nodes is getting heated right now and thus you&apos;re getting the best price for your sats.&rdquo;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
@@ -296,10 +296,10 @@ export default function RoutstrdPage() {
             <div>
               <h2 className="text-xl font-bold text-foreground mb-6">Try it out</h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                Please give Routstrd a spin. If you face any issues, let us know and we'll fix it fast.
+                Please give Routstrd a spin. If you face any issues, let us know and we&apos;ll fix it fast.
               </p>
-              <div className="bg-black/40 border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+              <div className="bg-muted border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-foreground/5">
                   <span className="text-[10px] text-muted-foreground">bash</span>
                   <Button
                     type="button"
