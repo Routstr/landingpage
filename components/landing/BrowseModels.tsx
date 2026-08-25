@@ -71,7 +71,7 @@ export function LandingBrowseModels() {
   }, [currency, models]);
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
       <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
           <div>

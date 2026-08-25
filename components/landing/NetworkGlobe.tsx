@@ -6,7 +6,7 @@ export function LandingNetworkGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
       <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
         <div className="mb-9 flex items-end justify-between gap-6 sm:mb-12">
           <div>

@@ -257,7 +257,7 @@ export function LandingTestimonials() {
   const col3 = testimonials.slice(7, 10);
 
   return (
-    <div className="w-full px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto relative">
+    <div className="w-full px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
       <h2 className="text-xl font-bold text-foreground mb-2">
         What people are saying
       </h2>

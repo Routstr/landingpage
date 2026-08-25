@@ -51,7 +51,7 @@ function TerminalMockup({ commands }: { commands: string[] }) {
 
 export function LandingProducts() {
   return (
-    <div className="w-full relative">
+    <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
       <div className="px-[clamp(1rem,5vw,5rem)] py-16 sm:py-20 max-w-[1800px] mx-auto">
         <div className="mb-8 sm:mb-12 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <h2 className="text-xl font-bold text-foreground">Routstr Products</h2>
