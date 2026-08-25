@@ -2,11 +2,19 @@
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SectionConstellation } from "@/components/landing/SectionConstellation";
 
 export function LandingCTA() {
   return (
-    <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
-      <div className="w-full py-24 max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)] flex flex-col items-start text-left">
+    <div className="w-full relative overflow-hidden md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
+      <SectionConstellation
+        nodeRadius={1.25}
+        intensity={0.55}
+        densityDivisor={46000}
+        minNodes={20}
+        maxNodes={40}
+      />
+      <div className="relative z-10 w-full py-24 max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)] flex flex-col items-start text-left">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-6">
           Join the decentralized AI revolution
         </h2>
