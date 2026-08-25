@@ -50,9 +50,9 @@ const DARK: TuiPalette = {
 };
 
 const LIGHT: TuiPalette = {
-  bg: "#f7f5f0",
-  chrome: "#efece4",
-  chromeBorder: "#d8d4c8",
+  bg: "#fafafa",
+  chrome: "#f5f5f5",
+  chromeBorder: "#e5e5e5",
   dim: "#8a8478",
   cream: "#26221a",
   gold: "#a16207",
@@ -60,7 +60,7 @@ const LIGHT: TuiPalette = {
   magenta: "#8b3fc7",
   cyan: "#0e7490",
   green: "#2f7d4f",
-  dot: "#cfcabb",
+  dot: "#d4d4d4",
 };
 
 const dim = (t: string): Span => ({ t, c: "dim" });
