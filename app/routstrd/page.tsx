@@ -82,7 +82,7 @@ export default function RoutstrdPage() {
               <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Routstr Daemon</p>
               <h2 className="text-xl font-bold text-foreground">Get Started in 3 Commands</h2>
             </div>
-            <Button asChild variant="outline" className="hidden md:inline-flex">
+            <Button asChild className="hidden md:inline-flex">
               <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
                 Get Help
               </a>
@@ -90,13 +90,13 @@ export default function RoutstrdPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map((step, idx) => (
-              <div key={idx} className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/20 hover:bg-muted/40 sm:p-8">
+              <div key={idx} className="flex flex-col border border-border bg-card p-5 transition-colors hover:border-foreground/20 hover:bg-muted/40 sm:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-xs text-muted-foreground font-bold">{step.step}</span>
                   <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
                 </div>
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:mb-8">{step.description}</p>
-                <div className="mb-8 mt-auto overflow-hidden rounded-lg border border-border bg-muted">
+                <div className="mb-8 mt-auto overflow-hidden border border-border bg-muted">
                   <div className="flex items-center justify-between border-b border-border px-4 py-2">
                     <span className="text-[10px] text-muted-foreground">bash</span>
                     <Button
@@ -120,7 +120,7 @@ export default function RoutstrdPage() {
             ))}
           </div>
           <div className="mt-6 flex justify-center md:hidden">
-            <Button asChild variant="outline" className="w-full">
+            <Button asChild className="w-full">
               <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
                 Get Help
               </a>
@@ -140,11 +140,11 @@ export default function RoutstrdPage() {
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed mb-10">
               Routstrd is unlike any other inference provider — because it&apos;s <em>not</em> an inference provider. It&apos;s a tool, powered by Nostr and Bitcoin, that works for you.
             </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2"><Network className="w-3 h-3 text-purple-500" /> Nostr Network</span>
-              <span className="flex items-center gap-2"><Zap className="w-3 h-3 text-yellow-500" /> Lightning Payments</span>
-              <span className="flex items-center gap-2"><Shield className="w-3 h-3 text-green-500" /> No KYC</span>
-              <span className="flex items-center gap-2"><Terminal className="w-3 h-3 text-blue-500" /> TUI Included</span>
+            <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2.5"><Network className="w-4.5 h-4.5 text-foreground" /> Nostr Network</span>
+              <span className="flex items-center gap-2.5"><Zap className="w-4.5 h-4.5 text-foreground" /> Lightning Payments</span>
+              <span className="flex items-center gap-2.5"><Shield className="w-4.5 h-4.5 text-foreground" /> No KYC</span>
+              <span className="flex items-center gap-2.5"><Terminal className="w-4.5 h-4.5 text-foreground" /> TUI Included</span>
             </div>
             <button
               type="button"
