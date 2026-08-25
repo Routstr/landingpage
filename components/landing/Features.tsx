@@ -50,8 +50,7 @@ export function LandingFeatures() {
           {features.map((feature, index) => (
             <div key={index} className="flex flex-col group gap-6">
               <div>
-                <h3 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
-                  <span className="text-muted-foreground/70 font-normal text-xs">[{index + 1}]</span>
+                <h3 className="text-base font-bold text-foreground mb-3">
                   {feature.title}
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed font-light">
