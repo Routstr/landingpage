@@ -152,10 +152,14 @@ body {
   overflow-x: hidden;
 }
 
+/* Headings share the ROUTSTR wordmark treatment: Michroma, medium weight,
+   uppercase, wide tracking (wordmark uses 0.28em; slightly tighter here so
+   large headings don't sprawl). Revert this block to restore mono headings. */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-mono);
+  font-family: var(--font-heading);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.2em;
 }
 
 @layer base {
