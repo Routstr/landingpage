@@ -152,24 +152,20 @@ body {
   overflow-x: hidden;
 }
 
-/* Headings share the ROUTSTR wordmark treatment: Michroma, medium weight,
-   uppercase, wide tracking (wordmark uses 0.28em; slightly tighter here so
-   large headings don't sprawl). Revert this block to restore mono headings. */
+/* Base heading font — applies everywhere including the hero title. */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
+}
+
+/* Wordmark treatment for page headings. The hero title is structurally
+   excluded so its own classes always stay authoritative — heading tweaks
+   must never leak into it. */
+h1:not([data-hero-title]), h2, h3, h4, h5, h6 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   /* Michroma ships one weight; a hairline stroke visually thickens it. */
   -webkit-text-stroke: 0.5px currentColor;
-}
-
-/* The hero title predates the wordmark heading system and keeps its
-   original treatment (Michroma, mixed case, natural tracking). */
-h1[data-hero-title] {
-  font-family: var(--font-heading);
-  text-transform: none;
-  letter-spacing: normal;
 }
 
 @layer base {
