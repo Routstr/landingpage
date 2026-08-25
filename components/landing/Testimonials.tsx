@@ -61,7 +61,7 @@ const testimonials: Testimonial[] = [
     handle: "@noD7R",
     quote:
       "very tru. eventually will find out routstr make all other services out there full of tracking and big noses... redundant",
-    src: "https://pbs.twimg.com/profile_images/1987245450580066304/VYxT1glH_400x400.jpg",
+    src: "https://unavatar.io/twitter/noD7R",
     url: "https://x.com/noD7R/status/1978063932913779068",
   },
   {
