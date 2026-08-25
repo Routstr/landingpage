@@ -162,6 +162,14 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.2em;
 }
 
+/* The hero title predates the wordmark heading system and keeps its
+   original treatment (Michroma, mixed case, natural tracking). */
+h1[data-hero-title] {
+  font-family: var(--font-heading);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
