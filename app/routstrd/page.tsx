@@ -6,18 +6,11 @@ import { Copy, Check, Search, Zap, Shield, ArrowRight, Terminal, Cpu, Network, C
 import { toast, Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useInView } from "@/hooks/use-in-view";
-import Image from "next/image";
 import { SectionConstellation } from "@/components/landing/SectionConstellation";
-
-const tuiImages = [
-  "https://image.nostr.build/61c5c89a6026bd273a480306d8f8993597bae961d39073f7a1a8397fba6740d6.png",
-  "https://image.nostr.build/ee03a2ca42ca0b8093916fac5f2471ef3e76e8c7ec835e63970cb4d107fd978b.png",
-  "https://image.nostr.build/e226f7569feee98e756621788065243ce84aa8876dec7b188908066fcc9edba6.png",
-];
+import { TuiShowcase } from "@/components/landing/TuiShowcase";
 
 export default function RoutstrdPage() {
   const [copiedBlock, setCopiedBlock] = useState<number | null>(null);
-  const [activeTuiImage, setActiveTuiImage] = useState(0);
   const teamsSectionRef = useRef<HTMLElement>(null);
   const teamsInView = useInView(teamsSectionRef, 0.2);
   const getStartedRef = useRef<HTMLElement>(null);
@@ -177,29 +170,8 @@ export default function RoutstrdPage() {
                 <p><strong className="text-foreground font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you&apos;re connected to, what models are available, and how your balance is doing.</p>
                 <p>I&apos;ve been using Routstrd for a month. It was easier to battle-test as its primary user. The competition between nodes is already heating up, which means you&apos;re getting the best price for your sats.</p>
               </div>
-              <div className="flex gap-2 mt-8">
-                {tuiImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveTuiImage(idx)}
-                    className={`h-1.5 w-8 rounded-full transition-all ${
-                      activeTuiImage === idx ? "bg-amber-500" : "bg-border hover:bg-muted-foreground/30"
-                    }`}
-                  />
-                ))}
-              </div>
             </div>
-            <div className="relative overflow-hidden border border-border bg-card rounded-xl">
-              <div className="aspect-[16/10] relative bg-[#0a0a0a]">
-                <Image
-                  src={tuiImages[activeTuiImage]}
-                  alt="Routstrd TUI screenshot"
-                  fill
-                  className="object-contain"
-                  unoptimized
-                />
-              </div>
-            </div>
+            <TuiShowcase />
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
