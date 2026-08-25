@@ -86,9 +86,20 @@ function BorderRow({ top, title, palette }: { top?: boolean; title?: string; pal
   );
 }
 
-function Row({ line, index, palette }: { line: Line; index: number; palette: TuiPalette }) {
+function Row({ line, index, palette, animated }: { line: Line; index: number; palette: TuiPalette; animated?: boolean }) {
   return (
-    <div className="whitespace-pre flex">
+    <div
+      className="whitespace-pre flex"
+      style={
+        animated
+          ? {
+              animation: "tui-line-in 0.3s ease-out both",
+              animationDelay: `${Math.min(index * 0.025, 0.55)}s`,
+            }
+          : undefined
+      }
+      data-tui-animated={animated ? "" : undefined}
+    >
       {line.map((span, i) => (
         <span
           key={i}
@@ -209,9 +220,8 @@ export const TuiShowcase = forwardRef<TuiShowcaseHandle, {
 }>(function TuiShowcase({ className, onActiveChange }, ref) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [inView, setInView] = useState(false);
-  const reducedMotion = useRef(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const restartTimerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -219,32 +229,23 @@ export const TuiShowcase = forwardRef<TuiShowcaseHandle, {
     if (!el) return;
     const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.15 });
     observer.observe(el);
-    reducedMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!inView || reducedMotion.current) return;
-    let start = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      const p = (now - start) / FRAME_MS;
-      if (p >= 1) {
-        start = now;
-        setProgress(0);
-        setTab((t) => (t + 1) % TABS.length);
-      } else {
-        setProgress(p);
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    if (!inView || reducedMotion) return;
+    let interval: ReturnType<typeof setInterval> = setInterval(() => {
+      setTab((t) => (t + 1) % TABS.length);
+    }, FRAME_MS);
     restartTimerRef.current = () => {
-      start = performance.now();
-      setProgress(0);
+      clearInterval(interval);
+      interval = setInterval(() => {
+        setTab((t) => (t + 1) % TABS.length);
+      }, FRAME_MS);
     };
-    return () => cancelAnimationFrame(raf);
-  }, [inView]);
+    return () => clearInterval(interval);
+  }, [inView, reducedMotion]);
 
   // Report active tab to the parent (for the indicator dots) after render.
   useEffect(() => {
@@ -282,13 +283,8 @@ export const TuiShowcase = forwardRef<TuiShowcaseHandle, {
   }, [palette]);
   const contentMinHeight = lineHeight ? maxLines * lineHeight : undefined;
 
-  // Morph: crossfade rows near the switch boundary, plus a scroll hint.
-  const switchBlend = tab === TABS.length - 1 && progress > 0.85 ? 1 : 0;
-
-  const scrollTo = useCallback((el: HTMLElement | null) => {
-    if (!el) return;
-    el.scrollTo({ top: 0 });
-  }, []);
+  // Content lines print in with a subtle stagger on every tab switch.
+  const animateRows = inView && !reducedMotion;
 
   return (
     <div
@@ -296,6 +292,15 @@ export const TuiShowcase = forwardRef<TuiShowcaseHandle, {
       className={cn("relative overflow-hidden border border-border rounded-xl", className)}
       style={{ backgroundColor: palette.bg }}
     >
+      <style>{`
+        @keyframes tui-line-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [data-tui-animated] { animation: none !important; }
+        }
+      `}</style>
       {/* Terminal chrome */}
       <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: palette.chromeBorder, backgroundColor: palette.chrome }}>
         <div className="flex gap-1.5">
@@ -309,7 +314,7 @@ export const TuiShowcase = forwardRef<TuiShowcaseHandle, {
         </span>
       </div>
 
-      <div ref={scrollTo} className="relative font-mono text-[10px] sm:text-[11px] leading-[1.55] p-3 overflow-hidden">
+      <div className="relative font-mono text-[10px] sm:text-[11px] leading-[1.55] p-3 overflow-hidden">
         {/* Header */}
         <div className="whitespace-pre flex">
           <span className="font-bold" style={{ color: palette.cream }}>ROUTSTRD USAGE MONITOR</span>
@@ -329,14 +334,10 @@ export const TuiShowcase = forwardRef<TuiShowcaseHandle, {
         {/* Frame */}
         <BorderRow top title={active.title} palette={palette} />
         <div className="relative" style={{ minHeight: contentMinHeight }}>
-          <div
-            key={active.key}
-            className="transition-transform duration-500 ease-out"
-            style={{ transform: `translateY(${switchBlend ? -8 : 0}px)`, opacity: 1 - switchBlend * 0.3 }}
-          >
+          <div key={active.key + String(animateRows)}>
             <div ref={contentRef}>
               {lines.map((line, i) => (
-                <Row key={i} line={line} index={i} palette={palette} />
+                <Row key={i} line={line} index={i} palette={palette} animated={animateRows} />
               ))}
             </div>
           </div>
