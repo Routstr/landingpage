@@ -42,6 +42,7 @@
   --success: #34d399;
   --success-foreground: #0a0a0a;
   /* Syntax-highlight preset (VS Code Light+) for code blocks */
+  --code-bg: #fafafa;
   --code-blue: #0451a5;
   --code-purple: #af00db;
   --code-orange: #a31515;
@@ -87,6 +88,7 @@
   --success: #34d399;
   --success-foreground: #0a0a0a;
   /* Syntax-highlight preset (VS Code Dark+) for code blocks */
+  --code-bg: #0a0a0a;
   --code-blue: #4fc1ff;
   --code-purple: #c586c0;
   --code-orange: #ce9178;
@@ -135,6 +137,7 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-code-bg: var(--code-bg);
   --color-code-blue: var(--code-blue);
   --color-code-purple: var(--code-purple);
   --color-code-orange: var(--code-orange);
@@ -207,6 +210,18 @@ h1:not([data-hero-title]), h2, h3, h4, h5, h6 {
 
 /* Typography tweaks for markdown */
 @layer utilities {
+  /* Subtle elevation preset for cards and code blocks, light and dark. */
+  .shadow-elevation {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.05),
+      0 8px 24px rgb(0 0 0 / 0.07);
+  }
+  .dark .shadow-elevation {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.4),
+      0 8px 24px rgb(0 0 0 / 0.5);
+  }
+
   .prose-custom {
     @apply prose prose-sm sm:prose-base dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-em:text-muted-foreground prose-blockquote:border-border prose-hr:border-border prose-a:text-foreground hover:prose-a:underline prose-a:underline-offset-4 prose-code:text-foreground prose-pre:bg-muted prose-pre:border prose-pre:border-border prose-img:rounded-lg prose-img:border prose-img:border-border max-w-3xl;
   }
