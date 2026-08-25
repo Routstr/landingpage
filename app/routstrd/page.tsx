@@ -77,9 +77,12 @@ export default function RoutstrdPage() {
       {/* Get Started in 3 Commands */}
       <section className="relative flex min-h-[calc(100svh-72px)] flex-col justify-center py-16 sm:min-h-[calc(100svh-80px)] md:py-20">
         <PageContainer>
-          <div className="mb-12 flex items-end justify-between gap-4">
-            <h2 className="text-xl font-bold text-foreground">Get Started in 3 Commands</h2>
-            <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+          <div className="mb-12 flex items-end justify-between gap-6">
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Routstr Daemon</p>
+              <h2 className="text-xl font-bold text-foreground">Get Started in 3 Commands</h2>
+            </div>
+            <Button asChild variant="outline" className="hidden md:inline-flex">
               <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
                 Get Help
               </a>
@@ -87,26 +90,29 @@ export default function RoutstrdPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map((step, idx) => (
-              <div key={idx} className="flex flex-col border border-border bg-card p-5 sm:p-8">
+              <div key={idx} className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/20 hover:bg-muted/40 sm:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-xs text-muted-foreground font-bold">{step.step}</span>
                   <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
                 </div>
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:mb-8">{step.description}</p>
-                <div className="bg-muted border border-border overflow-hidden mb-8 mt-auto">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-foreground/5">
-                    <span className="text-[10px] text-muted-foreground">bash</span>
+                <div className="mb-8 mt-auto overflow-hidden rounded-lg border border-border bg-card shadow-sm dark:bg-[#111113]">
+                  <div className="flex items-center gap-1.5 border-b border-border bg-muted/60 px-4 py-2 dark:bg-muted/20">
+                    <span className="h-2 w-2 rounded-full bg-red-500/60" />
+                    <span className="h-2 w-2 rounded-full bg-yellow-500/60" />
+                    <span className="h-2 w-2 rounded-full bg-green-500/60" />
+                    <span className="ml-2 text-[10px] text-muted-foreground">bash</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon-xs"
                       onClick={() => copyToClipboard(step.command, idx)}
-                      className="text-muted-foreground hover:text-foreground"
+                      className="ml-auto text-muted-foreground hover:text-foreground"
                     >
                       {copiedBlock === idx ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                     </Button>
                   </div>
-                  <div className="p-4 font-mono text-[11px] text-muted-foreground">
+                  <div className="p-4 font-mono text-[11px] text-foreground/75">
                     <div className="flex gap-2 break-all">
                       <span className="text-green-500">$</span>
                       <span>{step.command}</span>
@@ -117,7 +123,7 @@ export default function RoutstrdPage() {
             ))}
           </div>
           <div className="mt-6 flex justify-center md:hidden">
-            <Button asChild variant="outline" size="sm" className="w-full">
+            <Button asChild variant="outline" className="w-full">
               <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
                 Get Help
               </a>
