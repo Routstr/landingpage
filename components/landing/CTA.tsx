@@ -8,11 +8,12 @@ export function LandingCTA() {
   return (
     <div className="w-full relative overflow-hidden md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
       <SectionConstellation
-        nodeRadius={1.25}
+        shape="poly"
+        nodeRadius={3.4}
         intensity={0.55}
-        densityDivisor={46000}
-        minNodes={20}
-        maxNodes={40}
+        densityDivisor={9500}
+        minNodes={70}
+        maxNodes={130}
       />
       <div className="relative z-10 w-full py-24 max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)] flex flex-col items-start text-left">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-6">

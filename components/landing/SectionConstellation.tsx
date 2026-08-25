@@ -9,10 +9,13 @@ import { useEffect, useRef } from "react";
 // off-screen and skips motion entirely under prefers-reduced-motion.
 //
 // Tunables (defaults match the routstrd sections):
-//   nodeRadius    — size of each node (px)
+//   nodeRadius    — size of each node (px; glyph base radius when shape="poly")
 //   intensity     — multiplier on node & link alphas (<1 = more transparent)
 //   densityDivisor— canvas px per node (higher = fewer nodes, lighter)
 //   min/maxNodes  — clamp for the node count derived from section area
+//   shape         — "dot" renders plain circles; "poly" renders small tumbling
+//                   polygon glyphs (faint fill + crisp outline) echoing the
+//                   hero's flat-shaded icosahedron fragments
 
 type SectionConstellationProps = {
   active?: boolean;
@@ -21,6 +24,7 @@ type SectionConstellationProps = {
   densityDivisor?: number;
   minNodes?: number;
   maxNodes?: number;
+  shape?: "dot" | "poly";
 };
 
 export function SectionConstellation({
@@ -30,6 +34,7 @@ export function SectionConstellation({
   densityDivisor = 34000,
   minNodes = 28,
   maxNodes = 52,
+  shape = "dot",
 }: SectionConstellationProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +56,17 @@ export function SectionConstellation({
     let raf = 0;
     let visible = true;
     let burstTriggered = false;
-    type Node = { x: number; y: number; vx: number; vy: number; bursting: boolean };
+    type Node = {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      bursting: boolean;
+      rot: number;
+      vr: number;
+      size: number;
+      sides: number;
+    };
     let nodes: Node[] = [];
 
     const edgeFade = (x: number, y: number) => {
@@ -76,6 +91,10 @@ export function SectionConstellation({
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
           bursting: fromCentre,
+          rot: Math.random() * Math.PI * 2,
+          vr: (Math.random() - 0.5) * 0.03,
+          size: nodeRadius * (0.75 + Math.random() * 0.6),
+          sides: [5, 6, 6, 7][Math.floor(Math.random() * 4)],
         };
       });
     };
@@ -104,10 +123,31 @@ export function SectionConstellation({
         const fade = edgeFade(node.x, node.y);
         if (fade <= 0.02) continue;
         const alpha = fade * intensity * (dark ? 0.55 : 0.45);
-        ctx.fillStyle = dark ? `rgba(229,229,229,${alpha})` : `rgba(10,10,10,${alpha})`;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
-        ctx.fill();
+        if (alpha <= 0.004) continue;
+        const rgb = dark ? "229,229,229" : "10,10,10";
+        if (shape === "poly") {
+          // Flat-shaded glyph: faint body + crisp outline, like the hero's
+          // icosahedron fragments (solid fill with edge lines).
+          ctx.beginPath();
+          for (let s = 0; s < node.sides; s++) {
+            const a = node.rot + (s / node.sides) * Math.PI * 2;
+            const px = node.x + Math.cos(a) * node.size;
+            const py = node.y + Math.sin(a) * node.size;
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fillStyle = `rgba(${rgb},${alpha * 0.18})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(${rgb},${alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = `rgba(${rgb},${alpha})`;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     };
 
@@ -136,6 +176,7 @@ export function SectionConstellation({
       for (const node of nodes) {
         node.x += node.vx;
         node.y += node.vy;
+        node.rot += node.vr;
         if (node.bursting) {
           node.vx *= 0.986;
           node.vy *= 0.986;
@@ -184,7 +225,7 @@ export function SectionConstellation({
       observer.disconnect();
       visibility.disconnect();
     };
-  }, [densityDivisor, intensity, maxNodes, minNodes, nodeRadius]);
+  }, [densityDivisor, intensity, maxNodes, minNodes, nodeRadius, shape]);
 
   return (
     <div
