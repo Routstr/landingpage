@@ -74,45 +74,8 @@ export default function RoutstrdPage() {
 
   return (
     <SiteShell className="font-mono">
-      {/* Hero Section */}
-      <section className="relative py-12 md:py-20">
-        <PageContainer>
-          <div className="text-left mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground mb-7 sm:px-4 sm:py-1.5 sm:text-xs">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
-                <span className="relative h-2 w-2 rounded-full bg-emerald-400" />
-              </span>
-              Announcing Routstrd
-            </div>
-            <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-6 tracking-tight leading-tight">
-              The Only Tool you Need for Uncensorable Access to AI
-            </h1>
-            <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed mb-10">
-              Routstrd is unlike any other inference provider — because it&apos;s <em>not</em> an inference provider. It&apos;s a tool, powered by Nostr and Bitcoin, that works for you.
-            </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2"><Network className="w-3 h-3 text-purple-500" /> Nostr Network</span>
-              <span className="flex items-center gap-2"><Zap className="w-3 h-3 text-yellow-500" /> Lightning Payments</span>
-              <span className="flex items-center gap-2"><Shield className="w-3 h-3 text-green-500" /> No KYC</span>
-              <span className="flex items-center gap-2"><Terminal className="w-3 h-3 text-blue-500" /> TUI Included</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => document.getElementById("teams")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:px-4 sm:py-1.5 sm:text-xs"
-            >
-              <Users className="w-3 h-3 text-amber-500" />
-              For teams? Click here for the hosted version
-              <ChevronDown className="w-3 h-3" />
-            </button>
-          </div>
-        </PageContainer>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-      </section>
-
-      {/* How It Works - 3 Steps */}
-      <section className="relative py-16 md:py-20">
+      {/* Get Started in 3 Commands */}
+      <section className="relative flex min-h-[calc(100svh-72px)] flex-col justify-center py-16 sm:min-h-[calc(100svh-80px)] md:py-20">
         <PageContainer>
           <h2 className="text-xl font-bold text-foreground mb-12">Get Started in 3 Commands</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -145,6 +108,36 @@ export default function RoutstrdPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </PageContainer>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      </section>
+
+      {/* Hero Section */}
+      <section className="relative py-12 md:py-20">
+        <PageContainer>
+          <div className="text-left mb-16">
+            <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-6 tracking-tight leading-tight">
+              The Only Tool you Need for Uncensorable Access to AI
+            </h1>
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed mb-10">
+              Routstrd is unlike any other inference provider — because it&apos;s <em>not</em> an inference provider. It&apos;s a tool, powered by Nostr and Bitcoin, that works for you.
+            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-2"><Network className="w-3 h-3 text-purple-500" /> Nostr Network</span>
+              <span className="flex items-center gap-2"><Zap className="w-3 h-3 text-yellow-500" /> Lightning Payments</span>
+              <span className="flex items-center gap-2"><Shield className="w-3 h-3 text-green-500" /> No KYC</span>
+              <span className="flex items-center gap-2"><Terminal className="w-3 h-3 text-blue-500" /> TUI Included</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => document.getElementById("teams")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:px-4 sm:py-1.5 sm:text-xs"
+            >
+              <Users className="w-3 h-3 text-amber-500" />
+              For teams? Click here for the hosted version
+              <ChevronDown className="w-3 h-3" />
+            </button>
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />

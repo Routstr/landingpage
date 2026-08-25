@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { ArrowUpRight } from "lucide-react";
@@ -28,6 +29,11 @@ type MenuGroup = {
   title: string;
   links: MenuLink[];
 };
+
+// The entrance animation is a homepage-only, once-per-page-load moment.
+// The header remounts on every client navigation (each page renders its own
+// shell), so replaying it there would leave the navbar invisible for seconds.
+let hasPlayedHeaderIntro = false;
 
 const menuGroups: MenuGroup[] = [
   {
@@ -146,6 +152,7 @@ function MenuPanel({ links }: { links: MenuLink[] }) {
 }
 
 export default function Header() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -183,6 +190,9 @@ export default function Header() {
 
   useGSAP(
     () => {
+      if (pathname !== "/" || hasPlayedHeaderIntro) return;
+      hasPlayedHeaderIntro = true;
+
       const intro = gsap.timeline({ delay: 2.75 });
       intro.fromTo(
         "[data-header-brand]",

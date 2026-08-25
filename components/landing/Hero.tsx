@@ -134,11 +134,11 @@ export function LandingHero() {
           className="order-4 z-10 grid w-full grid-cols-2 gap-3 sm:w-auto sm:flex sm:gap-4 md:order-none md:col-start-1 md:row-start-4"
         >
           <Button data-hero-button asChild className="h-10 w-full will-change-transform px-5 sm:w-auto">
-            <Link href="/routstrd">Run Routstrd Locally</Link>
+            <Link href="/routstrd">Run Routstr</Link>
           </Button>
           <Button data-hero-button asChild variant="outline" className="h-10 w-full will-change-transform px-5 sm:w-auto">
             <Link href="https://chat.routstr.com" target="_blank" rel="noreferrer">
-              Start Chatting
+              Chat with Routstr
             </Link>
           </Button>
         </div>
