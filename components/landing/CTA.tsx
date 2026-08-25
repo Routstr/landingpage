@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export function LandingCTA() {
   return (
     <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
-      <div className="py-24 max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)] flex flex-col items-start text-left">
+      <div className="w-full py-24 max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)] flex flex-col items-start text-left">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-6">
           Join the decentralized AI revolution
         </h2>
