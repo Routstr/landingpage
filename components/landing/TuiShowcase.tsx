@@ -199,12 +199,17 @@ const TABS = [
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function TuiShowcase({ className }: { className?: string }) {
+export function TuiShowcase({ className, onActiveChange }: { className?: string; onActiveChange?: (index: number) => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState(0);
   const [progress, setProgress] = useState(0);
   const [inView, setInView] = useState(false);
   const reducedMotion = useRef(false);
+  const onActiveChangeRef = useRef(onActiveChange);
+
+  useEffect(() => {
+    onActiveChangeRef.current = onActiveChange;
+  }, [onActiveChange]);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -222,7 +227,11 @@ export function TuiShowcase({ className }: { className?: string }) {
     const tick = (now: number) => {
       const p = (now - start) / FRAME_MS;
       if (p >= 1) {
-        setTab((t) => (t + 1) % TABS.length);
+        setTab((t) => {
+          const nextTab = (t + 1) % TABS.length;
+          onActiveChangeRef.current?.(nextTab);
+          return nextTab;
+        });
         setProgress(0);
         start = now;
       } else {
@@ -320,17 +329,6 @@ export function TuiShowcase({ className }: { className?: string }) {
         <div className="mt-2 whitespace-pre sm:hidden" style={{ color: palette.dim }}>
           [Q] quit · [R] refresh · [A] auto (on)
         </div>
-      </div>
-
-      {/* Tab indicator — outside the terminal, styled like the other sections */}
-      <div className="flex gap-2 px-3 pt-3 pb-3">
-        {TABS.map((_, i) => (
-          <span
-            key={i}
-            className="h-1.5 w-8 rounded-full transition-colors"
-            style={{ backgroundColor: i === tab ? "var(--foreground)" : "var(--border)" }}
-          />
-        ))}
       </div>
     </div>
   );

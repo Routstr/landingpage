@@ -6,12 +6,14 @@ import { Copy, Check, Search, Zap, Shield, ArrowRight, Terminal, Cpu, Network, C
 import { toast, Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useInView } from "@/hooks/use-in-view";
+import { cn } from "@/lib/utils";
 import { SectionConstellation } from "@/components/landing/SectionConstellation";
 import { BitcoinLogo } from "@/components/icons/BitcoinLogo";
 import { TuiShowcase } from "@/components/landing/TuiShowcase";
 
 export default function RoutstrdPage() {
   const [copiedBlock, setCopiedBlock] = useState<number | null>(null);
+  const [activeTuiTab, setActiveTuiTab] = useState(0);
   const teamsSectionRef = useRef<HTMLElement>(null);
   const teamsInView = useInView(teamsSectionRef, 0.2);
   const getStartedRef = useRef<HTMLElement>(null);
@@ -171,8 +173,20 @@ export default function RoutstrdPage() {
                 <p><strong className="text-foreground font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you&apos;re connected to, what models are available, and how your balance is doing.</p>
                 <p>I&apos;ve been using Routstrd for a month. It was easier to battle-test as its primary user. The competition between nodes is already heating up, which means you&apos;re getting the best price for your sats.</p>
               </div>
+              <div className="flex gap-2 mt-8">
+                {[0, 1, 2].map((idx) => (
+                  <span
+                    key={idx}
+                    aria-hidden="true"
+                    className={cn(
+                      "h-1.5 w-8 rounded-full transition-colors",
+                      activeTuiTab === idx ? "bg-foreground" : "bg-border"
+                    )}
+                  />
+                ))}
+              </div>
             </div>
-            <TuiShowcase />
+            <TuiShowcase onActiveChange={setActiveTuiTab} />
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
