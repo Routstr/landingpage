@@ -1630,7 +1630,7 @@ function StatsPageContent() {
   );
 
   return (
-    <SiteShell useMain={false}>
+    <SiteShell>
       <section className="w-full relative">
         <PageContainer className="py-12 md:py-20">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-12">
