@@ -12,7 +12,7 @@ import Image from "next/image";
 // nodes with proximity links, drawn on canvas so it never competes with the
 // page's WebGL contexts. Draws inset from the container edges — nothing is
 // clipped — and pauses whenever the section leaves the viewport.
-function TeamsConstellation({ active }: { active: boolean }) {
+function SectionConstellation({ active }: { active: boolean }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -144,6 +144,8 @@ export default function RoutstrdPage() {
   const [activeTuiImage, setActiveTuiImage] = useState(0);
   const teamsSectionRef = useRef<HTMLElement>(null);
   const teamsInView = useInView(teamsSectionRef, 0.2);
+  const getStartedRef = useRef<HTMLElement>(null);
+  const getStartedInView = useInView(getStartedRef, 0.2);
 
   const copyToClipboard = async (text: string, index: number) => {
     try {
@@ -203,8 +205,9 @@ export default function RoutstrdPage() {
   return (
     <SiteShell className="font-mono">
       {/* Get Started in 3 Commands */}
-      <section className="relative flex min-h-[calc(100svh-72px)] flex-col justify-center py-16 sm:min-h-[calc(100svh-80px)] md:py-20">
-        <PageContainer>
+      <section ref={getStartedRef} className="relative flex min-h-[calc(100svh-72px)] flex-col justify-center overflow-hidden py-16 sm:min-h-[calc(100svh-80px)] md:py-20">
+        <SectionConstellation active={getStartedInView} />
+        <PageContainer className="relative">
           <div className="mb-12 flex items-end justify-between gap-6">
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Routstr Daemon</p>
@@ -274,15 +277,15 @@ export default function RoutstrdPage() {
               <span className="flex items-center gap-2.5"><Shield className="w-4.5 h-4.5 text-foreground" /> No KYC</span>
               <span className="flex items-center gap-2.5"><Terminal className="w-4.5 h-4.5 text-foreground" /> TUI Included</span>
             </div>
-            <button
+            <Button
               type="button"
               onClick={() => document.getElementById("teams")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:px-4 sm:py-1.5 sm:text-xs"
+              className="mt-8"
             >
-              <Users className="w-3 h-3 text-amber-500" />
+              <Users className="h-3 w-3" aria-hidden="true" />
               For teams? Click here for the hosted version
-              <ChevronDown className="w-3 h-3" />
-            </button>
+              <ChevronDown className="h-3 w-3" aria-hidden="true" />
+            </Button>
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -347,7 +350,7 @@ export default function RoutstrdPage() {
 
       {/* Hosted for Teams */}
       <section id="teams" ref={teamsSectionRef} className="relative overflow-hidden py-20 md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center md:py-20">
-        <TeamsConstellation active={teamsInView} />
+        <SectionConstellation active={teamsInView} />
         <PageContainer className="relative">
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">For teams</p>
           <h2 className="mb-12 text-xl font-bold text-foreground">Hosted for Teams</h2>
