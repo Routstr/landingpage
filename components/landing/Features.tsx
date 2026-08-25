@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useInView } from "@/hooks/use-in-view";
+import { BitcoinLogo } from "@/components/icons/BitcoinLogo";
 
 // ---------------------------------------------------------------------------
 // Shared geometric primitives
@@ -535,11 +536,9 @@ const PaymentSkeleton = () => {
         className="absolute z-20 w-7 h-7 md:w-8 md:h-8 opacity-0"
         style={{ transform: "translate(-50%, -50%)" }}
       >
-        <div className="relative w-full h-full text-amber-500 dark:text-amber-400">
+        <div className="relative w-full h-full text-foreground">
           <GeometricGlyph sides={6} className="w-full h-full" fillOpacity={0.2} />
-          <span className="absolute inset-0 flex items-center justify-center text-[9px] md:text-[10px] font-bold text-amber-600 dark:text-amber-300">
-            ₿
-          </span>
+          <BitcoinLogo className="absolute inset-0 m-auto w-[46%] h-[46%]" />
         </div>
       </div>
       <div
