@@ -159,7 +159,9 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
+  /* Michroma ships one weight; a hairline stroke visually thickens it. */
+  -webkit-text-stroke: 0.5px currentColor;
 }
 
 /* The hero title predates the wordmark heading system and keeps its
