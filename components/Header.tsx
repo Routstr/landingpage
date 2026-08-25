@@ -307,7 +307,7 @@ export default function Header() {
             variant="outline"
             size="sm"
             asChild
-            className="h-8 border-border bg-muted px-3 text-xs font-medium text-foreground hover:bg-muted"
+            className="h-8 border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted"
           >
             <a href="https://github.com/routstr" target="_blank" rel="noopener noreferrer">
               <svg
