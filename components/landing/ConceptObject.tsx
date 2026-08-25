@@ -49,14 +49,7 @@ const SHIELD_WIRE_OPACITY = 0.3;
 
 // Permissionless portal — a layered vault opens around a real central aperture
 // that nodes pass through on the z axis.
-const PORTAL_RADIUS = 0.34;
 const PORTAL_INNER_RADIUS = 0.3;
-const PORTAL_OUTER_RADIUS = 0.48;
-const PORTAL_ECHO_RADIUS = 0.25;
-const PORTAL_OPACITY = 0.65;
-const PORTAL_OUTER_OPACITY = 0.22;
-const PORTAL_ECHO_OPACITY = 0.34;
-const PORTAL_RAY_OPACITY = 0.16;
 const THROUGH_Z = -1.35;
 // Perfect-circle formation the cluster holds around the open portal.
 const FORMATION_RADIUS = 0.88;
@@ -118,43 +111,6 @@ function scatteredTargetFor(index: number): THREE.Vector3 {
   return DIRECTIONS[index].clone().multiplyScalar(SCATTERED_RADIUS + extraRadius);
 }
 
-// Ordered polyline → invisible-until-drawn LineSegments. Progressive
-// drawRange is the "laser draw" reveal used by the portal ring.
-function polyline(points: number[][], material: THREE.Material): THREE.LineSegments {
-  const verts: number[] = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    verts.push(points[i][0], points[i][1], 0, points[i + 1][0], points[i + 1][1], 0);
-  }
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(new Float32Array(verts), 3));
-  geom.setDrawRange(0, 0);
-  const ls = new THREE.LineSegments(geom, material);
-  ls.userData.totalVerts = verts.length / 3;
-  return ls;
-}
-
-function circlePoints(cx: number, cy: number, r: number, n: number): number[][] {
-  const pts: number[][] = [];
-  for (let k = 0; k <= n; k++) {
-    const a = (k / n) * Math.PI * 2;
-    pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
-  }
-  return pts;
-}
-
-function radialSegments(count: number, inner: number, outer: number, material: THREE.Material): THREE.LineSegments {
-  const verts: number[] = [];
-  for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2;
-    const cos = Math.cos(a);
-    const sin = Math.sin(a);
-    verts.push(inner * cos, inner * sin, 0, outer * cos, outer * sin, 0);
-  }
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(new Float32Array(verts), 3));
-  return new THREE.LineSegments(geom, material);
-}
-
 // Perfect-circle formation the cluster holds around the open portal —
 // evenly spaced by index, like swimmers before the dive.
 function slotFor(gi: number): THREE.Vector3 {
@@ -193,8 +149,6 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
   const edgeMaterialsRef = useRef<THREE.LineBasicMaterial[]>([]);
   const portalGroupRef = useRef<THREE.Group | null>(null);
   const portalMaterialsRef = useRef<THREE.Material[]>([]);
-  const portalRingRef = useRef<THREE.LineSegments | null>(null);
-  const portalRingsRef = useRef<THREE.LineSegments[]>([]);
   const portalShellsRef = useRef<THREE.Mesh[]>([]);
   const connectionLinesRef = useRef<THREE.LineSegments | null>(null);
   const connectionMaterialRef = useRef<THREE.LineBasicMaterial | null>(null);
@@ -327,44 +281,8 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
       connectionGeometryRef.current = connectionGeometry;
 
       // Permissionless portal: a nested wireframe vault stretches into an
-      // aperture, with rings retained as the sharp edge of the opening.
+      // aperture — purely the geometric shell net, no rings or rays.
       const portalGroup = new THREE.Group();
-      const ringMaterial = new THREE.LineBasicMaterial({
-        color: themeColor,
-        transparent: true,
-        opacity: PORTAL_OPACITY,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const ring = polyline(circlePoints(0, 0, PORTAL_RADIUS, 64), ringMaterial);
-      ring.renderOrder = 11;
-      const outerRingMaterial = new THREE.LineBasicMaterial({
-        color: themeColor,
-        transparent: true,
-        opacity: PORTAL_OUTER_OPACITY,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const outerRing = polyline(circlePoints(0, 0, PORTAL_OUTER_RADIUS, 64), outerRingMaterial);
-      outerRing.renderOrder = 10;
-      const echoRingMaterial = new THREE.LineBasicMaterial({
-        color: themeColor,
-        transparent: true,
-        opacity: PORTAL_ECHO_OPACITY,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const echoRing = polyline(circlePoints(0, 0, PORTAL_ECHO_RADIUS, 48), echoRingMaterial);
-      echoRing.renderOrder = 12;
-      const rayMaterial = new THREE.LineBasicMaterial({
-        color: themeColor,
-        transparent: true,
-        opacity: PORTAL_RAY_OPACITY,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const rays = radialSegments(18, PORTAL_RADIUS * 1.08, PORTAL_OUTER_RADIUS * 0.9, rayMaterial);
-      rays.renderOrder = 9;
       // Annular shell geometry preserves a genuinely clear aperture even while
       // the surrounding vault layers twist and expand.
       const shellGeometry = new THREE.TorusGeometry(PORTAL_INNER_RADIUS + 0.09, 0.05, 8, 24);
@@ -384,21 +302,11 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
         return shell;
       });
       portalShells.forEach((shell) => portalGroup.add(shell));
-      portalGroup.add(rays);
-      portalGroup.add(outerRing);
-      portalGroup.add(ring);
-      portalGroup.add(echoRing);
       portalGroup.visible = false;
       group.add(portalGroup);
       portalGroupRef.current = portalGroup;
-      portalRingRef.current = ring;
-      portalRingsRef.current = [ring, outerRing, echoRing];
       portalShellsRef.current = portalShells;
       portalMaterialsRef.current = [
-        ringMaterial,
-        outerRingMaterial,
-        echoRingMaterial,
-        rayMaterial,
         ...portalShells.map((shell) => shell.material as THREE.MeshBasicMaterial),
       ];
 
@@ -443,10 +351,6 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           mat.color.setHex(next);
         });
         connectionMaterial.color.setHex(next);
-        ringMaterial.color.setHex(next);
-        outerRingMaterial.color.setHex(next);
-        echoRingMaterial.color.setHex(next);
-        rayMaterial.color.setHex(next);
         portalShells.forEach((shell) => {
           (shell.material as THREE.MeshBasicMaterial).color.setHex(next);
         });
@@ -586,16 +490,8 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
         edgeGeometry.dispose();
         routstrTexture.dispose();
         routstrMarkMaterial.dispose();
-        ringMaterial.dispose();
-        outerRingMaterial.dispose();
-        echoRingMaterial.dispose();
-        rayMaterial.dispose();
         shellGeometry.dispose();
         portalShells.forEach((shell) => (shell.material as THREE.Material).dispose());
-        ring.geometry.dispose();
-        outerRing.geometry.dispose();
-        echoRing.geometry.dispose();
-        rays.geometry.dispose();
         connectionGeometry.dispose();
         connectionMaterial.dispose();
         shieldGeometry.dispose();
@@ -661,7 +557,7 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
       const highlightMat = highlight.material as THREE.MeshStandardMaterial;
       const highlightEdge = edgeMaterials[HIGHLIGHT_FRAGMENT_INDEX];
 
-      // Leaving the portal scene: fade the ring and membrane out gracefully
+      // Leaving the portal scene: fade the shells out gracefully
       // instead of snapping them off — the seam stays continuous.
       const fadePortalOut = () => {
         const out = gsap.to(portalMats, {
@@ -750,16 +646,11 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
         const resetPortal = () => {
           portal.visible = true;
           gsap.set(portal.scale, { x: 1, y: 1, z: 1 });
-          gsap.set(portalMats[0], { opacity: PORTAL_OPACITY });
-          gsap.set(portalMats[1], { opacity: PORTAL_OUTER_OPACITY });
-          gsap.set(portalMats[2], { opacity: PORTAL_ECHO_OPACITY });
-          gsap.set(portalMats[3], { opacity: PORTAL_RAY_OPACITY });
           portalShellsRef.current.forEach((shell, index) => {
             gsap.set(shell.scale, { x: 0.18 + index * 0.06, y: 0.18 + index * 0.06, z: 0.08 });
             gsap.set(shell.rotation, { z: 0 });
             gsap.set(shell.material, { opacity: 0 });
           });
-          portalRingsRef.current.forEach((portalRing) => portalRing.geometry.setDrawRange(0, 0));
         };
 
         const startLoop = (delay: number) => {
@@ -769,24 +660,12 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           tl.call(() => {
             resetPortal();
           }, undefined, 0);
-          const portalRings = portalRingsRef.current;
-          const draw = { p: 0 };
-          tl.to(draw, {
-            p: 1,
-            duration: 0.35,
-            ease: "power1.inOut",
-            onUpdate: () => portalRings.forEach((portalRing) => {
-              const total = portalRing.userData.totalVerts as number;
-              portalRing.geometry.setDrawRange(0, Math.round(draw.p * total));
-            }),
-          }, 0);
           tl.fromTo(
             portal.scale,
             { x: 0.78, y: 0.78, z: 1 },
             { x: 1, y: 1, z: 1, duration: 0.35, ease: "back.out(1.7)" },
             0
           );
-          tl.to(portalMats[3], { opacity: PORTAL_RAY_OPACITY * 1.8, duration: 0.14, yoyo: true, repeat: 1 }, 0.19);
           portalShellsRef.current.forEach((shell, index) => {
             const scale = 0.78 + index * 0.23;
             tl.to(shell.scale, { x: scale, y: scale, z: 0.28 + index * 0.12, duration: 0.32, ease: "power3.out" }, index * 0.055);
@@ -820,16 +699,6 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           const lastDiveCleared = lastDiveAt + 0.07 + 0.26 + 0.06;
           const tD = lastDiveCleared + 0.06;
 
-          const undraw = { p: 1 };
-          tl.to(undraw, {
-            p: 0,
-            duration: 0.17,
-            ease: "power2.inOut",
-            onUpdate: () => portalRings.forEach((portalRing) => {
-              const total = portalRing.userData.totalVerts as number;
-              portalRing.geometry.setDrawRange(0, Math.round(undraw.p * total));
-            }),
-          }, tD);
           // Seal the vault in the inverse of its opening: the outer shell
           // folds in first, then each inner layer follows into the aperture.
           const shellsClosing = [...portalShellsRef.current].reverse();
@@ -839,7 +708,6 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
             tl.to(shell.rotation, { z: 0, duration: 0.32, ease: "power3.in" }, closeAt);
             tl.to(shell.material, { opacity: 0, duration: 0.2, ease: "power2.in" }, closeAt + 0.1);
           });
-          tl.to(portalMats.slice(0, 4), { opacity: 0, duration: 0.18, ease: "power2.in" }, tD + 0.12);
           tl.to(portal.scale, { x: 0.02, y: 0.02, z: 1, duration: 0.32, ease: "power3.in" }, tD + 0.08);
           tl.call(() => { portal.visible = false; }, undefined, tD + 0.48);
 
@@ -903,10 +771,6 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
           // Fragment motion begins on its existing schedule; this is scenery.
           portal.visible = true;
           gsap.set(portal.scale, { x: 0.16, y: 0.16, z: 1 });
-          gsap.set(portalMats.slice(0, 4), {
-            opacity: (index: number) => [PORTAL_OPACITY, PORTAL_OUTER_OPACITY, PORTAL_ECHO_OPACITY, PORTAL_RAY_OPACITY][index],
-          });
-          portalRingsRef.current.forEach((portalRing) => portalRing.geometry.setDrawRange(0, 0));
           portalShellsRef.current.forEach((shell) => {
             gsap.set(shell.scale, { x: 0.06, y: 0.06, z: 0.03 });
             gsap.set(shell.rotation, { z: 0 });
@@ -915,17 +779,6 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
 
           const seedPortal = gsap.timeline();
           portalTimelineRef.current = seedPortal;
-          const rings = portalRingsRef.current;
-          const draw = { p: 0 };
-          seedPortal.to(draw, {
-            p: 1,
-            duration: 0.24,
-            ease: "power1.inOut",
-            onUpdate: () => rings.forEach((portalRing) => {
-              const total = portalRing.userData.totalVerts as number;
-              portalRing.geometry.setDrawRange(0, Math.round(draw.p * total));
-            }),
-          }, 0);
           seedPortal.to(portal.scale, { x: 0.58, y: 0.58, z: 1, duration: 0.28, ease: "back.out(1.7)" }, 0);
           portalShellsRef.current.forEach((shell, index) => {
             const scale = 0.42 + index * 0.12;
@@ -940,17 +793,6 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
             seedPortal.to(shell.rotation, { z: 0, duration: 0.2, ease: "power3.in" }, closeAt + index * 0.04);
             seedPortal.to(shell.material, { opacity: 0, duration: 0.12, ease: "power2.in" }, closeAt + index * 0.04 + 0.06);
           });
-          const undraw = { p: 1 };
-          seedPortal.to(undraw, {
-            p: 0,
-            duration: 0.18,
-            ease: "power2.inOut",
-            onUpdate: () => rings.forEach((portalRing) => {
-              const total = portalRing.userData.totalVerts as number;
-              portalRing.geometry.setDrawRange(0, Math.round(undraw.p * total));
-            }),
-          }, closeAt + 0.1);
-          seedPortal.to(portalMats.slice(0, 4), { opacity: 0, duration: 0.14, ease: "power2.in" }, closeAt + 0.12);
           seedPortal.to(portal.scale, { x: 0.02, y: 0.02, z: 1, duration: 0.24, ease: "power3.in" }, closeAt + 0.08);
           seedPortal.call(() => { portal.visible = false; }, undefined, closeAt + 0.4);
           breathTweensRef.current.push(seedPortal);
