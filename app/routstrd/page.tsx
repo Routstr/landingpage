@@ -205,10 +205,10 @@ export default function RoutstrdPage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
             {features.map((feature, i) => (
               <div key={i} className="flex flex-col border border-border bg-card p-5 sm:p-8">
-                <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center mb-6">
-                  <feature.icon className="w-5 h-5 text-foreground" />
+                <div className="w-12 h-12 bg-muted border border-border flex items-center justify-center mb-6">
+                  <feature.icon className="w-6 h-6 text-foreground" />
                 </div>
-                <h3 className="text-base font-bold text-foreground mb-3">{feature.title}</h3>
+                <h3 className="text-lg font-bold text-foreground mb-3">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed font-light">{feature.desc}</p>
               </div>
             ))}
@@ -226,21 +226,21 @@ export default function RoutstrdPage() {
               <p className="text-muted-foreground font-light leading-relaxed mb-8">
                 Want to share routstrd with your whole team? <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer" className="text-foreground font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-auth</a> is a standalone auth proxy that sits in front of the daemon — the public-facing gatekeeper, while routstrd itself runs unauthenticated on localhost only.
               </p>
-              <div className="space-y-4 text-sm text-muted-foreground font-light">
+              <div className="space-y-4 text-base text-muted-foreground font-light">
                 <div className="flex items-start gap-3">
-                  <Shield className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <Shield className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
                   <span>Bearer-token auth (<span className="font-mono">sk-...</span>) in front of the daemon</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Users className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <Users className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
                   <span>Per-member Nostr keys (npubs) with admin-managed access via <span className="font-mono">routstrd npubs add</span></span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Terminal className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <Terminal className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
                   <span>Usage tracking per member and per client (<span className="font-mono">routstrd top</span>)</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Cpu className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <Cpu className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
                   <span>Deploy with vanilla Docker or Cloudron</span>
                 </div>
               </div>
@@ -283,15 +283,28 @@ export default function RoutstrdPage() {
       <section className="relative py-16 md:py-20 bg-card/30">
         <PageContainer>
           <div className="max-w-3xl">
-            <div className="border-l-2 border-amber-500/50 pl-6 md:pl-8">
-              <p className="text-lg md:text-xl text-foreground font-light leading-relaxed italic mb-6">
-                &ldquo;Bitcoiners get the best price! And with Routstrd, Bitcoiners also get the best experience. The competition between Routstr nodes is getting heated right now and thus you&apos;re getting the best price for your sats.&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-                  <span className="text-amber-500 font-bold text-xs">₿</span>
+            <div className="relative overflow-hidden border border-border bg-card p-7 md:p-10">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-7 left-5 select-none font-mono text-[7rem] leading-none text-foreground/[0.05]"
+              >
+                &ldquo;
+              </span>
+              <div className="relative">
+                <p className="mb-8 text-sm leading-relaxed break-words text-muted-foreground md:text-base [&_pre]:max-w-full [&_pre]:overflow-x-auto">
+                  Bitcoiners get the best price! And with Routstrd, Bitcoiners also get the best experience. The competition between Routstr nodes is getting heated right now and thus you&apos;re getting the best price for your sats.
+                </p>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 border border-amber-500/30">
+                      <span className="text-amber-500 font-bold text-xs">₿</span>
+                    </div>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-xs font-bold text-foreground">Routstrd</span>
+                      <span className="truncate text-[10px] text-muted-foreground">Battle-tested for a month. Built by Bitcoiners, for Bitcoiners.</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs text-muted-foreground">Battle-tested for a month. Built by Bitcoiners, for Bitcoiners.</span>
               </div>
             </div>
           </div>
