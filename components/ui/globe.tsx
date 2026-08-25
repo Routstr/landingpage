@@ -255,6 +255,7 @@ export function Globe({ className, viewportTargetRef }: GlobeProps) {
   const isDraggingRef = useRef(false);
   const cameraRef = useRef({ lat: 18, lng: -42 });
   const hasPositionedNetworkRef = useRef(false);
+  const globeVisibleRef = useRef(true);
   const networkCenter = useMemo(() => getNetworkCenter(points, relayPoints), [points, relayPoints]);
 
   useEffect(() => {
@@ -513,6 +514,7 @@ export function Globe({ className, viewportTargetRef }: GlobeProps) {
     }
     let lastFrameAt = 0;
     const updatePackets = () => {
+      if (!globeVisibleRef.current) return;
       const now = Date.now();
       if (now - lastFrameAt < PACKET_FRAME_INTERVAL_MS) return;
       lastFrameAt = now;
@@ -544,30 +546,44 @@ export function Globe({ className, viewportTargetRef }: GlobeProps) {
   useEffect(() => {
     if (!mounted) return;
     let dampingTimer: TimeoutHandle | null = null;
+    let pauseObserver: IntersectionObserver | null = null;
 
     const checkRef = setInterval(() => {
       if (globeRef.current) {
         const controls = globeRef.current.controls();
         if (controls) {
           clearInterval(checkRef);
-          
+
           // Configure controls
           controls.autoRotate = true;
           controls.autoRotateSpeed = -1.0; // Reverse direction
           controls.enableDamping = false; // Disable damping initially to prevent 'slide'
           controls.minDistance = 150;
           controls.maxDistance = 500;
-          
+
           // Snap view with smaller zoom (larger altitude)
           globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.8 }, 0);
           controls.update();
-          
+
           // Re-enable damping after snap
           dampingTimer = setTimeout(() => {
             if (globeRef.current) {
               globeRef.current.controls().enableDamping = true;
             }
           }, 100);
+
+          // Park the WebGL loop entirely while the globe is off-screen — the
+          // heaviest continuous cost on the landing page after the hero.
+          if (containerRef.current) {
+            pauseObserver = new IntersectionObserver(([entry]) => {
+              const globe = globeRef.current;
+              globeVisibleRef.current = entry.isIntersecting;
+              if (!globe) return;
+              if (entry.isIntersecting) globe.resumeAnimation();
+              else globe.pauseAnimation();
+            });
+            pauseObserver.observe(containerRef.current);
+          }
         }
       }
     }, 100);
@@ -575,6 +591,7 @@ export function Globe({ className, viewportTargetRef }: GlobeProps) {
     return () => {
       clearInterval(checkRef);
       if (dampingTimer) clearTimeout(dampingTimer);
+      if (pauseObserver) pauseObserver.disconnect();
     };
   }, [mounted]);
 

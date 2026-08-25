@@ -460,26 +460,10 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
 
       let raf = 0;
       let pausedForVisibility = false;
-
-      const handleVisibilityChange = () => {
-        if (document.hidden) {
-          if (!gsap.globalTimeline.paused()) {
-            gsap.globalTimeline.pause();
-            pausedForVisibility = true;
-          }
-          if (raf) {
-            cancelAnimationFrame(raf);
-            raf = 0;
-          }
-        } else if (pausedForVisibility) {
-          gsap.globalTimeline.resume();
-          pausedForVisibility = false;
-          if (!raf) raf = requestAnimationFrame(renderLoop);
-        }
-      };
+      let heroVisible = true;
 
       const renderLoop = () => {
-        if (document.hidden) {
+        if (document.hidden || !heroVisible) {
           raf = 0;
           return;
         }
@@ -508,9 +492,51 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
         renderer.render(scene, camera);
         raf = requestAnimationFrame(renderLoop);
       };
+
+      // Pause the WebGL render loop whenever the hero leaves the viewport —
+      // GSAP tweens freeze with the global timeline so nothing desyncs.
+      const startLoop = () => {
+        if (!raf && !document.hidden && heroVisible) raf = requestAnimationFrame(renderLoop);
+      };
+      const heroObserver = new IntersectionObserver(([entry]) => {
+        heroVisible = entry.isIntersecting;
+        if (heroVisible) startLoop();
+        else if (raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+      });
+      heroObserver.observe(mount);
+
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          if (!gsap.globalTimeline.paused()) {
+            gsap.globalTimeline.pause();
+            pausedForVisibility = true;
+          }
+          if (raf) {
+            cancelAnimationFrame(raf);
+            raf = 0;
+          }
+        } else if (pausedForVisibility) {
+          gsap.globalTimeline.resume();
+          pausedForVisibility = false;
+          startLoop();
+        }
+      };
       document.addEventListener("visibilitychange", handleVisibilityChange);
       handleVisibilityChange();
-      if (!document.hidden) raf = requestAnimationFrame(renderLoop);
+
+      // Prewarm: one synchronous render with every object force-visible compiles
+      // all shader programs up front, so the intro never hitches on first draw.
+      portalGroup.visible = true;
+      shieldGroup.visible = true;
+      connectionLines.visible = true;
+      renderer.render(scene, camera);
+      portalGroup.visible = false;
+      shieldGroup.visible = false;
+      connectionLines.visible = false;
+      startLoop();
 
       const resize = () => {
         const cw = mount.clientWidth;
@@ -555,6 +581,7 @@ export function ConceptObject({ stateIndex, className, onPhaseComplete }: Concep
         portalTimelineRef.current?.kill();
         observer.disconnect();
         themeObserver.disconnect();
+        heroObserver.disconnect();
         geometry.dispose();
         edgeGeometry.dispose();
         routstrTexture.dispose();

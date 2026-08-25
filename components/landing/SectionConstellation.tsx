@@ -45,7 +45,7 @@ type Node = {
   bursting: boolean;
   rot: number;
   vr: number;
-  size: number;
+  factor: number;
   sides: number;
   tx: number;
   ty: number;
@@ -80,7 +80,11 @@ export function SectionConstellation({
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     // Narrow viewports get smaller glyphs so the constellation doesn't squish.
-    const sizeScale = Math.max(0.62, Math.min(1, wrapper.getBoundingClientRect().width / 1100));
+    // Derived from live width so browser resizes re-scale everything cleanly.
+    const glyphScale = () => Math.max(0.62, Math.min(1, width / 1100));
+    // Burst/drift speeds shrink with the canvas so small screens see the same
+    // choreography instead of an instant pop.
+    const speedScale = () => Math.max(0.5, Math.min(1, Math.min(width, height) / 500));
 
     let width = 0;
     let height = 0;
@@ -122,7 +126,7 @@ export function SectionConstellation({
         const angle = fromCentre
           ? (i / count) * Math.PI * 2 + Math.random() * 0.6
           : Math.random() * Math.PI * 2;
-        const speed = fromCentre ? 0.9 + Math.random() * 1.5 : 0.12 + Math.random() * 0.1;
+        const speed = (fromCentre ? 0.9 + Math.random() * 1.5 : 0.12 + Math.random() * 0.1) * speedScale();
         const dist = fromCentre ? 8 + Math.random() * 36 : 0;
         // A few larger primaries, most smaller — like the hero's fragments.
         const big = Math.random() < 0.22;
@@ -134,7 +138,7 @@ export function SectionConstellation({
           bursting: fromCentre,
           rot: Math.random() * Math.PI * 2,
           vr: (Math.random() - 0.5) * 0.03,
-          size: nodeRadius * sizeScale * (big ? 1.25 + Math.random() * 0.35 : 0.6 + Math.random() * 0.35),
+          factor: big ? 1.25 + Math.random() * 0.35 : 0.6 + Math.random() * 0.35,
           sides: [5, 6, 6, 7][Math.floor(Math.random() * 4)],
           tx: targets[i].tx,
           ty: targets[i].ty,
@@ -167,19 +171,21 @@ export function SectionConstellation({
         }
       }
       const rgb = dark ? "229,229,229" : "10,10,10";
+      const glyphSize = nodeRadius * glyphScale();
       for (const node of nodes) {
         const fade = edgeFade(node.x, node.y);
         if (fade <= 0.02) continue;
         const alpha = fade * intensity * (dark ? 0.55 : 0.45);
         if (alpha <= 0.004) continue;
+        const size = glyphSize * node.factor;
         if (shape === "poly") {
           // Flat-shaded glyph: body + crisp outline, like the hero's
           // icosahedron fragments (solid fill with edge lines).
           ctx.beginPath();
           for (let s = 0; s < node.sides; s++) {
             const a = node.rot + (s / node.sides) * Math.PI * 2;
-            const px = node.x + Math.cos(a) * node.size;
-            const py = node.y + Math.sin(a) * node.size;
+            const px = node.x + Math.cos(a) * size;
+            const py = node.y + Math.sin(a) * size;
             if (s === 0) ctx.moveTo(px, py);
             else ctx.lineTo(px, py);
           }
@@ -192,7 +198,7 @@ export function SectionConstellation({
         } else {
           ctx.fillStyle = `rgba(${rgb},${alpha})`;
           ctx.beginPath();
-          ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
           ctx.fill();
         }
       }

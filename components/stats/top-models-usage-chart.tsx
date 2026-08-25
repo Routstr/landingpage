@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   type ChartConfig,
@@ -80,39 +80,70 @@ function parseBucketDate(value: string): Date | null {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
-function getSeriesColor(_model: string, index: number): string {
-  const palette = [
-    "var(--chart-1)",
-    "var(--chart-2)",
-    "var(--chart-3)",
-    "var(--chart-4)",
-    "var(--chart-5)",
-    "hsl(196 72% 60%)",
-    "hsl(326 72% 62%)",
-    "hsl(255 74% 64%)",
-    "hsl(144 58% 54%)",
-    "hsl(18 78% 60%)",
-    "hsl(214 80% 64%)",
-    "hsl(48 88% 58%)",
-    "hsl(174 66% 56%)",
-    "hsl(292 68% 62%)",
-    "hsl(96 56% 56%)",
-    "hsl(8 74% 58%)",
-    "hsl(228 68% 70%)",
-    "hsl(334 78% 58%)",
-    "hsl(120 44% 60%)",
-    "hsl(276 58% 64%)",
-  ];
+// Extended series palette. The first five come from the theme via CSS vars;
+// the rest are hardcoded HSL with a light-theme variant so stacked bars stay
+// legible on the light stats page.
+const SERIES_DARK = [
+  "hsl(196 72% 60%)",
+  "hsl(326 72% 62%)",
+  "hsl(255 74% 64%)",
+  "hsl(144 58% 54%)",
+  "hsl(18 78% 60%)",
+  "hsl(214 80% 64%)",
+  "hsl(48 88% 58%)",
+  "hsl(174 66% 56%)",
+  "hsl(292 68% 62%)",
+  "hsl(96 56% 56%)",
+  "hsl(8 74% 58%)",
+  "hsl(228 68% 70%)",
+  "hsl(334 78% 58%)",
+  "hsl(120 44% 60%)",
+  "hsl(276 58% 64%)",
+];
+const SERIES_LIGHT = [
+  "hsl(196 72% 38%)",
+  "hsl(326 72% 42%)",
+  "hsl(255 74% 46%)",
+  "hsl(144 58% 34%)",
+  "hsl(18 78% 42%)",
+  "hsl(214 80% 42%)",
+  "hsl(48 88% 36%)",
+  "hsl(174 66% 34%)",
+  "hsl(292 68% 40%)",
+  "hsl(96 56% 36%)",
+  "hsl(8 74% 40%)",
+  "hsl(228 68% 46%)",
+  "hsl(334 78% 40%)",
+  "hsl(120 44% 36%)",
+  "hsl(276 58% 42%)",
+];
 
-  if (index < palette.length) {
-    return palette[index];
-  }
+function useSeriesColor(): (model: string, index: number) => string {
+  const [mode, setMode] = useState<"light" | "dark">("dark");
+  useEffect(() => {
+    const el = document.documentElement;
+    const update = () => setMode(el.classList.contains("dark") ? "dark" : "light");
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
-  const extendedIndex = index - palette.length;
-  const hue = (extendedIndex * 71 + 23) % 360;
-  const saturation = 64 + (extendedIndex % 3) * 6;
-  const lightness = 54 + (Math.floor(extendedIndex / 3) % 3) * 5;
-  return `hsl(${hue} ${saturation}% ${lightness}%)`;
+  return useCallback(
+    (model: string, index: number) => {
+      void model;
+      const themed = mode === "light" ? SERIES_LIGHT : SERIES_DARK;
+      if (index < 5) return `var(--chart-${index + 1})`;
+      if (index < 5 + themed.length) return themed[index - 5];
+
+      const extendedIndex = index - 5 - themed.length;
+      const hue = (extendedIndex * 71 + 23) % 360;
+      const saturation = 64 + (extendedIndex % 3) * 6;
+      const lightness = mode === "light" ? 36 + (Math.floor(extendedIndex / 3) % 3) * 5 : 54 + (Math.floor(extendedIndex / 3) % 3) * 5;
+      return `hsl(${hue} ${saturation}% ${lightness}%)`;
+    },
+    [mode]
+  );
 }
 
 function formatTooltipTimestamp(
@@ -308,6 +339,7 @@ export function TopModelsUsageChart({
   const [isChartPointerInside, setIsChartPointerInside] = useState(false);
   const [showAllModels, setShowAllModels] = useState(false);
   const isMobile = useIsMobile();
+  const seriesColor = useSeriesColor();
   const fallbackTopModels = useMemo(
     () => (Array.isArray(mix.top_models) ? mix.top_models : []),
     [mix.top_models]
@@ -357,9 +389,9 @@ export function TopModelsUsageChart({
         revenueKey: `model_rev_${index}`,
         tokensKey: `model_tok_${index}`,
         label: model,
-        color: getSeriesColor(model, index),
+        color: seriesColor(model, index),
       })),
-    [chartModels]
+    [chartModels, seriesColor]
   );
 
   const chartData = useMemo(
@@ -827,10 +859,10 @@ export function TopModelsUsageChart({
               let trendClass = "text-muted-foreground";
               if (row.trend === "new") {
                 trendLabel = "new";
-                trendClass = "text-sky-400";
+                trendClass = "text-sky-600 dark:text-sky-400";
               } else if (row.trend === "up" && row.trendPercent !== null) {
                 trendLabel = `↑${formatTrendPercent(row.trendPercent)}%`;
-                trendClass = "text-emerald-400";
+                trendClass = "text-emerald-600 dark:text-emerald-400";
               } else if (row.trend === "down" && row.trendPercent !== null) {
                 trendLabel = `↓${formatTrendPercent(row.trendPercent)}%`;
                 trendClass = "text-destructive";
