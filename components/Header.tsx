@@ -54,6 +54,11 @@ const menuGroups: MenuGroup[] = [
         href: "/stats",
         description: "Track usage, pricing, and network activity.",
       },
+      {
+        title: "Capabilities & Integration",
+        href: "/capabilities",
+        description: "What the network does and how to plug it in.",
+      },
     ],
   },
   {

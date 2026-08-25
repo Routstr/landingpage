@@ -2,12 +2,10 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { LandingHero } from "@/components/landing/Hero";
 import { LandingNetworkGlobe } from "@/components/landing/NetworkGlobe";
-import { LandingFeatures } from "@/components/landing/Features";
 import { LandingHowItWorks } from "@/components/landing/HowItWorks";
+import { LandingProducts } from "@/components/landing/Products";
 import { LandingBrowseModels } from "@/components/landing/BrowseModels";
 import { LandingTestimonials } from "@/components/landing/Testimonials";
-import { LandingApiExample } from "@/components/landing/ApiExample";
-import { LandingProducts } from "@/components/landing/Products";
 import { LandingCTA } from "@/components/landing/CTA";
 
 export default function Home() {
@@ -16,9 +14,7 @@ export default function Home() {
       <LandingHero />
       <LandingNetworkGlobe />
       <LandingHowItWorks />
-      <LandingFeatures />
       <LandingProducts />
-      <LandingApiExample />
       <LandingBrowseModels />
       <LandingTestimonials />
       <LandingCTA />

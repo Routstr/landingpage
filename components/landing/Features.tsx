@@ -46,7 +46,7 @@ export function LandingFeatures() {
     <div className="w-full relative">
       <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
         <h2 className="text-xl font-bold text-foreground mb-12">Key capabilities</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
+        <div className="grid grid-cols-1 gap-y-12 md:max-w-5xl">
           {features.map((feature, index) => (
             <div key={index} className="flex flex-col group gap-6">
               <div>
