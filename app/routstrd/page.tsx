@@ -275,8 +275,8 @@ export default function RoutstrdPage() {
                 </p>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 border border-amber-500/30">
-                      <BitcoinLogo className="w-[55%] h-[55%] text-foreground" />
+                    <div className="flex h-10 w-10 items-center justify-center">
+                      <BitcoinLogo className="w-[70%] h-[70%] text-foreground" />
                     </div>
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate text-xs font-bold text-foreground">Routstrd</span>
