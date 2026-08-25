@@ -45,7 +45,7 @@ export function LandingHowItWorks() {
   return (
     <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
       <div className="w-full px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
-        <div className="mb-12 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+        <div className="mb-12 flex flex-col items-start gap-6">
           <h2 className="text-xl font-bold text-foreground">How It Works</h2>
 
           <div className="flex items-center gap-4 text-sm font-medium sm:gap-6">
