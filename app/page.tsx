@@ -15,8 +15,8 @@ export default function Home() {
     <SiteShell useMain={false}>
       <LandingHero />
       <LandingNetworkGlobe />
-      <LandingFeatures />
       <LandingHowItWorks />
+      <LandingFeatures />
       <LandingProducts />
       <LandingApiExample />
       <LandingBrowseModels />

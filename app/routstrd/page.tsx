@@ -77,7 +77,14 @@ export default function RoutstrdPage() {
       {/* Get Started in 3 Commands */}
       <section className="relative flex min-h-[calc(100svh-72px)] flex-col justify-center py-16 sm:min-h-[calc(100svh-80px)] md:py-20">
         <PageContainer>
-          <h2 className="text-xl font-bold text-foreground mb-12">Get Started in 3 Commands</h2>
+          <div className="mb-12 flex items-end justify-between gap-4">
+            <h2 className="text-xl font-bold text-foreground">Get Started in 3 Commands</h2>
+            <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+              <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
+                Get Help
+              </a>
+            </Button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map((step, idx) => (
               <div key={idx} className="flex flex-col border border-border bg-card p-5 sm:p-8">
@@ -108,6 +115,13 @@ export default function RoutstrdPage() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-6 flex justify-center md:hidden">
+            <Button asChild variant="outline" size="sm" className="w-full">
+              <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
+                Get Help
+              </a>
+            </Button>
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
