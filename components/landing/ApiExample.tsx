@@ -150,7 +150,7 @@ export function LandingApiExample() {
                   ))}
                 </TabsList>
               </Tabs>
-              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+              <div className="hidden items-center gap-1.5 self-end sm:flex">
                 <Button onClick={doCopy} variant="ghost" size="xs" className="h-7 text-[10px]">
                   {copied ? "Copied" : "Copy"}
                 </Button>
@@ -165,6 +165,11 @@ export function LandingApiExample() {
                   setLocalCashuToken(STORAGE_BASE_URL, tokenInput || "")
                 }
               />
+            </div>
+            <div className="border-t border-border p-3 sm:hidden">
+              <Button onClick={doCopy} variant="ghost" className="h-11 w-full text-sm">
+                {copied ? "Copied" : "Copy command"}
+              </Button>
             </div>
           </div>
       </div>
