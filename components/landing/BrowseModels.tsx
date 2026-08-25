@@ -5,6 +5,7 @@ import { useModels } from "@/app/contexts/ModelsContext";
 import { getPopularModels } from "@/app/data/models";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   formatCompactContextLength,
   formatCompactPriceValue,
@@ -82,6 +83,12 @@ export function LandingBrowseModels() {
               Access leading AI models through independent providers.
             </p>
           </div>
+          <Button asChild className="hidden md:inline-flex">
+            <Link href="/models">
+              View all models
+              <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
 
         <div className="flex flex-col mt-8">
@@ -156,14 +163,13 @@ export function LandingBrowseModels() {
           )}
         </div>
 
-        <div className="mt-8">
-          <Link
-            href="/models"
-            className="inline-flex items-center gap-2 text-sm text-foreground hover:text-foreground transition-colors"
-          >
-            View all models
-            <ArrowRight className="w-3 h-3" />
-          </Link>
+        <div className="mt-8 md:hidden">
+          <Button asChild className="w-full">
+            <Link href="/models">
+              View all models
+              <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
