@@ -9,11 +9,12 @@ import { useInView } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
 import { SectionConstellation } from "@/components/landing/SectionConstellation";
 import { BitcoinLogo } from "@/components/icons/BitcoinLogo";
-import { TuiShowcase } from "@/components/landing/TuiShowcase";
+import { TuiShowcase, type TuiShowcaseHandle } from "@/components/landing/TuiShowcase";
 
 export default function RoutstrdPage() {
   const [copiedBlock, setCopiedBlock] = useState<number | null>(null);
   const [activeTuiTab, setActiveTuiTab] = useState(0);
+  const tuiRef = useRef<TuiShowcaseHandle>(null);
   const teamsSectionRef = useRef<HTMLElement>(null);
   const teamsInView = useInView(teamsSectionRef, 0.2);
   const getStartedRef = useRef<HTMLElement>(null);
@@ -175,18 +176,20 @@ export default function RoutstrdPage() {
               </div>
               <div className="flex gap-2 mt-8">
                 {[0, 1, 2].map((idx) => (
-                  <span
+                  <button
                     key={idx}
-                    aria-hidden="true"
+                    type="button"
+                    aria-label={`Show TUI screen ${idx + 1}`}
+                    onClick={() => tuiRef.current?.goTo(idx)}
                     className={cn(
                       "h-1.5 w-8 rounded-full transition-colors",
-                      activeTuiTab === idx ? "bg-foreground" : "bg-border"
+                      activeTuiTab === idx ? "bg-foreground" : "bg-border hover:bg-muted-foreground/30"
                     )}
                   />
                 ))}
               </div>
             </div>
-            <TuiShowcase onActiveChange={setActiveTuiTab} />
+            <TuiShowcase ref={tuiRef} onActiveChange={setActiveTuiTab} />
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />

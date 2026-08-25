@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/app/contexts/ThemeContext";
 
@@ -199,17 +199,20 @@ const TABS = [
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function TuiShowcase({ className, onActiveChange }: { className?: string; onActiveChange?: (index: number) => void }) {
+export type TuiShowcaseHandle = {
+  goTo: (index: number) => void;
+};
+
+export const TuiShowcase = forwardRef<TuiShowcaseHandle, {
+  className?: string;
+  onActiveChange?: (index: number) => void;
+}>(function TuiShowcase({ className, onActiveChange }, ref) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState(0);
   const [progress, setProgress] = useState(0);
   const [inView, setInView] = useState(false);
   const reducedMotion = useRef(false);
-  const onActiveChangeRef = useRef(onActiveChange);
-
-  useEffect(() => {
-    onActiveChangeRef.current = onActiveChange;
-  }, [onActiveChange]);
+  const restartTimerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -227,21 +230,39 @@ export function TuiShowcase({ className, onActiveChange }: { className?: string;
     const tick = (now: number) => {
       const p = (now - start) / FRAME_MS;
       if (p >= 1) {
-        setTab((t) => {
-          const nextTab = (t + 1) % TABS.length;
-          onActiveChangeRef.current?.(nextTab);
-          return nextTab;
-        });
-        setProgress(0);
         start = now;
+        setProgress(0);
+        setTab((t) => (t + 1) % TABS.length);
       } else {
         setProgress(p);
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+    restartTimerRef.current = () => {
+      start = performance.now();
+      setProgress(0);
+    };
     return () => cancelAnimationFrame(raf);
   }, [inView]);
+
+  // Report active tab to the parent (for the indicator dots) after render.
+  useEffect(() => {
+    onActiveChange?.(tab);
+  }, [tab, onActiveChange]);
+
+  // External control (clickable indicator dots): jump to a tab and reset the
+  // auto-switch clock so the manual pick isn't immediately overridden.
+  const goTo = useCallback(
+    (index: number) => {
+      if (index === tab) return;
+      restartTimerRef.current?.();
+      setTab(index);
+    },
+    [tab]
+  );
+
+  useImperativeHandle(ref, () => ({ goTo }), [goTo]);
 
   const active = TABS[tab];
   const lines = useMemo(() => active.lines(), [active]);
@@ -332,4 +353,4 @@ export function TuiShowcase({ className, onActiveChange }: { className?: string;
       </div>
     </div>
   );
-}
+});
