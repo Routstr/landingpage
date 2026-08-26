@@ -59,12 +59,12 @@ print(completion.choices[0].message.content)`,
 type CodeLanguage = "curl" | "javascript" | "python";
 
 const syntaxTokenClasses = {
-  command: "text-[#4FC1FF]",
-  keyword: "text-[#C586C0]",
-  string: "text-[#CE9178]",
-  symbol: "text-[#DCDCAA]",
-  value: "text-[#9CDCFE]",
-  plain: "text-[#D4D4D4]",
+  command: "text-code-blue",
+  keyword: "text-code-purple",
+  string: "text-code-orange",
+  symbol: "text-code-yellow",
+  value: "text-code-lightblue",
+  plain: "text-code-plain",
 } as const;
 
 type SyntaxTokenKind = keyof typeof syntaxTokenClasses;
@@ -108,33 +108,34 @@ export function LandingApiExample() {
 
   return (
     <div className="w-full relative">
-      <div className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-12">
-          <div className="flex-shrink-0 lg:w-1/3">
+      <div className="px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
+        <div className="flex flex-col gap-8">
+          <div>
             <h2 className="text-xl font-bold text-foreground mb-4">
               Simple Integration
             </h2>
-            <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
               A drop-in replacement for any existing openai client. Swap out the base url and api key, and you&apos;re connected to the decentralized network.
             </p>
-
-            <div className="flex flex-col gap-6">
-              <div className="border-l border-border pl-4">
-                <h4 className="font-bold text-sm text-foreground mb-1">Zero learning curve</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Use your favorite standard SDKs. No custom libraries to learn or vendor lock-in to worry about.
-                </p>
-              </div>
-              <div className="border-l border-border pl-4">
-                <h4 className="font-bold text-sm text-foreground mb-1">Privacy by default</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Authenticating through eCash bearer tokens means you don&apos;t need to register an email or provide a credit card.
-                </p>
-              </div>
-            </div>
           </div>
 
-          <div className="flex w-full min-w-0 flex-grow flex-col border border-border bg-card">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="border-l border-border pl-4">
+              <h4 className="font-bold text-sm text-foreground mb-1">Zero learning curve</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Use your favorite standard SDKs. No custom libraries to learn or vendor lock-in to worry about.
+              </p>
+            </div>
+            <div className="border-l border-border pl-4">
+              <h4 className="font-bold text-sm text-foreground mb-1">Privacy by default</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Authenticating through eCash bearer tokens means you don&apos;t need to register an email or provide a credit card.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 flex w-full min-w-0 flex-col border border-border bg-card">
             <div className="relative flex flex-col gap-2 border-b border-border px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
               <Tabs
                 value={activeTab}
@@ -149,7 +150,7 @@ export function LandingApiExample() {
                   ))}
                 </TabsList>
               </Tabs>
-              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+              <div className="hidden items-center gap-1.5 self-end sm:flex">
                 <Button onClick={doCopy} variant="ghost" size="xs" className="h-7 text-[10px]">
                   {copied ? "Copied" : "Copy"}
                 </Button>
@@ -165,8 +166,12 @@ export function LandingApiExample() {
                 }
               />
             </div>
+            <div className="border-t border-border p-3 sm:hidden">
+              <Button onClick={doCopy} variant="ghost" className="h-11 w-full text-sm">
+                {copied ? "Copied" : "Copy command"}
+              </Button>
+            </div>
           </div>
-        </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
@@ -186,7 +191,7 @@ const CodeBlock = ({
 }) => {
   if (activeTab === "curl") {
     return (
-      <pre className="text-xs leading-relaxed whitespace-pre text-[#D4D4D4]">
+      <pre className="text-xs leading-relaxed whitespace-pre text-code-plain">
         <code>
           <Tok kind="command">curl</Tok>
           {" -X POST "}
@@ -235,7 +240,7 @@ const CodeBlock = ({
 
   if (activeTab === "javascript") {
     return (
-      <pre className="text-xs leading-relaxed whitespace-pre text-[#D4D4D4]">
+      <pre className="text-xs leading-relaxed whitespace-pre text-code-plain">
         <code>
           <Tok kind="keyword">import</Tok> <Tok kind="symbol">OpenAI</Tok>{" "}
           <Tok kind="keyword">from</Tok> <Tok kind="string">{`'openai'`}</Tok>;{"\n\n"}
@@ -298,7 +303,7 @@ const CodeBlock = ({
 
   if (activeTab === "python") {
     return (
-      <pre className="text-xs leading-relaxed whitespace-pre text-[#D4D4D4]">
+      <pre className="text-xs leading-relaxed whitespace-pre text-code-plain">
         <code>
           <Tok kind="keyword">from</Tok> openai <Tok kind="keyword">import</Tok>{" "}
           <Tok kind="symbol">OpenAI</Tok>
@@ -358,7 +363,7 @@ const TokenInput = ({
     onMouseDown={(e) => e.stopPropagation()}
     onTouchStart={(e) => e.stopPropagation()}
     placeholder="cashuA..."
-    className="inline-block align-middle min-w-0 w-[12ch] sm:w-[18ch] max-w-[50vw] bg-transparent border-b border-border px-1 py-0 text-xs text-[#CE9178] placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
+    className="inline-block align-middle min-w-0 w-[12ch] sm:w-[18ch] max-w-[50vw] bg-transparent border-b border-border px-1 py-0 text-xs text-code-orange placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
   />
 );
 

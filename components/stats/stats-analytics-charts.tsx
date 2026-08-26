@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -51,16 +51,32 @@ type ModelShareChartProps = {
   description?: string;
 };
 
-const PIE_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
+// Series colors: the first five follow the theme via CSS vars. The rest are
+// hardcoded HSL with a light-theme variant so the bars stay legible on the
+// light stats page (60% lightness reads washed-out on paper).
+const PIE_COLORS_DARK = [
   "hsl(196 72% 60%)",
   "hsl(18 78% 60%)",
   "hsl(334 78% 58%)",
 ];
+const PIE_COLORS_LIGHT = [
+  "hsl(196 72% 38%)",
+  "hsl(18 78% 42%)",
+  "hsl(334 78% 40%)",
+];
+
+function useThemeMode(): "light" | "dark" {
+  const [mode, setMode] = useState<"light" | "dark">("dark");
+  useEffect(() => {
+    const el = document.documentElement;
+    const update = () => setMode(el.classList.contains("dark") ? "dark" : "light");
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+  return mode;
+}
 
 function formatModeValue(
   value: number,
@@ -91,8 +107,19 @@ function clampLabel(value: string, max = 26): string {
   return `${value.slice(0, max - 1)}…`;
 }
 
-function getSeriesColor(index: number): string {
-  return PIE_COLORS[index % PIE_COLORS.length];
+function useSeriesColors(): (index: number) => string {
+  const mode = useThemeMode();
+  return useCallback(
+    (index: number) => {
+      const themed = mode === "light" ? PIE_COLORS_LIGHT : PIE_COLORS_DARK;
+      if (index < 5) {
+        return `var(--chart-${index + 1})`;
+      }
+      const fallback = themed[(index - 5) % themed.length];
+      return fallback;
+    },
+    [mode]
+  );
 }
 
 export function ProviderComparisonChart({
@@ -102,6 +129,7 @@ export function ProviderComparisonChart({
   description,
 }: ProviderComparisonChartProps) {
   const isMobile = useIsMobile();
+  const getSeriesColor = useSeriesColors();
   const chartData = useMemo(() => data.slice(0, 10).reverse(), [data]);
   const chartConfig = useMemo<ChartConfig>(
     () => ({
@@ -217,6 +245,7 @@ export function ModelShareChart({
   title = "Model Share",
   description,
 }: ModelShareChartProps) {
+  const getSeriesColor = useSeriesColors();
   const chartData = useMemo(() => data.slice(0, 8), [data]);
   const totalValue = useMemo(
     () => chartData.reduce((sum, item) => sum + item.value, 0),
@@ -231,7 +260,7 @@ export function ModelShareChart({
       };
     });
     return config;
-  }, [chartData]);
+  }, [chartData, getSeriesColor]);
 
   if (chartData.length === 0) {
     return null;

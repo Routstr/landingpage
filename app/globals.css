@@ -5,25 +5,25 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 1rem;
-  --background: #111111;
-  --foreground: #e5e5e5;
-  --card: #161616;
-  --card-foreground: #e5e5e5;
-  --popover: #161616;
-  --popover-foreground: #e5e5e5;
-  --primary: #e5e5e5;
-  --primary-foreground: #111111;
-  --secondary: #1a1a1a;
-  --secondary-foreground: #e5e5e5;
-  --muted: #1a1a1a;
-  --muted-foreground: #a1a1a1;
-  --accent: #1a1a1a;
-  --accent-foreground: #e5e5e5;
+  --radius: 0rem;
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #fafafa;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f0f0f0;
+  --muted-foreground: #6b6b6b;
+  --accent: #f0f0f0;
+  --accent-foreground: #0a0a0a;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #2c2c2c;
-  --input: #2c2c2c;
-  --ring: #7a7a7a;
+  --border: #e2e2e2;
+  --input: #e2e2e2;
+  --ring: #b5b5b5;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -37,6 +37,18 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  --brand: #f7931a;
+  --brand-foreground: #0a0a0a;
+  --success: #34d399;
+  --success-foreground: #0a0a0a;
+  /* Syntax-highlight preset (VS Code Light+) for code blocks */
+  --code-bg: #fafafa;
+  --code-blue: #0451a5;
+  --code-purple: #af00db;
+  --code-orange: #a31515;
+  --code-yellow: #795e26;
+  --code-lightblue: #001080;
+  --code-plain: #383a42;
 }
 
 .dark {
@@ -71,6 +83,18 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+  --brand: #f7931a;
+  --brand-foreground: #0a0a0a;
+  --success: #34d399;
+  --success-foreground: #0a0a0a;
+  /* Syntax-highlight preset (VS Code Dark+) for code blocks */
+  --code-bg: #0a0a0a;
+  --code-blue: #4fc1ff;
+  --code-purple: #c586c0;
+  --code-orange: #ce9178;
+  --code-yellow: #dcdcaa;
+  --code-lightblue: #9cdcfe;
+  --code-plain: #d4d4d4;
 }
 
 @theme inline {
@@ -81,8 +105,9 @@
   --color-border: var(--border);
   --color-card: var(--card);
   --font-mono:
-    var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-heading: var(--font-michroma), var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -108,15 +133,48 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-code-bg: var(--code-bg);
+  --color-code-blue: var(--code-blue);
+  --color-code-purple: var(--code-purple);
+  --color-code-orange: var(--code-orange);
+  --color-code-yellow: var(--code-yellow);
+  --color-code-lightblue: var(--code-lightblue);
+  --color-code-plain: var(--code-plain);
+  /* Square-first preset: the entire rounded-* scale collapses to square.
+     Pills and avatars use rounded-full (infinity), unaffected by these. */
+  --radius-xs: 0rem;
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
+  --radius-3xl: 0rem;
+  --radius-4xl: 0rem;
 }
 
 body {
   font-family: var(--font-mono);
   overflow-x: hidden;
+}
+
+/* Base heading font — applies everywhere including the hero title. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Wordmark treatment for page headings. The hero title is structurally
+   excluded so its own classes always stay authoritative — heading tweaks
+   must never leak into it. */
+h1:not([data-hero-title]), h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  /* Michroma ships one weight; a hairline stroke visually thickens it. */
+  -webkit-text-stroke: 0.5px currentColor;
 }
 
 @layer base {
@@ -131,6 +189,17 @@ body {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Custom container sizing for narrower max-width */
 .container {
   width: 100%;
@@ -141,8 +210,20 @@ body {
 
 /* Typography tweaks for markdown */
 @layer utilities {
+  /* Subtle elevation preset for cards and code blocks, light and dark. */
+  .shadow-elevation {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.05),
+      0 8px 24px rgb(0 0 0 / 0.07);
+  }
+  .dark .shadow-elevation {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.4),
+      0 8px 24px rgb(0 0 0 / 0.5);
+  }
+
   .prose-custom {
-    @apply prose prose-sm sm:prose-base prose-invert prose-headings:text-white prose-p:text-gray-300 prose-strong:text-white prose-em:text-gray-200 prose-blockquote:border-white/20 prose-hr:border-white/10 prose-a:text-white hover:prose-a:underline prose-a:underline-offset-4 prose-code:text-white prose-pre:bg-black prose-pre:border prose-pre:border-white/10 prose-img:rounded-lg prose-img:border prose-img:border-white/10 max-w-3xl;
+    @apply prose prose-sm sm:prose-base dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-em:text-muted-foreground prose-blockquote:border-border prose-hr:border-border prose-a:text-foreground hover:prose-a:underline prose-a:underline-offset-4 prose-code:text-foreground prose-pre:bg-muted prose-pre:border prose-pre:border-border prose-img:rounded-lg prose-img:border prose-img:border-border max-w-3xl;
   }
 
   /* Two-line text clamp with ellipsis */

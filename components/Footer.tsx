@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CurrencyTabs } from '@/components/ui/currency-tabs';
+import { RoutstrMark } from '@/components/RoutstrMark';
 
 type FooterLink = {
   text: string;
@@ -29,18 +29,16 @@ export default function Footer() {
   ];
 
   return (
-    <div className="w-full border-t border-border bg-transparent px-4 py-16 font-mono sm:px-6 md:px-12 md:py-24">
-      <div className="mx-auto flex max-w-5xl flex-col justify-between gap-12 md:flex-row md:gap-16">
+    <div className="w-full border-t border-border bg-transparent px-4 py-16 font-mono sm:px-[clamp(1rem,5vw,5rem)] md:py-24">
+      <div className="mx-auto flex max-w-[1800px] flex-col justify-between gap-12 md:flex-row md:gap-16">
         {/* Logo and copyright */}
         <div className="flex-1">
-          <Link href="/" className="inline-block mb-6">
-            <span className="font-bold text-xl text-foreground">Routstr</span>
+          <Link href="/" className="mb-6 inline-flex items-center gap-2.5">
+            <RoutstrMark className="h-6 w-6 shrink-0 text-foreground" />
+            <span className="text-base font-medium tracking-[0.28em] text-foreground">ROUTSTR</span>
           </Link>
           <div className="text-sm text-muted-foreground max-w-xs leading-relaxed">
             The open source protocol for decentralized AI inference routing.
-          </div>
-          <div className="mt-8">
-            <CurrencyTabs />
           </div>
           <div className="mt-8 text-[10px] font-bold text-muted-foreground">
             &copy; {new Date().getFullYear()} Routstr.
@@ -105,10 +103,11 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Large brand text */}
-      <div className="mx-auto mt-16 max-w-5xl select-none overflow-hidden text-center md:mt-32">
-        <span className="pointer-events-none block text-[3rem] font-bold leading-none tracking-tighter text-card sm:text-[6rem] md:text-[10rem] lg:text-[12rem]">
-          Routstr
+      {/* Large brand lockup */}
+      <div className="pointer-events-none mx-auto mt-16 flex max-w-[1800px] select-none items-center justify-center gap-4 overflow-hidden md:mt-32 md:gap-8">
+        <RoutstrMark className="h-[2.4rem] w-[2.4rem] shrink-0 text-card sm:h-[4.8rem] sm:w-[4.8rem] md:h-[8rem] md:w-[8rem] lg:h-[9.6rem] lg:w-[9.6rem]" />
+        <span className="block text-[3rem] font-bold leading-none tracking-tighter text-card sm:text-[6rem] md:text-[10rem] lg:text-[12rem]">
+          ROUTSTR
         </span>
       </div>
     </div>

@@ -1,96 +1,146 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Globe } from "@/components/ui/globe";
 import { WordFlip } from "@/components/WordFlip";
+import { ConceptObject } from "@/components/landing/ConceptObject";
 import { Button } from "@/components/ui/button";
+import { gsap, useGSAP } from "@/lib/gsap";
+
+const HERO_WORDS = ["Permissionless.", "Decentralized.", "Private."];
+const WORD_REVEAL_HOLD_MS = 1000;
 
 export function LandingHero() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const parentRef = useRef<HTMLDivElement>(null);
+  // Page load opens on Decentralized — the seed-burst intro plays there.
+  const [phaseIndex, setPhaseIndex] = useState(1);
+  const [wordIndex, setWordIndex] = useState(1);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const transitionCleanupRef = useRef<(() => void) | null>(null);
+
+  const handlePhaseComplete = useCallback((completedPhase: number) => {
+    transitionCleanupRef.current?.();
+    setWordIndex(completedPhase);
+
+    let remaining = WORD_REVEAL_HOLD_MS;
+    let startedAt = performance.now();
+    let timer: number | undefined;
+
+    const cleanup = () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      transitionCleanupRef.current = null;
+    };
+    const finish = () => {
+      cleanup();
+      const nextPhase = (completedPhase + 1) % HERO_WORDS.length;
+      setWordIndex(nextPhase);
+      setPhaseIndex(nextPhase);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        remaining = Math.max(0, remaining - (performance.now() - startedAt));
+        if (timer !== undefined) window.clearTimeout(timer);
+        timer = undefined;
+      } else {
+        startedAt = performance.now();
+        timer = window.setTimeout(finish, remaining);
+      }
+    };
+
+    transitionCleanupRef.current = cleanup;
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    timer = window.setTimeout(finish, remaining);
+    if (document.hidden && timer !== undefined) {
+      window.clearTimeout(timer);
+      timer = undefined;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => transitionCleanupRef.current?.();
+  }, []);
+
+  // Reveal each part of the message in reading order without layout-affecting tweens.
+  useGSAP(
+    () => {
+      const intro = gsap.timeline({ delay: 0.3 });
+      intro.fromTo(
+        "[data-hero-title-character]",
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, stagger: 0.13, ease: "power3.out" }
+      );
+      intro.fromTo(
+        "[data-hero-word]",
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.9, ease: "power3.out" },
+        "-=0.28"
+      );
+      intro.fromTo(
+        "[data-hero-description]",
+        { y: 14, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+        "-=0.22"
+      );
+      intro.fromTo(
+        "[data-hero-button]",
+        { y: 12, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.65, stagger: 0.22, ease: "power3.out" },
+        "-=0.18"
+      );
+    },
+    { scope: rootRef }
+  );
 
   return (
-    <div ref={parentRef} className="w-full relative overflow-hidden">
-      <div className="mx-auto flex min-h-[calc(100svh-72px)] w-full max-w-5xl flex-col items-start justify-center px-4 pb-10 pt-8 sm:min-h-[78svh] sm:px-6 sm:py-16 md:min-h-[85vh] md:px-12 md:py-20">
-        <div className="relative z-50 mb-5 w-full text-left sm:mb-6">
-          <Link
-            href="/routstrd"
-            className="group mb-7 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:mb-10 sm:px-4 sm:py-1.5 sm:text-xs"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
-              <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            </span>
-            Announcing Routstrd
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="transition-transform group-hover:translate-x-0.5"
-            >
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
-          </Link>
+    <div ref={rootRef} className="w-full relative overflow-hidden">
+      <div className="mx-auto grid w-full max-w-[1800px] grid-cols-1 content-center gap-6 px-[clamp(1rem,5vw,5rem)] pb-10 pt-8 mt-[72px] min-h-[calc(100svh-72px)] sm:mt-[80px] sm:min-h-[calc(100svh-80px)] sm:py-16 md:grid-cols-2 md:gap-x-10 md:gap-y-6 md:py-20">
+        <h1
+          data-hero-title
+          className="order-1 flex w-full flex-col items-start text-left text-[2.75rem] font-medium leading-[1.08] text-foreground sm:text-[3.25rem] md:order-none md:col-start-1 md:row-start-2 md:text-[2.8125rem] lg:text-[3.75rem]"
+        >
+          <span data-hero-title-line className="inline-flex will-change-transform" aria-label="AI is Now">
+            {"AI is Now".split("").map((character, index) => (
+              <span key={`${character}-${index}`} data-hero-title-character className="inline-block whitespace-pre">
+                {character}
+              </span>
+            ))}
+          </span>
+          <span data-hero-word className="mt-1.5 will-change-transform text-muted-foreground sm:mt-2 md:mt-3">
+            <WordFlip words={HERO_WORDS} word={HERO_WORDS[wordIndex]} className="font-mono text-left" />
+          </span>
+        </h1>
 
-          <h1 className="mb-0 flex w-full max-w-3xl flex-col items-start text-left text-[2.2rem] font-medium leading-[1.08] text-foreground sm:text-[2.6rem] md:text-4xl lg:text-5xl">
-            <span>Access to AI is Now</span>
-            <span className="mt-1.5 text-muted-foreground sm:mt-2 md:mt-3">
-              <WordFlip
-                words={["Permissionless.", "Decentralized.", "Private."]}
-                className="font-mono text-left"
-              />
-            </span>
-          </h1>
+        {/* Mobile: object sits inline in flow. Desktop: full-bleed canvas behind
+            the text, pointer-events-none so the CTAs stay clickable. */}
+        <div
+          className="pointer-events-none order-2 relative min-h-[38svh] w-full md:absolute md:inset-0 md:min-h-0"
+          aria-hidden="true"
+        >
+          <ConceptObject
+            stateIndex={phaseIndex}
+            className="absolute inset-0 h-full w-full"
+            onPhaseComplete={handlePhaseComplete}
+          />
         </div>
-        <p className="relative z-50 mt-0 mb-6 max-w-xl text-left text-base leading-relaxed text-muted-foreground sm:mb-7 md:text-lg">
+
+        <p
+          data-hero-description
+          className="order-3 z-10 max-w-xl will-change-transform text-left text-base leading-relaxed text-muted-foreground md:order-none md:col-start-1 md:row-start-3 md:text-lg"
+        >
           Pay-per-request AI APIs with Bitcoin micropayments. OpenAI-compatible,
           privacy-preserving, no account required.
         </p>
-        <div className="relative z-50 grid w-full grid-cols-2 gap-3 sm:w-auto sm:flex sm:gap-4">
-          <Button asChild className="h-10 w-full px-5 sm:w-auto">
-            <Link href="/routstrd">Run Routstrd Locally</Link>
-          </Button>
-          <Button asChild variant="outline" className="h-10 w-full px-5 sm:w-auto">
-            <Link
-              href="https://chat.routstr.com"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Start Chatting
-            </Link>
-          </Button>
-        </div>
 
         <div
-          ref={containerRef}
-          className="relative mt-5 flex h-[290px] w-full justify-center overflow-hidden sm:mt-4 sm:h-[260px] md:mt-2 md:h-[500px]"
+          className="order-4 z-10 grid w-full grid-cols-2 gap-3 sm:w-auto sm:flex sm:gap-4 md:order-none md:col-start-1 md:row-start-4"
         >
-          {/* Masked Content Wrapper */}
-          <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black_0%,black_68%,transparent_100%)] sm:[mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]">
-            {/* Shifted Globe Wrapper - taller than container to avoid edge lines */}
-            <div className="absolute top-[8px] flex h-[760px] w-full items-start justify-center sm:top-[-90px] sm:h-[900px] md:top-[-200px] md:h-[1000px]">
-              <Globe className="scale-[1.75] sm:scale-100" />
-            </div>
-            {/* Bottom fade overlay - anchored to container bottom for smooth transition */}
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background via-transparent to-transparent z-10" />
-          </div>
-
-          <div className="absolute bottom-2 left-0 right-0 z-20 text-center sm:bottom-4">
-            <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur-sm sm:text-xs">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
-                <span className="relative h-2 w-2 rounded-full bg-emerald-400" />
-              </span>
-              Live node activity
-            </p>
-          </div>
+          <Button data-hero-button asChild className="h-10 w-full will-change-transform px-5 sm:w-auto">
+            <Link href="/routstrd">Run Routstr</Link>
+          </Button>
+          <Button data-hero-button asChild variant="outline" className="h-10 w-full will-change-transform px-5 sm:w-auto">
+            <Link href="https://chat.routstr.com" target="_blank" rel="noreferrer">
+              Chat with Routstr
+            </Link>
+          </Button>
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />

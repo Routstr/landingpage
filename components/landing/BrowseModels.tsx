@@ -5,6 +5,7 @@ import { useModels } from "@/app/contexts/ModelsContext";
 import { getPopularModels } from "@/app/data/models";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   formatCompactContextLength,
   formatCompactPriceValue,
@@ -71,8 +72,8 @@ export function LandingBrowseModels() {
   }, [currency, models]);
 
   return (
-    <div className="w-full relative">
-      <div className="px-6 md:px-12 py-20 max-w-5xl mx-auto">
+    <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
+      <div className="w-full px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
           <div>
             <h2 className="text-xl font-bold text-foreground mb-2">
@@ -82,6 +83,12 @@ export function LandingBrowseModels() {
               Access leading AI models through independent providers.
             </p>
           </div>
+          <Button asChild className="hidden md:inline-flex">
+            <Link href="/models">
+              View all models
+              <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
 
         <div className="flex flex-col mt-8">
@@ -121,7 +128,7 @@ export function LandingBrowseModels() {
                 className="grid grid-cols-12 gap-4 py-5 border-b border-border/30 px-4 hover:bg-card transition-colors group"
               >
                 <div className="col-span-6 md:col-span-6 lg:col-span-6 flex items-center">
-                  <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate">
+                  <span className="font-bold text-sm text-foreground group-hover:underline decoration-muted-foreground underline-offset-4 truncate">
                     {model.name}
                   </span>
                 </div>
@@ -156,14 +163,13 @@ export function LandingBrowseModels() {
           )}
         </div>
 
-        <div className="mt-8">
-          <Link
-            href="/models"
-            className="inline-flex items-center gap-2 text-sm text-foreground hover:text-white transition-colors"
-          >
-            View all models
-            <ArrowRight className="w-3 h-3" />
-          </Link>
+        <div className="mt-8 md:hidden">
+          <Button asChild className="w-full">
+            <Link href="/models">
+              View all models
+              <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />

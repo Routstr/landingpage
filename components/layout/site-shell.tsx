@@ -19,13 +19,17 @@ export function SiteShell({
   return (
     <div
       className={cn(
-        "flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground",
+        "flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground",
         className
       )}
     >
       <Header />
-      {useMain ? <main className={cn("flex-grow", contentClassName)}>{children}</main> : children}
-      <div className="mx-auto w-full max-w-5xl">
+      {useMain ? (
+        <main className={cn("flex-grow pt-[72px] sm:pt-[80px]", contentClassName)}>{children}</main>
+      ) : (
+        children
+      )}
+      <div className="mx-auto w-full max-w-[1800px]">
         <Footer />
       </div>
     </div>
@@ -39,7 +43,7 @@ interface PageContainerProps {
 
 export function PageContainer({ children, className }: PageContainerProps) {
   return (
-    <div className={cn("mx-auto w-full max-w-5xl px-4 sm:px-6 md:px-12", className)}>
+    <div className={cn("mx-auto w-full max-w-[1800px] px-[clamp(1rem,5vw,5rem)]", className)}>
       {children}
     </div>
   );

@@ -5,7 +5,7 @@ import { ExternalLink, ArrowRight, Paperclip } from "lucide-react";
 import Link from "next/link";
 
 const PREVIEW_CONTROL_CLASS =
-  "w-full max-w-[300px] sm:max-w-[340px] h-10 sm:h-12 rounded-full border border-border bg-[#111113]";
+  "w-full max-w-[300px] sm:max-w-[340px] h-10 sm:h-12 rounded-full border border-border bg-card shadow-sm dark:bg-[#111113]";
 const PREVIEW_PANEL_CLASS =
   "mb-5 sm:mb-6 rounded-xl overflow-hidden border border-border aspect-[16/9] sm:aspect-[16/10] relative flex items-center justify-center shadow-lg";
 const CHAT_PREVIEW_PANEL_STYLE = {
@@ -24,7 +24,7 @@ const HOSTED_PREVIEW_PANEL_STYLE = {
   backgroundPosition: "center",
 };
 const TERMINAL_MOCKUP_CLASS =
-  "w-full max-w-[300px] sm:max-w-[340px] rounded-lg border border-border bg-[#111113] overflow-hidden";
+  "w-full max-w-[300px] sm:max-w-[340px] rounded-lg border border-border bg-card shadow-sm dark:bg-[#111113] overflow-hidden";
 const CTA_LINK_CLASS =
   "inline-flex items-center text-sm font-medium text-foreground transition-colors w-fit";
 const CTA_ICON_CLASS = "ml-2 h-3.5 w-3.5 opacity-70";
@@ -32,12 +32,12 @@ const CTA_ICON_CLASS = "ml-2 h-3.5 w-3.5 opacity-70";
 function TerminalMockup({ commands }: { commands: string[] }) {
   return (
     <div className={TERMINAL_MOCKUP_CLASS}>
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border">
+      <div className="flex items-center gap-1.5 border-b border-border bg-muted/60 px-3 py-2 dark:bg-muted/20">
         <span className="h-2 w-2 rounded-full bg-red-500/60" />
         <span className="h-2 w-2 rounded-full bg-yellow-500/60" />
         <span className="h-2 w-2 rounded-full bg-green-500/60" />
       </div>
-      <div className="px-3 sm:px-4 py-3 font-mono text-[11px] sm:text-xs text-muted-foreground space-y-1">
+      <div className="space-y-1 px-3 py-3 font-mono text-[11px] text-foreground/75 sm:px-4 sm:text-xs">
         {commands.map((command) => (
           <div key={command} className="flex gap-2 whitespace-nowrap">
             <span className="text-green-500">$</span>
@@ -51,8 +51,8 @@ function TerminalMockup({ commands }: { commands: string[] }) {
 
 export function LandingProducts() {
   return (
-    <div className="w-full relative">
-      <div className="px-4 sm:px-6 md:px-12 py-16 sm:py-20 max-w-5xl mx-auto">
+    <div className="w-full relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
+      <div className="w-full px-[clamp(1rem,5vw,5rem)] py-16 sm:py-20 max-w-[1800px] mx-auto">
         <div className="mb-8 sm:mb-12 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <h2 className="text-xl font-bold text-foreground">Routstr Products</h2>
         </div>
@@ -119,7 +119,7 @@ export function LandingProducts() {
               <div className={`${PREVIEW_CONTROL_CLASS} flex items-center justify-between px-3 sm:px-4 text-foreground`}>
                 <div className="min-w-0 flex items-center gap-2 sm:gap-2.5">
                   <Paperclip className="h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0" />
-                  <span className="truncate text-sm sm:text-base leading-none text-muted-foreground">
+                  <span className="truncate text-sm leading-normal text-muted-foreground sm:text-base">
                     Ask anything...
                   </span>
                 </div>

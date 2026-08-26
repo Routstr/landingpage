@@ -3,7 +3,21 @@ import "./globals.css";
 import { ModelsProvider } from "./contexts/ModelsContext";
 import { NostrProvider } from "@/context/NostrContext";
 import { PricingProvider } from "./contexts/PricingContext";
-import { GeistMono } from "geist/font/mono";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { Michroma, JetBrains_Mono } from "next/font/google";
+
+const michroma = Michroma({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-michroma",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://routstr.com"),
@@ -55,7 +69,7 @@ export const metadata: Metadata = {
     creator: "@routstr",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.svg",
   },
 };
 
@@ -70,16 +84,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${GeistMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground`}
+        className={`${michroma.variable} ${jetbrainsMono.variable} font-mono antialiased min-h-screen bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground`}
       >
-        <ModelsProvider>
-          <NostrProvider>
-            <PricingProvider>{children}</PricingProvider>
-          </NostrProvider>
-        </ModelsProvider>
+        <ThemeProvider>
+          <ModelsProvider>
+            <NostrProvider>
+              <PricingProvider>{children}</PricingProvider>
+            </NostrProvider>
+          </ModelsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

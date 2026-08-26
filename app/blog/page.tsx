@@ -68,7 +68,7 @@ export default function BlogIndexPage() {
                     className="group border-b border-border/30 py-12 hover:bg-card/30 transition-colors px-4 -mx-4"
                   >
                     <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4 mb-4">
-                      <h2 className="text-lg md:text-xl font-medium text-white group-hover:underline decoration-muted-foreground underline-offset-4">
+                      <h2 className="text-lg md:text-xl font-medium text-foreground group-hover:underline decoration-muted-foreground underline-offset-4">
                         {post.title}
                       </h2>
                       {post.date && (

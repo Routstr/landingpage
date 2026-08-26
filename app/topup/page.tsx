@@ -400,7 +400,7 @@ export default function TopUpPage() {
                     type="password"
                     value={apiKey}
                     onChange={(event) => setApiKey(event.target.value)}
-                    className="h-12 border-border bg-card text-white placeholder:text-muted-foreground"
+                    className="h-12 border-border bg-card text-foreground placeholder:text-muted-foreground"
                     placeholder="sk-..."
                   />
                   <p className="text-[10px] text-muted-foreground">
@@ -410,7 +410,7 @@ export default function TopUpPage() {
               )}
 
               {apiKey ? (
-                <div className="mt-6 rounded border border-border bg-black/20 p-4">
+                <div className="mt-6 rounded border border-border bg-muted/40 p-4">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex flex-col gap-1">
                       <span className="text-muted-foreground">Provider</span>
@@ -504,7 +504,7 @@ export default function TopUpPage() {
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
                   disabled={!apiKey}
-                  className="h-12 border-border bg-card text-white placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-12 border-border bg-card text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
                   placeholder={!apiKey ? "Enter an API key first" : "Custom amount (sats)"}
                 />
 
@@ -539,7 +539,7 @@ export default function TopUpPage() {
                     onClick={() => void generateLightningInvoice()}
                     disabled={isGeneratingInvoice || !amount || !apiKey}
                     variant="outline"
-                    className="w-full border-border py-6 text-white"
+                    className="w-full border-border py-6 text-foreground"
                   >
                     {isGeneratingInvoice ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -554,7 +554,7 @@ export default function TopUpPage() {
 
           <div className="space-y-8 lg:col-span-5">
             <div className="border border-border bg-card/30 p-5 sm:p-8">
-              <h3 className="mb-6 text-sm font-bold text-white">How It Works</h3>
+              <h3 className="mb-6 text-sm font-bold text-foreground">How It Works</h3>
               <div className="space-y-6 text-xs leading-relaxed text-muted-foreground">
                 <div className="flex gap-3 sm:gap-4">
                   <span className="text-muted-foreground">01</span>
@@ -585,7 +585,7 @@ export default function TopUpPage() {
                 <h3 className="mb-4 text-xs font-bold tracking-widest text-green-500">
                   Refund issued
                 </h3>
-                <div className="mb-4 overflow-hidden border border-green-500/20 bg-black/40 p-3">
+                <div className="mb-4 overflow-hidden border border-green-500/20 bg-muted p-3">
                   <p className="line-clamp-4 break-all font-mono text-[9px] text-green-500/70">
                     {refundedToken}
                   </p>

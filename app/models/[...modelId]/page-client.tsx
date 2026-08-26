@@ -42,13 +42,13 @@ import {
 type CodeLanguage = "curl" | "javascript" | "python";
 
 const codeTokenClasses = {
-  command: "text-[#4FC1FF]",
-  keyword: "text-[#C586C0]",
-  string: "text-[#CE9178]",
-  property: "text-[#9CDCFE]",
-  symbol: "text-[#D4D4D4]",
-  value: "text-[#DCDCAA]",
-  plain: "text-[#D4D4D4]",
+  command: "text-code-blue",
+  keyword: "text-code-purple",
+  string: "text-code-orange",
+  property: "text-code-lightblue",
+  symbol: "text-code-plain",
+  value: "text-code-yellow",
+  plain: "text-code-plain",
 } as const;
 
 type CodeTokenKind = keyof typeof codeTokenClasses;
@@ -180,9 +180,9 @@ export default function ModelDetailPage() {
 
   if (loading && !model) {
     return (
-      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
         <Header />
-        <div className="px-6 md:px-12 py-12 max-w-5xl mx-auto w-full">
+        <div className="px-[clamp(1rem,5vw,5rem)] py-12 max-w-[1800px] mx-auto w-full">
            <div className="h-4 bg-border rounded w-24 mb-12 animate-pulse" />
            <div className="h-10 bg-border rounded w-1/2 mb-4 animate-pulse" />
            <div className="h-4 bg-border rounded w-1/4 mb-12 animate-pulse" />
@@ -191,7 +191,7 @@ export default function ModelDetailPage() {
              <div className="h-4 bg-border rounded w-5/6 animate-pulse" />
            </div>
         </div>
-        <div className="max-w-5xl mx-auto w-full mt-auto">
+        <div className="max-w-[1800px] mx-auto w-full mt-auto">
           <Footer />
         </div>
       </main>
@@ -200,16 +200,16 @@ export default function ModelDetailPage() {
 
   if (error || notFound) {
     return (
-      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+      <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
         <Header />
-        <div className="flex-1 flex flex-col items-start justify-center px-6 md:px-12 max-w-5xl mx-auto w-full">
+        <div className="flex-1 flex flex-col items-start justify-center px-[clamp(1rem,5vw,5rem)] max-w-[1800px] mx-auto w-full">
           <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">{error ? "Error" : "Model not found"}</h1>
           <p className="text-muted-foreground mb-8">{error || "The model you're looking for doesn't exist."}</p>
           <Button asChild variant="outline">
             <Link href="/models">Back to models</Link>
           </Button>
         </div>
-        <div className="max-w-5xl mx-auto w-full mt-auto">
+        <div className="max-w-[1800px] mx-auto w-full mt-auto">
           <Footer />
         </div>
       </main>
@@ -248,11 +248,11 @@ export default function ModelDetailPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-neutral-800 selection:text-foreground font-mono">
+    <main className="flex min-h-screen flex-col bg-background text-muted-foreground selection:bg-foreground/20 selection:text-foreground font-mono">
       <Header />
 
       <section className="py-12 md:py-20">
-        <div className="max-w-5xl mx-auto px-6 md:px-12">
+        <div className="max-w-[1800px] mx-auto px-[clamp(1rem,5vw,5rem)]">
           <BackButton fallbackHref="/models" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-12">
             <ArrowLeft className="w-3 h-3" /> Back to models
           </BackButton>
@@ -383,8 +383,8 @@ export default function ModelDetailPage() {
                     {copied ? "Copied" : "Copy"}
                   </Button>
                 </div>
-                <div className="p-4 overflow-x-auto min-h-[200px] bg-black/20">
-                  <pre className="text-xs leading-relaxed text-[#D4D4D4] font-mono">
+                <div className="p-4 overflow-x-auto min-h-[200px] bg-muted">
+                  <pre className="text-xs leading-relaxed text-code-plain font-mono">
                     {activeTab === 'curl' && (
                       <code>
                         <CodeTok kind="command">curl</CodeTok>{" "}
@@ -400,7 +400,7 @@ export default function ModelDetailPage() {
                           value={tokenInput} 
                           onChange={e => setTokenInput(e.target.value)} 
                           onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
-                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-code-yellow shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
                           placeholder="token"
                         />
                         <CodeTok kind="string">{'"'}</CodeTok>{" "}
@@ -438,7 +438,7 @@ export default function ModelDetailPage() {
                           value={tokenInput} 
                           onChange={e => setTokenInput(e.target.value)} 
                           onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
-                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-code-yellow shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
                           placeholder="token"
                         />
                         <CodeTok kind="string">{"'"}</CodeTok><br/>
@@ -473,7 +473,7 @@ export default function ModelDetailPage() {
                           value={tokenInput} 
                           onChange={e => setTokenInput(e.target.value)} 
                           onBlur={() => setLocalCashuToken(storageBaseUrl, tokenInput || "")}
-                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-[#DCDCAA] shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
+                          className="mx-0.5 inline-flex h-6 w-24 rounded-none border-x-0 border-t-0 border-b-border bg-transparent px-1 py-0 text-xs text-code-yellow shadow-none focus-visible:border-b-foreground focus-visible:ring-0"
                           placeholder="token"
                         />
                         <CodeTok kind="string">{`"`}</CodeTok><br/>
@@ -518,7 +518,7 @@ export default function ModelDetailPage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto w-full">
+      <div className="max-w-[1800px] mx-auto w-full">
         <Footer />
       </div>
     </main>

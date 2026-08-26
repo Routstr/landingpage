@@ -1,21 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PageContainer, SiteShell } from "@/components/layout/site-shell";
 import { Copy, Check, Search, Zap, Shield, ArrowRight, Terminal, Cpu, Network, ChevronDown, Users } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
-
-const tuiImages = [
-  "https://image.nostr.build/61c5c89a6026bd273a480306d8f8993597bae961d39073f7a1a8397fba6740d6.png",
-  "https://image.nostr.build/ee03a2ca42ca0b8093916fac5f2471ef3e76e8c7ec835e63970cb4d107fd978b.png",
-  "https://image.nostr.build/e226f7569feee98e756621788065243ce84aa8876dec7b188908066fcc9edba6.png",
-];
+import { useInView } from "@/hooks/use-in-view";
+import { cn } from "@/lib/utils";
+import { SectionConstellation } from "@/components/landing/SectionConstellation";
+import { BitcoinLogo } from "@/components/icons/BitcoinLogo";
+import { TuiShowcase, type TuiShowcaseHandle } from "@/components/landing/TuiShowcase";
 
 export default function RoutstrdPage() {
   const [copiedBlock, setCopiedBlock] = useState<number | null>(null);
-  const [activeTuiImage, setActiveTuiImage] = useState(0);
+  const [activeTuiTab, setActiveTuiTab] = useState(0);
+  const tuiRef = useRef<TuiShowcaseHandle>(null);
+  const teamsSectionRef = useRef<HTMLElement>(null);
+  const teamsInView = useInView(teamsSectionRef, 0.2);
+  const getStartedRef = useRef<HTMLElement>(null);
+  const getStartedInView = useInView(getStartedRef, 0.2);
 
   const copyToClipboard = async (text: string, index: number) => {
     try {
@@ -74,57 +77,31 @@ export default function RoutstrdPage() {
 
   return (
     <SiteShell className="font-mono">
-      {/* Hero Section */}
-      <section className="relative py-12 md:py-20">
-        <PageContainer>
-          <div className="text-left mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground mb-7 sm:px-4 sm:py-1.5 sm:text-xs">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
-                <span className="relative h-2 w-2 rounded-full bg-emerald-400" />
-              </span>
-              Announcing Routstrd
+      {/* Get Started in 3 Commands */}
+      <section ref={getStartedRef} className="relative flex min-h-[calc(100svh-72px)] flex-col justify-center overflow-hidden py-16 sm:min-h-[calc(100svh-80px)] md:py-20">
+        <SectionConstellation active={getStartedInView} />
+        <PageContainer className="relative">
+          <div className="mb-12 flex items-end justify-between gap-6">
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Routstr Daemon</p>
+              <h2 className="text-xl font-bold text-foreground">Get Started in 3 Commands</h2>
             </div>
-            <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-6 tracking-tight leading-tight">
-              The Only Tool you Need for Uncensorable Access to AI
-            </h1>
-            <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed mb-10">
-              Routstrd is unlike any other inference provider — because it's <em>not</em> an inference provider. It's a tool, powered by Nostr and Bitcoin, that works for you.
-            </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2"><Network className="w-3 h-3 text-purple-500" /> Nostr Network</span>
-              <span className="flex items-center gap-2"><Zap className="w-3 h-3 text-yellow-500" /> Lightning Payments</span>
-              <span className="flex items-center gap-2"><Shield className="w-3 h-3 text-green-500" /> No KYC</span>
-              <span className="flex items-center gap-2"><Terminal className="w-3 h-3 text-blue-500" /> TUI Included</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => document.getElementById("teams")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground sm:px-4 sm:py-1.5 sm:text-xs"
-            >
-              <Users className="w-3 h-3 text-amber-500" />
-              For teams? Click here for the hosted version
-              <ChevronDown className="w-3 h-3" />
-            </button>
+            <Button asChild className="hidden md:inline-flex">
+              <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
+                Get Help
+              </a>
+            </Button>
           </div>
-        </PageContainer>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-      </section>
-
-      {/* How It Works - 3 Steps */}
-      <section className="relative py-16 md:py-20">
-        <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">Get Started in 3 Commands</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map((step, idx) => (
-              <div key={idx} className="flex flex-col border border-border bg-card p-5 sm:p-8">
+              <div key={idx} className="flex flex-col border border-border bg-card p-5 transition-colors hover:border-foreground/20 hover:bg-muted/40 sm:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-xs text-muted-foreground font-bold">{step.step}</span>
-                  <h3 className="text-lg font-bold text-white">{step.title}</h3>
+                  <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
                 </div>
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:mb-8">{step.description}</p>
-                <div className="bg-black/40 border border-border overflow-hidden mb-8 mt-auto">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+                <div className="mb-8 mt-auto overflow-hidden border border-border bg-code-bg shadow-elevation">
+                  <div className="flex items-center justify-between border-b border-border px-4 py-2">
                     <span className="text-[10px] text-muted-foreground">bash</span>
                     <Button
                       type="button"
@@ -146,59 +123,89 @@ export default function RoutstrdPage() {
               </div>
             ))}
           </div>
+          <div className="mt-6 flex justify-center md:hidden">
+            <Button asChild className="w-full">
+              <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
+                Get Help
+              </a>
+            </Button>
+          </div>
+        </PageContainer>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      </section>
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-16 md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center md:py-20">
+        <PageContainer>
+          <div className="text-left mb-16">
+            <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-6 tracking-tight leading-tight">
+              The Only Tool you Need for Uncensorable Access to AI
+            </h1>
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl font-light leading-relaxed mb-10">
+              Routstrd is unlike any other inference provider — because it&apos;s <em>not</em> an inference provider. It&apos;s a tool, powered by Nostr and Bitcoin, that works for you.
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2.5"><Network className="w-4.5 h-4.5 text-foreground" /> Nostr Network</span>
+              <span className="flex items-center gap-2.5"><Zap className="w-4.5 h-4.5 text-foreground" /> Lightning Payments</span>
+              <span className="flex items-center gap-2.5"><Shield className="w-4.5 h-4.5 text-foreground" /> No KYC</span>
+              <span className="flex items-center gap-2.5"><Terminal className="w-4.5 h-4.5 text-foreground" /> TUI Included</span>
+            </div>
+            <Button
+              type="button"
+              onClick={() => document.getElementById("teams")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="mt-8"
+            >
+              <Users className="h-3 w-3" aria-hidden="true" />
+              For teams? Click here for the hosted version
+              <ChevronDown className="h-3 w-3" aria-hidden="true" />
+            </Button>
+          </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       </section>
 
       {/* TUI Showcase */}
-      <section className="relative py-16 md:py-20">
+      <section className="relative py-20 md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
         <PageContainer>
           <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-16">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 tracking-tight">Beautiful TUI. Real-time visibility.</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6 tracking-tight">Real-time visibility.</h2>
               <div className="space-y-6 text-muted-foreground font-light leading-relaxed">
-                <p><strong className="text-white font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you're connected to, what models are available, and how your balance is doing.</p>
-                <p>I've been using Routstrd for a month. It was easier to battle-test as its primary user. The competition between nodes is already heating up, which means you're getting the best price for your sats.</p>
+                <p><strong className="text-foreground font-bold">Routstrd</strong> comes with a beautiful Terminal User Interface that keeps you up to date on everything happening — which provider you&apos;re connected to, what models are available, and how your balance is doing.</p>
+                <p>I&apos;ve been using Routstrd for a month. It was easier to battle-test as its primary user. The competition between nodes is already heating up, which means you&apos;re getting the best price for your sats.</p>
               </div>
               <div className="flex gap-2 mt-8">
-                {tuiImages.map((_, idx) => (
+                {[0, 1, 2].map((idx) => (
                   <button
                     key={idx}
-                    onClick={() => setActiveTuiImage(idx)}
-                    className={`h-1.5 w-8 rounded-full transition-all ${
-                      activeTuiImage === idx ? "bg-amber-500" : "bg-border hover:bg-muted-foreground/30"
-                    }`}
+                    type="button"
+                    aria-label={`Show TUI screen ${idx + 1}`}
+                    onClick={() => tuiRef.current?.goTo(idx)}
+                    className={cn(
+                      "h-1.5 w-8 rounded-full transition-colors",
+                      activeTuiTab === idx ? "bg-foreground" : "bg-border hover:bg-muted-foreground/30"
+                    )}
                   />
                 ))}
               </div>
             </div>
-            <div className="relative overflow-hidden border border-border bg-card rounded-xl">
-              <div className="aspect-[16/10] relative bg-[#0a0a0a]">
-                <Image
-                  src={tuiImages[activeTuiImage]}
-                  alt="Routstrd TUI screenshot"
-                  fill
-                  className="object-contain"
-                  unoptimized
-                />
-              </div>
-            </div>
+            <TuiShowcase ref={tuiRef} onActiveChange={setActiveTuiTab} />
           </div>
         </PageContainer>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       </section>
 
       {/* Features */}
-      <section className="relative py-16 md:py-20">
+      <section className="relative py-20 md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
         <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">How it works</h2>
+          <h2 className="text-xl font-bold text-foreground mb-12">How it works</h2>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
             {features.map((feature, i) => (
               <div key={i} className="flex flex-col border border-border bg-card p-5 sm:p-8">
-                <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center mb-6">
-                  <feature.icon className="w-5 h-5 text-foreground" />
+                <div className="w-12 h-12 bg-muted border border-border flex items-center justify-center mb-6">
+                  <feature.icon className="w-6 h-6 text-foreground" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-3">{feature.title}</h3>
+                <h3 className="text-lg font-bold text-foreground mb-3">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed font-light">{feature.desc}</p>
               </div>
             ))}
@@ -208,45 +215,44 @@ export default function RoutstrdPage() {
       </section>
 
       {/* Hosted for Teams */}
-      <section id="teams" className="relative py-16 md:py-20">
-        <PageContainer>
-          <h2 className="text-xl font-bold text-white mb-12">Hosted for Teams</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12">
+      <section id="teams" ref={teamsSectionRef} className="relative overflow-hidden py-20 md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center md:py-20">
+        <SectionConstellation active={teamsInView} />
+        <PageContainer className="relative">
+          <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">For teams</p>
+          <h2 className="mb-12 text-xl font-bold text-foreground">Hosted for Teams</h2>
+          <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-12">
             <div>
-              <p className="text-muted-foreground font-light leading-relaxed mb-8">
-                Want to share routstrd with your whole team? <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer" className="text-white font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-auth</a> is a standalone auth proxy that sits in front of the daemon — the public-facing gatekeeper, while routstrd itself runs unauthenticated on localhost only.
+              <p className="mb-8 font-light leading-relaxed text-muted-foreground">
+                <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer" className="text-foreground font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-auth</a> is a standalone auth proxy in front of the daemon — the public gatekeeper, while routstrd stays private on localhost.
               </p>
-              <div className="space-y-4 text-sm text-muted-foreground font-light">
+              <div className="space-y-4 text-base text-muted-foreground font-light">
                 <div className="flex items-start gap-3">
-                  <Shield className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                  <span>Bearer-token auth (<span className="font-mono">sk-...</span>) in front of the daemon</span>
+                  <Shield className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
+                  <span>Bearer-token auth (<span className="font-mono">sk-...</span>)</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Users className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                  <span>Per-member Nostr keys (npubs) with admin-managed access via <span className="font-mono">routstrd npubs add</span></span>
+                  <Users className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
+                  <span>Per-member Nostr keys with admin-managed access</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Terminal className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                  <span>Usage tracking per member and per client (<span className="font-mono">routstrd top</span>)</span>
+                  <Terminal className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
+                  <span>Usage tracking per member and client</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Cpu className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <Cpu className="w-4.5 h-4.5 text-foreground mt-0.5 shrink-0" />
                   <span>Deploy with vanilla Docker or Cloudron</span>
                 </div>
               </div>
-              <a
-                href="https://github.com/routstr/routstrd-auth"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-amber-500"
-              >
-                View routstrd-auth on GitHub <ArrowRight className="h-3.5 w-3.5" />
-              </a>
+              <Button asChild className="mt-8">
+                <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer">
+                  View on GitHub <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                </a>
+              </Button>
             </div>
             <div>
-              <h3 className="text-base font-bold text-white mb-4">Connect your team members</h3>
-              <div className="bg-black/40 border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+              <h3 className="mb-4 text-base font-bold text-foreground">Connect your team members</h3>
+              <div className="border border-border bg-code-bg shadow-elevation overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                   <span className="text-[10px] text-muted-foreground">bash</span>
                   <Button
                     type="button"
@@ -270,18 +276,31 @@ export default function RoutstrdPage() {
       </section>
 
       {/* Testimonial/Personal Note */}
-      <section className="relative py-16 md:py-20 bg-card/30">
+      <section className="relative overflow-hidden bg-card/30 py-20 md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
         <PageContainer>
           <div className="max-w-3xl">
-            <div className="border-l-2 border-amber-500/50 pl-6 md:pl-8">
-              <p className="text-lg md:text-xl text-foreground font-light leading-relaxed italic mb-6">
-                &ldquo;Bitcoiners get the best price! And with Routstrd, Bitcoiners also get the best experience. The competition between Routstr nodes is getting heated right now and thus you're getting the best price for your sats.&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-                  <span className="text-amber-500 font-bold text-xs">₿</span>
+            <div className="relative overflow-hidden border border-border bg-card p-7 md:p-10">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-7 left-5 select-none font-mono text-[7rem] leading-none text-foreground/[0.05]"
+              >
+                &ldquo;
+              </span>
+              <div className="relative">
+                <p className="mb-8 text-sm leading-relaxed break-words text-muted-foreground md:text-base [&_pre]:max-w-full [&_pre]:overflow-x-auto">
+                  Bitcoiners get the best price! And with Routstrd, Bitcoiners also get the best experience. The competition between Routstr nodes is getting heated right now and thus you&apos;re getting the best price for your sats.
+                </p>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center">
+                      <BitcoinLogo className="w-[70%] h-[70%] text-foreground" />
+                    </div>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-xs font-bold text-foreground">Routstrd</span>
+                      <span className="truncate text-[10px] text-muted-foreground">Battle-tested for a month. Built by Bitcoiners, for Bitcoiners.</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs text-muted-foreground">Battle-tested for a month. Built by Bitcoiners, for Bitcoiners.</span>
               </div>
             </div>
           </div>
@@ -290,16 +309,16 @@ export default function RoutstrdPage() {
       </section>
 
       {/* CTA + Resources */}
-      <section className="relative py-16 md:py-20">
+      <section className="relative py-20 md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
         <PageContainer>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div>
-              <h2 className="text-xl font-bold text-white mb-6">Try it out</h2>
+              <h2 className="text-xl font-bold text-foreground mb-6">Try it out</h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                Please give Routstrd a spin. If you face any issues, let us know and we'll fix it fast.
+                Please give Routstrd a spin. If you face any issues, let us know and we&apos;ll fix it fast.
               </p>
-              <div className="bg-black/40 border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-white/5">
+              <div className="bg-code-bg shadow-elevation border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-foreground/5">
                   <span className="text-[10px] text-muted-foreground">bash</span>
                   <Button
                     type="button"
@@ -319,7 +338,7 @@ export default function RoutstrdPage() {
               </div>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white mb-6">Resources</h2>
+              <h2 className="text-xl font-bold text-foreground mb-6">Resources</h2>
               <div className="space-y-4">
                 {[
                   { title: "Nostr Profile", url: "https://njump.app/npub1ftt05tgku25m2akgvw6v7aqy5ux5mseqcrzy05g26ml43xf74nyqsredsh" },
@@ -328,7 +347,7 @@ export default function RoutstrdPage() {
                 ].map((item) => (
                   <a key={item.title} href={item.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between border border-border p-4 hover:bg-muted transition-colors">
                     <span className="text-sm font-bold text-foreground group-hover:underline underline-offset-4">{item.title}</span>
-                    <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-white" />
+                    <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
                   </a>
                 ))}
               </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,7 +16,7 @@ interface Testimonial {
   image?: string;
 }
 
-// Featured testimonial for the center column (Jack)
+// Featured testimonial (Jack) leads the rotation
 const featuredTestimonial: Testimonial = {
   name: "jack",
   handle: "@jack",
@@ -24,7 +26,6 @@ const featuredTestimonial: Testimonial = {
 };
 
 const testimonials: Testimonial[] = [
-  // Column 1
   {
     name: ".",
     handle: "npub1ak68...xy8fx",
@@ -60,7 +61,7 @@ const testimonials: Testimonial[] = [
     handle: "@noD7R",
     quote:
       "very tru. eventually will find out routstr make all other services out there full of tracking and big noses... redundant",
-    src: "https://pbs.twimg.com/profile_images/1987245450580066304/VYxT1glH_400x400.jpg",
+    src: "https://unavatar.io/twitter/noD7R",
     url: "https://x.com/noD7R/status/1978063932913779068",
   },
   {
@@ -72,8 +73,6 @@ const testimonials: Testimonial[] = [
     url: "https://nostr.com",
     platform: "nostr",
   },
-
-  // Column 2
   {
     name: "Kim Hudaya",
     handle: "@huedaya",
@@ -150,8 +149,6 @@ const testimonials: Testimonial[] = [
     src: "https://pbs.twimg.com/profile_images/1293173311212486659/LnLz3tcC_400x400.jpg",
     url: "https://x.com/wilderko/status/1964961988200574995",
   },
-
-  // Column 3
   {
     name: "Vagabond Ⓜ️Ⓜ️ T $MMT",
     handle: "@Zhuaffa",
@@ -215,211 +212,144 @@ const testimonials: Testimonial[] = [
   },
 ];
 
-function FeaturedTestimonialCard({ className }: { className?: string }) {
-  return (
-    <Link
-      href={featuredTestimonial.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(
-        "block min-w-0 overflow-hidden rounded border border-border bg-muted p-6 transition-colors duration-300 group hover:bg-muted hover:border-border",
-        className
-      )}
-    >
-      <h3 className="text-base font-bold text-foreground py-2 mb-2">
-        {featuredTestimonial.quote}
-      </h3>
-      <div className="flex gap-3 items-center">
-        <Image
-          src={featuredTestimonial.src}
-          alt={featuredTestimonial.name}
-          width={40}
-          height={40}
-          className="rounded-sm"
-          loading="lazy"
-        />
-        <div className="flex flex-col">
-          <span className="font-bold text-sm text-foreground">
-            {featuredTestimonial.name}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {featuredTestimonial.handle}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
+const AUTO_ADVANCE_MS = 6500;
 
 export function LandingTestimonials() {
-  const col1 = testimonials.slice(0, 4);
-  const col2Rest = testimonials.slice(4, 7);
-  const col3 = testimonials.slice(7, 10);
+  const spotlight = [featuredTestimonial, ...testimonials];
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const timer = window.setInterval(
+      () => setActive((current) => (current + 1) % spotlight.length),
+      AUTO_ADVANCE_MS
+    );
+    return () => window.clearInterval(timer);
+  }, [paused, spotlight.length]);
+
+  const current = spotlight[active];
+  const move = (direction: 1 | -1) =>
+    setActive((now) => (now + direction + spotlight.length) % spotlight.length);
 
   return (
-    <div className="w-full px-6 md:px-12 py-20 max-w-5xl mx-auto relative">
-      <h2 className="text-xl font-bold text-foreground mb-2">
-        What people are saying
-      </h2>
-      <p className="text-muted-foreground text-sm mb-12 max-w-xl">
-        Join the growing community embracing privacy-first AI access
-      </p>
-      <FeaturedTestimonialCard className="mb-6 md:hidden" />
+    <div className="w-full px-[clamp(1rem,5vw,5rem)] py-20 max-w-[1800px] mx-auto relative md:flex md:min-h-[calc(100svh-80px)] md:flex-col md:justify-center">
+      <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
+        <div>
+          <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+            Community
+          </p>
+          <h2 className="text-xl font-bold text-foreground mb-2">
+            What people are saying
+          </h2>
+          <p className="text-muted-foreground text-sm max-w-xl">
+            Join the growing community embracing privacy-first AI access
+          </p>
 
-      <div className="grid min-w-0 grid-cols-1 gap-6 items-start md:grid-cols-2 lg:grid-cols-3">
-        {/* Column 1 */}
-        <div className="grid min-w-0 gap-6 items-start">
-          {col1.map((testimonial, idx) => (
-            <Card key={`col1-${idx}`} url={testimonial.url}>
-              <Quote>{testimonial.quote}</Quote>
-              {testimonial.image && (
-                <div className="mt-4 rounded border border-border overflow-hidden">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => move(-1)}
+              aria-label="Previous testimonial"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => move(1)}
+              aria-label="Next testimonial"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+
+            <div className="ml-1 flex items-center gap-2">
+              {spotlight.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setActive(index)}
+                  aria-label={`Show testimonial ${index + 1} of ${spotlight.length}`}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all",
+                    index === active
+                      ? "w-8 bg-foreground"
+                      : "w-1.5 bg-border hover:bg-muted-foreground/40"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+        >
+          <Link
+            key={active}
+            href={current.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative block animate-in fade-in slide-in-from-bottom-2 overflow-hidden rounded-2xl border border-border bg-card p-7 duration-500 transition-colors hover:border-foreground/20 md:p-10"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-7 left-5 select-none font-mono text-[7rem] leading-none text-foreground/[0.05]"
+            >
+              &ldquo;
+            </span>
+
+            <div className="relative">
+              <div className="mb-6 text-xs leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere] md:text-sm [&_pre]:max-w-full [&_pre]:overflow-x-auto">
+                {current.quote}
+              </div>
+
+              {current.image && (
+                <div className="mt-4 max-w-[300px] overflow-hidden rounded-xl border border-border md:max-w-[340px]">
                   <Image
-                    src={testimonial.image}
+                    src={current.image}
                     alt="Attached image"
                     width={500}
                     height={300}
-                    className="w-full h-auto opacity-80"
+                    className="h-auto w-full opacity-80"
                     loading="lazy"
                   />
                 </div>
               )}
-              <TestimonialFooter testimonial={testimonial} />
-            </Card>
-          ))}
-        </div>
 
-        {/* Column 2 - Jack featured at top */}
-        <div className="grid min-w-0 gap-6 items-start">
-          <FeaturedTestimonialCard className="hidden md:block" />
-
-          {/* Rest of column 2 */}
-          {col2Rest.map((testimonial, idx) => (
-            <Card key={`col2-${idx}`} url={testimonial.url}>
-              <Quote>{testimonial.quote}</Quote>
-              {testimonial.image && (
-                <div className="mt-4 rounded border border-border overflow-hidden">
+              <div className="mt-8 flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
                   <Image
-                    src={testimonial.image}
-                    alt="Attached image"
-                    width={500}
-                    height={300}
-                    className="w-full h-auto opacity-80"
+                    src={current.src}
+                    alt={current.name}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 rounded-full object-cover"
+                    loading="lazy"
+                    unoptimized={current.src.endsWith(".gif")}
                   />
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate text-xs font-bold text-foreground">
+                      {current.name}
+                    </span>
+                    <span className="truncate text-[10px] text-muted-foreground">
+                      {current.handle}
+                    </span>
+                  </div>
                 </div>
-              )}
-              <TestimonialFooter testimonial={testimonial} />
-            </Card>
-          ))}
-        </div>
-
-        {/* Column 3 */}
-        <div className="grid min-w-0 gap-6 items-start">
-          {col3.map((testimonial, idx) => (
-            <Card key={`col3-${idx}`} url={testimonial.url}>
-              <Quote>{testimonial.quote}</Quote>
-              {testimonial.image && (
-                <div className="mt-4 rounded border border-border overflow-hidden">
-                  <Image
-                    src={testimonial.image}
-                    alt="Attached image"
-                    width={500}
-                    height={300}
-                    className="w-full h-auto opacity-80"
-                  />
-                </div>
-              )}
-              <TestimonialFooter testimonial={testimonial} />
-            </Card>
-          ))}
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   );
 }
-
-function TestimonialFooter({ testimonial }: { testimonial: Testimonial }) {
-  return (
-    <div className="flex gap-3 items-center mt-6">
-      <Image
-        src={testimonial.src}
-        alt={testimonial.name}
-        width={32}
-        height={32}
-        className="rounded-sm"
-        loading="lazy"
-        unoptimized={testimonial.src.endsWith(".gif")}
-      />
-      <div className="flex flex-col">
-        <QuoteDescription className="font-bold text-foreground">
-          {testimonial.name}
-        </QuoteDescription>
-        <QuoteDescription className="text-muted-foreground">
-          {testimonial.handle}
-        </QuoteDescription>
-      </div>
-    </div>
-  );
-}
-
-const Card = ({
-  className,
-  children,
-  url,
-}: {
-  className?: string;
-  children: React.ReactNode;
-  url: string;
-}) => {
-  return (
-    <Link
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(
-        "block min-w-0 overflow-hidden rounded border border-border bg-card p-5 transition-colors duration-300 group hover:bg-muted hover:border-border",
-        className
-      )}
-    >
-      {children}
-    </Link>
-  );
-};
-
-const Quote = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
-  return (
-    <h3
-      className={cn(
-        "relative mb-4 text-xs font-normal leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto md:text-sm",
-        className
-      )}
-    >
-      {children}
-    </h3>
-  );
-};
-
-const QuoteDescription = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
-  return (
-    <p
-      className={cn("text-[10px] sm:text-xs max-w-sm truncate", className)}
-    >
-      {children}
-    </p>
-  );
-};
 
 export default LandingTestimonials;

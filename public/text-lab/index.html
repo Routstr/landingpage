@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Text lab — Routstr</title>
+<link rel="icon" href="/icon.svg">
+<script>
+  (function () {
+    try {
+      var KEY = "routstr-text-lab-theme";
+      var stored = localStorage.getItem(KEY);
+      var theme = stored === "light" || stored === "dark" ? stored : "dark";
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton:wght@400&family=Archivo:wght@400;900&family=Atkinson+Hyperlegible+Next:wght@400&family=Bebas+Neue:wght@400&family=Big+Shoulders+Display:wght@700;800&family=Bricolage+Grotesque:wght@700;800&family=Chakra+Petch:wght@700&family=Chivo:wght@900&family=DM+Sans:wght@400&family=Darker+Grotesque:wght@900&family=Familjen+Grotesk:wght@700&family=Fira+Sans:wght@400&family=Geist:wght@700&family=Hanken+Grotesk:wght@400;700&family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;600&family=Instrument+Sans:wght@400;700&family=Inter:wght@400&family=JetBrains+Mono:wght@400;800&family=Karla:wght@400&family=Literata:wght@400&family=Manrope:wght@400;800&family=Martian+Mono:wght@700;800&family=Michroma:wght@400&family=Newsreader:wght@400&family=Noto+Sans:wght@400&family=Orbitron:wght@800&family=Outfit:wght@700;800&family=Overpass:wght@800&family=Public+Sans:wght@400;700&family=Rajdhani:wght@700&family=Red+Hat+Display:wght@700;900&family=Red+Hat+Text:wght@400&family=Roboto+Flex:wght@400&family=Rubik:wght@900&family=Sora:wght@700&family=Source+Sans+3:wght@400&family=Space+Grotesk:wght@700&family=Space+Mono:wght@700&family=Spectral:wght@400&family=Syne:wght@700;800&family=Unbounded:wght@900&family=Work+Sans:wght@400&display=swap">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@700&display=swap">
+<style>
+/* lifted from app/globals.css — dark tokens are the default (:root), light tokens override
+   under [data-theme="light"]. This governs page CHROME only — the light/dark preview tiles
+   inside each card are hardcoded to routstr's real background/foreground pairs and never move. */
+:root{
+  --background:#111111; --foreground:#e5e5e5; --card:#161616; --card-foreground:#e5e5e5;
+  --border:#2c2c2c; --input:#2c2c2c; --muted:#1a1a1a; --muted-foreground:#a1a1a1; --ring:#7a7a7a;
+  --radius:1rem; --radius-md:calc(1rem - 2px); --radius-sm:calc(1rem - 4px); --radius-xl:calc(1rem + 4px);
+  --destructive:oklch(0.704 0.191 22.216);
+  --brand:#f7931a;
+  --font-mono: ui-monospace, "Geist Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+:root[data-theme="light"]{
+  --background:#fafafa; --foreground:#0a0a0a; --card:#ffffff; --card-foreground:#0a0a0a;
+  --border:#e2e2e2; --input:#e2e2e2; --muted:#f0f0f0; --muted-foreground:#6b6b6b; --ring:#b5b5b5;
+  --destructive:oklch(0.577 0.245 27.325);
+}
+@font-face { font-family:"Geist Mono"; src:url("/text-lab/fonts/geist-mono-variable.woff2") format("woff2-variations"); font-weight:100 900; font-display:swap; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-mono);padding:48px clamp(16px,4vw,64px) 140px;line-height:1.5;overflow-x:hidden;transition:background 0.15s ease,color 0.15s ease}
+a{color:inherit}
+code{font-family:var(--font-mono)}
+.kicker{color:var(--muted-foreground);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;font-size:0.72rem;margin:0 0 12px}
+h1.page-title{margin:0 0 10px;font-size:clamp(1.9rem,4vw,2.9rem);font-weight:600;letter-spacing:-0.01em}
+
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.intro{max-width:80ch}
+.intro p{color:var(--muted-foreground);font-size:0.92rem;margin:0}
+.intro code{color:var(--foreground)}
+
+.theme-toggle{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;background:var(--card)}
+.theme-toggle button{border:none;background:transparent;color:var(--muted-foreground);border-radius:999px;padding:7px 16px;font:inherit;font-weight:700;font-size:0.78rem;cursor:pointer}
+.theme-toggle button[aria-pressed="true"]{background:var(--foreground);color:var(--background)}
+
+.tabs{position:sticky;top:0;z-index:10;display:flex;gap:8px;padding:14px 0;background:var(--background);margin-bottom:8px;border-bottom:1px solid var(--border);flex-wrap:wrap;overflow-x:auto}
+.tabs button{border:1px solid var(--border);background:var(--card);color:var(--muted-foreground);border-radius:999px;padding:9px 18px;font:inherit;font-weight:600;font-size:0.85rem;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--foreground);color:var(--background);border-color:var(--foreground)}
+.panel{display:none}.panel.active{display:block}
+
+.row{border-top:1px solid var(--border);padding:28px 0 40px}
+.row:first-child{border-top:none}
+.row header{display:flex;gap:12px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap}
+.num{color:var(--brand);font-weight:800;font-size:1rem}
+.pairname{color:var(--foreground);font-size:0.92rem;font-weight:600}
+.pairname .plus{color:var(--muted-foreground);font-weight:400;margin:0 2px}
+.score{margin-left:auto;font-size:0.72rem;color:var(--muted-foreground);white-space:nowrap;border:1px solid var(--border);border-radius:999px;padding:2px 10px}
+.fbadge{display:inline-block;font-size:0.68rem;color:var(--destructive);border:1px solid var(--destructive);border-radius:999px;padding:3px 10px;margin:0 0 14px 0}
+
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr));gap:14px;margin-bottom:16px}
+.tile{border-radius:var(--radius-md);padding:24px;overflow:hidden}
+/* hardcoded to routstr's real background/foreground pairs — deliberately NOT tied to the
+   page toggle tokens above, so each pairing's light/dark behavior is always visible together. */
+.tile.light{background:#fafafa;color:#0a0a0a;border:1px solid rgba(10,10,10,0.1)}
+.tile.dark{background:#111111;color:#e5e5e5;border:1px solid #2c2c2c}
+.lockup{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.lockup.small{margin-bottom:14px}
+.lockicon{display:flex;line-height:0;flex-shrink:0}
+.lockup .word{font-size:0.95rem;letter-spacing:-0.01em;font-family:var(--font-mono);font-weight:600}
+.lockup .word.small{font-size:0.8rem}
+
+.hero-sample{margin:0;font-size:clamp(2.6rem,8vw,5.4rem);line-height:0.98;letter-spacing:-0.02em;word-break:break-word}
+.heading-sample{margin:0;font-size:clamp(1.6rem,3.2vw,2.15rem);line-height:1.08;letter-spacing:-0.01em}
+.body-sample{margin:0;font-size:clamp(0.95rem,1.3vw,1.02rem);line-height:1.62;max-width:56ch;opacity:0.92}
+
+.row > p{margin:0 0 8px;color:var(--muted-foreground);font-size:0.82rem;line-height:1.55;max-width:82ch}
+.row > p:last-child{margin-bottom:0}
+.row > p b{display:block;color:var(--muted-foreground);font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:3px}
+.weak b{color:var(--destructive)}
+
+footer.note{max-width:82ch;margin-top:40px;color:var(--muted-foreground);font-size:0.76rem}
+</style>
+</head><body>
+
+<div class="topbar">
+  <div class="intro">
+    <p class="kicker">Text lab</p>
+    <h1 class="page-title">Pick a hero, a heading, and a body face.</h1>
+    <p>63 candidates across three roles — 21 Hero Title, 21 Headings, 21 Body Text — grounded in Routstr's real mark: the rounded-square frame at <code>/icon.svg</code>, broken by a single bar rotated 112° through its center, the actual favicon shipped in <code>app/layout.tsx</code>. Every card sets the real Routstr wordmark (hero/headings: the word "Routstr" at each role's real usage size; body: an actual 2–3 sentence product paragraph) on both a light and a dark tile using Routstr's real background/foreground pairs (<code>#fafafa</code>/<code>#0a0a0a</code> and <code>#111111</code>/<code>#e5e5e5</code>), so each role is judged at the size it actually renders at on the site — not one undifferentiated font-pairing list. Scores are 1–10 from an adversarial critic pass; every card carries its concept, why it fits, and an honest weakness, including the low scorers. Two Hero candidates (marked below) have no verified free self-hosted source and are previewing on a system fallback stack rather than a fabricated font file.</p>
+  </div>
+  <div class="theme-toggle" role="group" aria-label="Gallery preview theme">
+    <button type="button" id="theme-btn-light" data-theme-btn="light" aria-pressed="false">Light</button>
+    <button type="button" id="theme-btn-dark" data-theme-btn="dark" aria-pressed="true">Dark</button>
+  </div>
+</div>
+
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="hero">Hero Title (21)</button>
+  <button role="tab" aria-selected="false" data-tab="headings">Headings (21)</button>
+  <button role="tab" aria-selected="false" data-tab="body">Body Text (21)</button>
+</div>
+
+<div class="panel active" id="panel-hero">
+<section class="row" id="pair-01">
+      <header>
+        <span class="num">01</span>
+        <code class="pairname">Unbounded <span class="plus">/</span> Inter</code>
+        <span class="score">8/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> Chunky, rounded-square geometric display with unconventional bowl shapes — built for oversized headline moments.</p>
+      <p><b>Why it fits</b> Its rounded-square letterforms are the closest typographic echo of the mark&#x27;s frame primitive; heavy weights carry real poster presence.</p>
+      <p class="weak"><b>Weakness</b> Cyrillic-first design gives some Latin glyphs (g, a) an unfamiliar proportion at very large size.</p>
+    </section>
+<section class="row" id="pair-02">
+      <header>
+        <span class="num">02</span>
+        <code class="pairname">Martian Mono <span class="plus">/</span> JetBrains Mono</code>
+        <span class="score">8/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A variable monospace with quantized, grid-snapped letterforms and a width axis — reads like type generated on a routing table.</p>
+      <p><b>Why it fits</b> Extends the site&#x27;s monospace-first system directly into the hero, and its blocky, grid-constructed glyphs echo the mark&#x27;s engineered-not-organic rule literally.</p>
+      <p class="weak"><b>Weakness</b> Monospace letter-spacing at huge display size can look mechanically gappy on short titles — needs tracking overrides to avoid looking accidental.</p>
+    </section>
+<section class="row" id="pair-03">
+      <header>
+        <span class="num">03</span>
+        <code class="pairname">Big Shoulders Display <span class="plus">/</span> IBM Plex Sans Condensed</code>
+        <span class="score">7/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A condensed, civic/industrial display face literally modeled on Chicago architectural signage — narrow, tall, structural.</p>
+      <p><b>Why it fits</b> Its architectural DNA matches &#x27;formal and architectural, not playful&#x27; more literally than any other candidate, with a huge usable weight range.</p>
+      <p class="weak"><b>Weakness</b> Very condensed proportions read dense/urgent — wrong tone if the hero line needs to feel calm rather than announcement-like.</p>
+    </section>
+<section class="row" id="pair-04">
+      <header>
+        <span class="num">04</span>
+        <code class="pairname">Archivo <span class="plus">/</span> Archivo (Regular, 400)</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> Industrial grotesque pushed to Black/Expanded extremes — a title that fills the frame like a stencil-cut sign.</p>
+      <p><b>Why it fits</b> Near-square proportions and blunt terminals echo the frame primitive; 900 weight matches the graphic density of the mark&#x27;s thick ring stroke.</p>
+      <p class="weak"><b>Weakness</b> At Black weight the counters close up on small screens, so it needs real poster-scale room to breathe.</p>
+    </section>
+<section class="row" id="pair-05">
+      <header>
+        <span class="num">05</span>
+        <code class="pairname">Syne <span class="plus">/</span> General Sans</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A deliberately asymmetric geometric sans — bold weights lean structurally lopsided rather than mechanically uniform.</p>
+      <p><b>Why it fits</b> Its constructed, directional imbalance mirrors the mark&#x27;s 112°-rotated bar — both read as geometry with intent, not symmetry for its own sake.</p>
+      <p class="weak"><b>Weakness</b> The asymmetry that makes it interesting also costs legibility in longer titles — best kept to one or two words.</p>
+    </section>
+<section class="row" id="pair-06">
+      <header>
+        <span class="num">06</span>
+        <code class="pairname">Red Hat Display <span class="plus">/</span> Red Hat Text</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> An engineered, slightly squared grotesque built for enterprise/technical products — no warmth, all confidence.</p>
+      <p><b>Why it fits</b> Blunt, almost architectural terminals and a technical pedigree suit the &#x27;formal, not playful&#x27; instruction directly.</p>
+      <p class="weak"><b>Weakness</b> Designed primarily for UI/product contexts, so at true poster scale it can feel corporate/generic rather than characterful.</p>
+    </section>
+<section class="row" id="pair-07">
+      <header>
+        <span class="num">07</span>
+        <code class="pairname">Chakra Petch <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Chakra Petch", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Chakra Petch", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Chakra Petch", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Chakra Petch", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A geometric sans with deliberately angled, cut-corner details — squared letterforms with diagonal notches at the joints.</p>
+      <p><b>Why it fits</b> The cut-corner notches read as small routing/circuit gestures, echoing the mark&#x27;s diagonal bar in the letterforms themselves.</p>
+      <p class="weak"><b>Weakness</b> Its sci-fi/gaming-HUD association is strong enough to pull the brand toward &#x27;gadget&#x27; rather than &#x27;financial infrastructure.&#x27;</p>
+    </section>
+<section class="row" id="pair-08">
+      <header>
+        <span class="num">08</span>
+        <code class="pairname">Space Grotesk <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> The default geometric-grotesque tech voice — square apertures, even stroke weight, unmistakably &#x27;crypto dashboard.&#x27;</p>
+      <p><b>Why it fits</b> True geometric bowls and uniform stroke weight sit naturally next to the mark&#x27;s uniform-radius engineering without competing for attention.</p>
+      <p class="weak"><b>Weakness</b> Its ubiquity in crypto/dev-tool branding means it reads as a safe default rather than distinctive on first glance.</p>
+    </section>
+<section class="row" id="pair-09">
+      <header>
+        <span class="num">09</span>
+        <code class="pairname">Bricolage Grotesque <span class="plus">/</span> Bricolage Grotesque (lower opsz) / Inter</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A variable grotesque with an optical-size axis, sharpening into a distinct display cut at hero scale and softening for text.</p>
+      <p><b>Why it fits</b> One family spans hero-to-body with a consistent voice, and its display cut carries enough character to hold a poster line alone.</p>
+      <p class="weak"><b>Weakness</b> The personality that makes the display cut interesting mostly disappears at body sizes, weakening the &#x27;one family&#x27; pitch.</p>
+    </section>
+<section class="row" id="pair-10">
+      <header>
+        <span class="num">10</span>
+        <code class="pairname">Rubik <span class="plus">/</span> IBM Plex Sans</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Rubik", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Rubik", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Rubik", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Rubik", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A geometric sans whose corners are gently rounded by design — the typographic sibling of a rounded-square icon.</p>
+      <p><b>Why it fits</b> Rubik&#x27;s rounded terminals directly match the mark&#x27;s uniformly rounded corners, giving hero type and icon the same joinery language.</p>
+      <p class="weak"><b>Weakness</b> At regular weight it can read a little soft/consumer-friendly unless pushed to Black weight for the hero.</p>
+    </section>
+<section class="row" id="pair-11">
+      <header>
+        <span class="num">11</span>
+        <code class="pairname">Darker Grotesque <span class="plus">/</span> Inter</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Darker Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Darker Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Darker Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="hero-sample" style='font-family:"Darker Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A grotesque whose variable weight axis pushes past normal bold into near-black, ink-heavy titling weights, narrow throughout.</p>
+      <p><b>Why it fits</b> The extreme weight range lets the hero line match the mark&#x27;s heavy, high-contrast stroke weight almost 1:1 at huge sizes.</p>
+      <p class="weak"><b>Weakness</b> Narrow default proportions make long headlines feel cramped — it wants short, punchy word counts more than most candidates here.</p>
+    </section>
+<section class="row" id="pair-12">
+      <header>
+        <span class="num">12</span>
+        <code class="pairname">Familjen Grotesk <span class="plus">/</span> Inter</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A Swiss-inflected geometric grotesque with small idiosyncratic details under a very disciplined structure.</p>
+      <p><b>Why it fits</b> Disciplined, grid-like construction with one deliberate quirk mirrors the mark&#x27;s rule of one diagonal gesture, otherwise formal.</p>
+      <p class="weak"><b>Weakness</b> The quirky details that give it character are subtle and mostly invisible at huge display sizes.</p>
+    </section>
+<section class="row" id="pair-13">
+      <header>
+        <span class="num">13</span>
+        <code class="pairname">Rajdhani <span class="plus">/</span> Inter</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Rajdhani", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Rajdhani", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Rajdhani", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Rajdhani", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A condensed, technical geometric sans originally drawn for Devanagari alongside Latin — engineered, dense, functional.</p>
+      <p><b>Why it fits</b> Squared, technical letterforms with a condensed rhythm suit dashboard/infrastructure branding without leaning as hard into sci-fi cliché.</p>
+      <p class="weak"><b>Weakness</b> Only four static weights and no true bold-black option limits how much graphic punch it can carry at true poster scale.</p>
+    </section>
+<section class="row" id="pair-14">
+      <header>
+        <span class="num">14</span>
+        <code class="pairname">Clash Display <span class="plus">/</span> Satoshi</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Clash Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Clash Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Clash Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:"Clash Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A confident, slightly rounded geometric sans built specifically as a display face — every letterform reads &#x27;made for headlines.&#x27;</p>
+      <p><b>Why it fits</b> Rounded corners on a geometric skeleton match the mark&#x27;s rounded-but-engineered rule almost exactly, with enough weight for huge sizes.</p>
+      <p class="weak"><b>Weakness</b> Ships as fixed static weights, not a variable font, so tuning weight against layout means swapping files, not sliding an axis.</p>
+    </section>
+<section class="row" id="pair-15">
+      <header>
+        <span class="num">15</span>
+        <code class="pairname">Anton <span class="plus">/</span> Work Sans</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Anton", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:"Anton", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Anton", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:"Anton", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> An ultra-bold, tightly condensed classic poster grotesque — maximum ink, minimum width, built to shout one short word.</p>
+      <p><b>Why it fits</b> Sheer graphic weight matches the mark&#x27;s heavy stroke confidence, and its single unapologetic weight avoids any accidental delicacy.</p>
+      <p class="weak"><b>Weakness</b> Ships in one weight only, no variable axis or lighter cuts, so it can&#x27;t flex down for secondary hero treatments.</p>
+    </section>
+<section class="row" id="pair-16">
+      <header>
+        <span class="num">16</span>
+        <code class="pairname">Michroma <span class="plus">/</span> Space Grotesk</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Michroma", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:"Michroma", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Michroma", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:"Michroma", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A wide, geometric, uppercase-leaning display face with uniform stroke width and generous letterspacing — monumental, not fast.</p>
+      <p><b>Why it fits</b> Wide, evenly-weighted letterforms give the hero line a monumental, engineered-plaque quality matching &#x27;formal and architectural.&#x27;</p>
+      <p class="weak"><b>Weakness</b> Ships in a single weight with no italics and sparse glyph coverage, making it inflexible outside the one hero use case.</p>
+    </section>
+<section class="row" id="pair-17">
+      <header>
+        <span class="num">17</span>
+        <code class="pairname">Departure Mono <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">4/10</span>
+      </header>
+      <div class="fbadge">No verified free-hosted source for Departure Mono — previewing on the system monospace stack.</div>
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A pixel-grid, retro-terminal monospace with visibly stepped curves — type that looks assembled from square units, not drawn.</p>
+      <p><b>Why it fits</b> Its quantized, no-organic-curve construction is the most literal typographic parallel to a mark built from two rigid primitives.</p>
+      <p class="weak"><b>Weakness</b> The pixel-stepped forms only read as intentional at genuinely large sizes, and it has no true bold cut, capping usable graphic weight.</p>
+    </section>
+<section class="row" id="pair-18">
+      <header>
+        <span class="num">18</span>
+        <code class="pairname">Bespoke Stencil <span class="plus">/</span> General Sans</code>
+        <span class="score">3/10</span>
+      </header>
+      <div class="fbadge">No verified free-hosted source for Bespoke Stencil — previewing on a system sans fallback.</div>
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="hero-sample" style='font-family:ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A true stencil face — letters built from deliberate cuts and gaps, the same &#x27;geometry interrupted by a crossing gesture&#x27; idea as the mark.</p>
+      <p><b>Why it fits</b> The stencil breaks are themselves a diagonal/interruption motif, a literal typographic echo of the bar slicing through the frame.</p>
+      <p class="weak"><b>Weakness</b> Stencil gaps hurt legibility below poster scale and can read gimmicky unless the cut-metal motif is reinforced elsewhere on the site.</p>
+    </section>
+<section class="row" id="pair-19">
+      <header>
+        <span class="num">19</span>
+        <code class="pairname">Outfit <span class="plus">/</span> Manrope</code>
+        <span class="score">3/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A clean, rounded-geometric sans that has become a common web3/product-launch headline face — confident but understated.</p>
+      <p><b>Why it fits</b> Even geometry and soft corners sit comfortably with the near-black/near-white palette without adding unwanted texture or warmth.</p>
+      <p class="weak"><b>Weakness</b> Distributed as static per-weight files rather than variable, and its &#x27;default startup sans&#x27; familiarity undercuts distinctiveness.</p>
+    </section>
+<section class="row" id="pair-20">
+      <header>
+        <span class="num">20</span>
+        <code class="pairname">Bebas Neue <span class="plus">/</span> Karla</code>
+        <span class="score">2/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Bebas Neue", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:"Bebas Neue", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Bebas Neue", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</span></div><div class="hero-sample" style='font-family:"Bebas Neue", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> The iconic tall, condensed, all-caps poster face — instantly recognizable as &#x27;big title type.&#x27;</p>
+      <p><b>Why it fits</b> Uppercase-only, uniform stroke, no frills — a very literal reading of &#x27;formal, architectural, no whimsy.&#x27;</p>
+      <p class="weak"><b>Weakness</b> It is extremely overused on startup landing pages; a visitor may register &#x27;template&#x27; before &#x27;brand.&#x27;</p>
+    </section>
+<section class="row" id="pair-21">
+      <header>
+        <span class="num">21</span>
+        <code class="pairname">Orbitron <span class="plus">/</span> Exo 2</code>
+        <span class="score">2/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Orbitron", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Orbitron", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="30" height="30" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Orbitron", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="hero-sample" style='font-family:"Orbitron", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A geometric, futuristic uppercase-forward display face with wide, machined letterforms — unmistakably sci-fi/tech.</p>
+      <p><b>Why it fits</b> Extreme geometric regularity and wide apertures give a genuinely distinctive, high-tech hero moment a plain grotesque can&#x27;t match.</p>
+      <p class="weak"><b>Weakness</b> Strongly associated with older sci-fi UI and &#x27;crypto/blockchain&#x27; branding clichés — risks reading dated rather than confident.</p>
+    </section>
+</div>
+
+<div class="panel" id="panel-headings">
+<section class="row" id="pair-01">
+      <header>
+        <span class="num">01</span>
+        <code class="pairname">Chivo (Black/900) <span class="plus">/</span> Chivo Mono</code>
+        <span class="score">8/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Chivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="heading-sample" style='font-family:"Chivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Chivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="heading-sample" style='font-family:"Chivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A grotesque with unusually sharp, almost geometric terminals paired with its own monospace sibling for total system coherence.</p>
+      <p><b>Why it fits</b> Chivo&#x27;s squared-off bowls and confident stroke contrast mirror the mark&#x27;s thick ring-and-bar geometry.</p>
+      <p class="weak"><b>Weakness</b> Lighter weights feel thin and inconsistent with the Black cut used for headings, so mixed-weight UI needs care.</p>
+    </section>
+<section class="row" id="pair-02">
+      <header>
+        <span class="num">02</span>
+        <code class="pairname">Archivo (Black/900, variable) <span class="plus">/</span> Public Sans</code>
+        <span class="score">7/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="heading-sample" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="heading-sample" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A no-nonsense grotesque workhorse taken to its heaviest weight for maximum graphic presence at heading size.</p>
+      <p><b>Why it fits</b> Archivo Black&#x27;s blunt, almost architectural terminals echo the mark&#x27;s uniformly-rounded-but-heavy corner language.</p>
+      <p class="weak"><b>Weakness</b> At its heaviest weight the counters close up on numerals, which matters for a pricing/rate-heavy interface.</p>
+    </section>
+<section class="row" id="pair-03">
+      <header>
+        <span class="num">03</span>
+        <code class="pairname">Overpass (Heavy/900, variable) <span class="plus">/</span> Overpass Mono</code>
+        <span class="score">7/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Overpass", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"Overpass", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Overpass", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"Overpass", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A grotesque derived from U.S. highway signage, redrawn for screens, paired with its own monospace counterpart.</p>
+      <p><b>Why it fits</b> Its utilitarian, wayfinding-signage origin reinforces the &#x27;routing/directional&#x27; connotation of the mark&#x27;s diagonal bar.</p>
+      <p class="weak"><b>Weakness</b> Signage-derived proportions (wide apertures, simple curves) can feel a bit municipal/utilitarian rather than premium at hero scale.</p>
+    </section>
+<section class="row" id="pair-04">
+      <header>
+        <span class="num">04</span>
+        <code class="pairname">Syne (ExtraBold/800) <span class="plus">/</span> Space Mono</code>
+        <span class="score">6.5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"Syne", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> An idiosyncratic, wide-set geometric display face with unusual proportions built for maximum graphic impact in short bursts.</p>
+      <p><b>Why it fits</b> Syne&#x27;s oversized counters and confident geometry give section headings genuine presence without decoration, matching the mark&#x27;s formal/architectural tone.</p>
+      <p class="weak"><b>Weakness</b> Its unusual proportions get awkward at longer heading lengths — best kept to short, punchy section titles, not multi-word subheads.</p>
+    </section>
+<section class="row" id="pair-05">
+      <header>
+        <span class="num">05</span>
+        <code class="pairname">Martian Mono (Bold/700, variable) <span class="plus">/</span> Inter</code>
+        <span class="score">6.5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A mechanical, almost stenciled variable monospace used as a headline face rather than for body code.</p>
+      <p><b>Why it fits</b> Its blocky, slightly futuristic glyph shapes reinforce the &#x27;routing/network&#x27; connotation of the mark&#x27;s diagonal bar.</p>
+      <p class="weak"><b>Weakness</b> Distinctive stencil-like details can look gimmicky at small heading sizes or when overused across many heading levels.</p>
+    </section>
+<section class="row" id="pair-06">
+      <header>
+        <span class="num">06</span>
+        <code class="pairname">Big Shoulders Display (Bold/700, variable) <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">6.5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Big Shoulders Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A condensed, industrial grotesque inspired by Chicago signage — built for high-impact, space-efficient headlines.</p>
+      <p><b>Why it fits</b> Its engineered, signage-derived rigidity matches the mark&#x27;s architectural, non-organic character and the &#x27;routing&#x27; network metaphor.</p>
+      <p class="weak"><b>Weakness</b> Condensed proportions read as an intentionally different register from a typical hero face — needs deliberate pairing, won&#x27;t work with every hero choice.</p>
+    </section>
+<section class="row" id="pair-07">
+      <header>
+        <span class="num">07</span>
+        <code class="pairname">Bricolage Grotesque (Bold/700, variable) <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">6.5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A contemporary variable grotesque with expressive optical-size adjustments, giving headings subtle life without ornament.</p>
+      <p><b>Why it fits</b> Its optical-size variability lets headings stay crisp at both large section titles and small repeated subheads from one family.</p>
+      <p class="weak"><b>Weakness</b> A newer, less proven face in production — variable-font optical-size axis support varies across browsers/tools and needs testing.</p>
+    </section>
+<section class="row" id="pair-08">
+      <header>
+        <span class="num">08</span>
+        <code class="pairname">JetBrains Mono (ExtraBold/800) <span class="plus">/</span> Inter</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> Headings rendered in the same monospace family the product&#x27;s API/CLI examples use, doubling down on &#x27;monospace-first.&#x27;</p>
+      <p><b>Why it fits</b> Ties headings literally to the site&#x27;s own code-block typography, reinforcing the developer-tool identity at every heading, not just in &lt;pre&gt; blocks.</p>
+      <p class="weak"><b>Weakness</b> Fixed-width letterforms waste horizontal space in longer headings and can look cramped or robotic above body-copy scale.</p>
+    </section>
+<section class="row" id="pair-09">
+      <header>
+        <span class="num">09</span>
+        <code class="pairname">IBM Plex Sans (SemiBold/600) <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;font-weight:600;'>Routstr</span></div><div class="heading-sample" style='font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;font-weight:600;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;font-weight:600;'>Routstr</span></div><div class="heading-sample" style='font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;font-weight:600;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A coherent IBM Plex superfamily pairing — sans headings, mono body/code — built explicitly for technical products.</p>
+      <p><b>Why it fits</b> Plex Sans has slightly humanist warmth in a still-rigid grotesque skeleton, softening the mark&#x27;s severity just enough without going organic.</p>
+      <p class="weak"><b>Weakness</b> Plex Sans&#x27;s italic and condensed cuts are noticeably weaker than its uprights, limiting emphasis options within headings.</p>
+    </section>
+<section class="row" id="pair-10">
+      <header>
+        <span class="num">10</span>
+        <code class="pairname">Manrope (ExtraBold/800) <span class="plus">/</span> JetBrains Mono</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</span></div><div class="heading-sample" style='font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;font-weight:800;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A semi-rounded geometric sans that keeps just enough softness to feel approachable without turning humanist.</p>
+      <p><b>Why it fits</b> Manrope&#x27;s slightly rounded terminals echo the mark&#x27;s uniform corner rounding while its skeleton stays strictly geometric.</p>
+      <p class="weak"><b>Weakness</b> Fewer display-oriented alternates than true display faces, so it can feel a little plain at very large hero sizes if reused there.</p>
+    </section>
+<section class="row" id="pair-11">
+      <header>
+        <span class="num">11</span>
+        <code class="pairname">Outfit (Bold/700) <span class="plus">/</span> Inter</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Outfit", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A geometric sans with visibly rounded corners on its terminals and bowls, built around consistent circular geometry.</p>
+      <p><b>Why it fits</b> Its rounded-corner treatment directly echoes the site&#x27;s --radius: 1rem token and the mark&#x27;s uniformly rounded frame/bar corners.</p>
+      <p class="weak"><b>Weakness</b> Relatively young, smaller family with a narrower weight range than more established geometric sans alternatives.</p>
+    </section>
+<section class="row" id="pair-12">
+      <header>
+        <span class="num">12</span>
+        <code class="pairname">Familjen Grotesk (Bold/700, variable) <span class="plus">/</span> JetBrains Mono</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A Swedish-designed grotesque with softly squared curves and a few unexpected details in individual letters.</p>
+      <p><b>Why it fits</b> Its squared-but-rounded curve treatment is a close typographic cousin to the mark&#x27;s rounded-square-and-bar construction.</p>
+      <p class="weak"><b>Weakness</b> Smaller, less battle-tested family with limited style variety (no true condensed or extended cuts) for complex heading hierarchies.</p>
+    </section>
+<section class="row" id="pair-13">
+      <header>
+        <span class="num">13</span>
+        <code class="pairname">Space Mono (Bold/700) <span class="plus">/</span> Inter</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A true display-weight monospace used purely for headings, leaving body text to a conventional sans for readability.</p>
+      <p><b>Why it fits</b> Fixed-width geometry and blocky serifs-free letterforms directly reference the terminal/CLI heritage the product is built on.</p>
+      <p class="weak"><b>Weakness</b> Only two weights (regular/bold) exist, so it offers very little flexibility for a nuanced heading hierarchy.</p>
+    </section>
+<section class="row" id="pair-14">
+      <header>
+        <span class="num">14</span>
+        <code class="pairname">Space Grotesk (Bold/700) <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> The default crypto-native geometric-grotesque — proportioned mono-adjacent capitals over a technical mono body.</p>
+      <p><b>Why it fits</b> Square apertures and even stroke weight sit naturally beside a rounded-square/bar mark without competing for attention.</p>
+      <p class="weak"><b>Weakness</b> Extremely common in web3/dev-tool landing pages now — risks reading as the generic &#x27;crypto startup&#x27; default rather than distinctive.</p>
+    </section>
+<section class="row" id="pair-15">
+      <header>
+        <span class="num">15</span>
+        <code class="pairname">Unbounded (Black/900, variable) <span class="plus">/</span> Inter</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="heading-sample" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</span></div><div class="heading-sample" style='font-family:"Unbounded", ui-sans-serif, system-ui, sans-serif;font-weight:900;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A very heavy, almost brutalist geometric variable face built explicitly for high-contrast display use.</p>
+      <p><b>Why it fits</b> Unbounded&#x27;s slab-like weight and rounded corners at its heaviest cuts directly mirror the mark&#x27;s thick, rounded-square language.</p>
+      <p class="weak"><b>Weakness</b> Too heavy and attention-grabbing for frequent subsection use — will fatigue readers if used at every heading level rather than sparingly.</p>
+    </section>
+<section class="row" id="pair-16">
+      <header>
+        <span class="num">16</span>
+        <code class="pairname">Red Hat Display (Bold/700) <span class="plus">/</span> Red Hat Mono</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Red Hat Display", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> An enterprise-grade technical grotesque family with a matched mono sibling, built for developer-facing products.</p>
+      <p><b>Why it fits</b> Its slightly squared bowls and no-nonsense grotesque skeleton read as engineered and dependable, matching the mark&#x27;s formal register.</p>
+      <p class="weak"><b>Weakness</b> Fairly neutral/anonymous character — doesn&#x27;t add much distinctiveness on its own without a strong companion mark or color system.</p>
+    </section>
+<section class="row" id="pair-17">
+      <header>
+        <span class="num">17</span>
+        <code class="pairname">Geist (Bold/700, variable) <span class="plus">/</span> Geist Mono</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Geist", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Geist", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Geist", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Geist", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> Vercel&#x27;s open-source developer-tool sans, paired with its native mono sibling for total system consistency.</p>
+      <p><b>Why it fits</b> Designed specifically for technical dashboards and dev tooling, it carries the exact register — confident, restrained, non-decorative — the mark calls for.</p>
+      <p class="weak"><b>Weakness</b> Strongly associated with Vercel/Next.js branding in developer circles, which can read as borrowed identity rather than original.</p>
+    </section>
+<section class="row" id="pair-18">
+      <header>
+        <span class="num">18</span>
+        <code class="pairname">Instrument Sans (Bold/700, variable) <span class="plus">/</span> Space Mono</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A neo-grotesque with a few quietly quirky details in its capitals that add personality without breaking the geometric skeleton.</p>
+      <p><b>Why it fits</b> Balances the technical restraint the brand needs with just enough character to keep repeated headings from feeling sterile.</p>
+      <p class="weak"><b>Weakness</b> Its subtle character is easy to miss at smaller heading sizes, so much of its personality gets flattened out in practice.</p>
+    </section>
+<section class="row" id="pair-19">
+      <header>
+        <span class="num">19</span>
+        <code class="pairname">Sora (Bold/700) <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Sora", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Sora", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Sora", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Sora", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A clean geometric sans popular across fintech/AI landing pages, tuned for confident mid-size headings.</p>
+      <p><b>Why it fits</b> Sora&#x27;s perfectly circular &#x27;o&#x27; and consistent x-height read as engineered rather than drawn, matching the mark&#x27;s constructed primitives.</p>
+      <p class="weak"><b>Weakness</b> Has become a common choice in AI-product marketing sites, so it risks blending into the category rather than standing out.</p>
+    </section>
+<section class="row" id="pair-20">
+      <header>
+        <span class="num">20</span>
+        <code class="pairname">Hanken Grotesk (Bold/700, variable) <span class="plus">/</span> JetBrains Mono</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> A quiet, highly legible neo-grotesque that stays out of the way at smaller, repeated heading sizes.</p>
+      <p><b>Why it fits</b> Even stroke modulation and restrained personality mean it won&#x27;t fight a strong hero face or the mark&#x27;s directional bar gesture.</p>
+      <p class="weak"><b>Weakness</b> So neutral it risks feeling generic if the hero face and mark aren&#x27;t distinctive enough to carry brand identity on their own.</p>
+    </section>
+<section class="row" id="pair-21">
+      <header>
+        <span class="num">21</span>
+        <code class="pairname">Public Sans (Bold/700, variable) <span class="plus">/</span> IBM Plex Mono</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+        <div class="tile dark"><div class="lockup"><span class="lockicon"><svg width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word" style='font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</span></div><div class="heading-sample" style='font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif;font-weight:700;'>Routstr</div></div>
+      </div>
+      <p><b>Concept</b> The U.S. federal government&#x27;s open-source grotesque — built for maximum institutional neutrality and legibility.</p>
+      <p><b>Why it fits</b> Its plain, unadorned letterforms suit a self-sovereign infrastructure product that wants to read as sober and trustworthy, not flashy.</p>
+      <p class="weak"><b>Weakness</b> Explicitly designed to be forgettable/institutional — may undersell the product&#x27;s technical edge compared to more characterful options.</p>
+    </section>
+</div>
+
+<div class="panel" id="panel-body">
+<section class="row" id="pair-01">
+      <header>
+        <span class="num">01</span>
+        <code class="pairname">JetBrains Mono <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">8/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Developer-facing monospace with unusually generous body-reading proportions</p>
+      <p><b>Why it fits</b> A taller x-height and more open apertures than most code fonts make it the most body-friendly monospace option, matching the terminal aesthetic.</p>
+      <p class="weak"><b>Weakness</b> Still monospace at its core; even its improved proportions can&#x27;t fully close the reading-speed gap against a proportional sans.</p>
+    </section>
+<section class="row" id="pair-02">
+      <header>
+        <span class="num">02</span>
+        <code class="pairname">IBM Plex Sans <span class="plus">pairs with</span> IBM Plex Mono</code>
+        <span class="score">7/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Engineering-grade grotesque built as part of a technical superfamily</p>
+      <p><b>Why it fits</b> Shares DNA with Plex Mono, so body prose and code/data samples read as one coherent technical voice.</p>
+      <p class="weak"><b>Weakness</b> Slightly narrower apertures than Inter can feel tighter across long unbroken paragraphs.</p>
+    </section>
+<section class="row" id="pair-03">
+      <header>
+        <span class="num">03</span>
+        <code class="pairname">Karla <span class="plus">pairs with</span> General Sans</code>
+        <span class="score">7/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Karla", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Karla", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Grotesque with softly rounded terminals that echo the mark&#x27;s geometry</p>
+      <p><b>Why it fits</b> Its rounded details rhyme with the site&#x27;s --radius token and the mark&#x27;s uniformly rounded corners without turning playful.</p>
+      <p class="weak"><b>Weakness</b> Tighter default spacing than Inter or Plex can feel cramped at small body sizes without added tracking.</p>
+    </section>
+<section class="row" id="pair-04">
+      <header>
+        <span class="num">04</span>
+        <code class="pairname">Manrope <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">7/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Manrope", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Geometric-leaning open-source grotesque with rounded joins</p>
+      <p><b>Why it fits</b> Its geometric bones echo the mark&#x27;s constructed geometry while staying calmer than a full geometric sans at body size.</p>
+      <p class="weak"><b>Weakness</b> The single-story &#x27;a&#x27; and tight apertures can tire the eye over genuinely long stretches of paragraph copy.</p>
+    </section>
+<section class="row" id="pair-05">
+      <header>
+        <span class="num">05</span>
+        <code class="pairname">Archivo <span class="plus">pairs with</span> Archivo (Black/Expanded weight)</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Grotesque with a huge weight and width range from one variable family</p>
+      <p><b>Why it fits</b> One file can carry body copy through to bold display callouts, keeping the whole system on a single technical grotesque.</p>
+      <p class="weak"><b>Weakness</b> At regular body weight it reads slightly heavy and dense next to lighter humanist alternatives.</p>
+    </section>
+<section class="row" id="pair-06">
+      <header>
+        <span class="num">06</span>
+        <code class="pairname">Instrument Sans <span class="plus">pairs with</span> Instrument Serif</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Contemporary grotesque tuned specifically for interface reading</p>
+      <p><b>Why it fits</b> Drawn for product UI first, so it holds up across the dense settings and pricing screens most of a session lives in.</p>
+      <p class="weak"><b>Weakness</b> A very new release, so long-term language coverage and hinting maturity are still largely unproven at scale.</p>
+    </section>
+<section class="row" id="pair-07">
+      <header>
+        <span class="num">07</span>
+        <code class="pairname">IBM Plex Mono <span class="plus">pairs with</span> IBM Plex Sans</code>
+        <span class="score">6/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Full monospace body copy, leaning fully into the brand&#x27;s monospace-first identity</p>
+      <p><b>Why it fits</b> Every glyph occupying equal width visually reinforces &#x27;routing, ledger, terminal&#x27; the same way the mark&#x27;s engineered bar does.</p>
+      <p class="weak"><b>Weakness</b> Fixed-width letterforms measurably slow silent reading speed over multi-paragraph copy, a real fatigue risk at length.</p>
+    </section>
+<section class="row" id="pair-08">
+      <header>
+        <span class="num">08</span>
+        <code class="pairname">Atkinson Hyperlegible Next <span class="plus">pairs with</span> IBM Plex Mono</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Purpose-built low-vision legibility face from the Braille Institute</p>
+      <p><b>Why it fits</b> Exaggerated distinction between easily-confused characters (l/I/1, 0/O) is a genuine accessibility win for a financial API product.</p>
+      <p class="weak"><b>Weakness</b> Its distinctive letterforms (two-story &#x27;a&#x27;, open &#x27;g&#x27;) read as clinical and unusual rather than premium.</p>
+    </section>
+<section class="row" id="pair-09">
+      <header>
+        <span class="num">09</span>
+        <code class="pairname">Fira Sans <span class="plus">pairs with</span> Fira Code</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Fira Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Fira Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Mozilla&#x27;s humanist grotesque, sibling to the Fira Code/Mono developers already read</p>
+      <p><b>Why it fits</b> Sharing a family with the mono faces developers use for code tightens the technical-brand thread across surfaces.</p>
+      <p class="weak"><b>Weakness</b> Slightly wider default proportions than Inter or Plex can push paragraph measure and force smaller sizes to fit.</p>
+    </section>
+<section class="row" id="pair-10">
+      <header>
+        <span class="num">10</span>
+        <code class="pairname">Red Hat Text <span class="plus">pairs with</span> Red Hat Display</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Red Hat Text", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Red Hat Text", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Enterprise open-source grotesque built for long documentation reading</p>
+      <p><b>Why it fits</b> Drawn specifically for extended technical reading sessions, which is exactly what Routstr&#x27;s API reference demands.</p>
+      <p class="weak"><b>Weakness</b> Less visual distinctiveness than Plex or Archivo, making it a safe but slightly forgettable choice.</p>
+    </section>
+<section class="row" id="pair-11">
+      <header>
+        <span class="num">11</span>
+        <code class="pairname">Hanken Grotesk <span class="plus">pairs with</span> General Sans</code>
+        <span class="score">5/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Contemporary neutral grotesque with a generous x-height</p>
+      <p><b>Why it fits</b> Open counters and a tall x-height stay clean at the small sizes fee tables and route lists tend to use.</p>
+      <p class="weak"><b>Weakness</b> A newer, less battle-tested family with a smaller community and fewer proven language/hinting edge cases.</p>
+    </section>
+<section class="row" id="pair-12">
+      <header>
+        <span class="num">12</span>
+        <code class="pairname">Inter <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Inter", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Inter", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Default web-native grotesque, tuned for UI reading at any size</p>
+      <p><b>Why it fits</b> Tall x-height and careful hinting keep dense API docs and pricing tables legible from 13px up.</p>
+      <p class="weak"><b>Weakness</b> So ubiquitous across SaaS products it can read as the default choice rather than a considered one.</p>
+    </section>
+<section class="row" id="pair-13">
+      <header>
+        <span class="num">13</span>
+        <code class="pairname">Public Sans <span class="plus">pairs with</span> Archivo</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> US federal-standard grotesque built explicitly for legibility at scale</p>
+      <p><b>Why it fits</b> Designed and usability-tested for plain-language reading in dense civic content, which maps directly onto fee schedules and route tables.</p>
+      <p class="weak"><b>Weakness</b> Fairly plain and utilitarian in character, with no distinct voice of its own to lend the brand personality.</p>
+    </section>
+<section class="row" id="pair-14">
+      <header>
+        <span class="num">14</span>
+        <code class="pairname">Source Sans 3 <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Source Sans 3", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Source Sans 3", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Adobe&#x27;s veteran humanist grotesque, tuned for interface and long-form text alike</p>
+      <p><b>Why it fits</b> Balanced stroke contrast and open counters keep paragraphs comfortable across many screen sizes and pixel densities.</p>
+      <p class="weak"><b>Weakness</b> Default figure style leans proportional oldstyle-ish, so tabular price data needs an explicit numeral-set check.</p>
+    </section>
+<section class="row" id="pair-15">
+      <header>
+        <span class="num">15</span>
+        <code class="pairname">Roboto Flex <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Roboto Flex", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Roboto Flex", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Variable-axis successor to the world&#x27;s most-deployed neo-grotesque</p>
+      <p><b>Why it fits</b> Independent width, weight, and optical-size axes let one file tune tightly for dense tables versus airy prose.</p>
+      <p class="weak"><b>Weakness</b> Roboto&#x27;s geometry is extremely familiar and can read as &#x27;default Android/Material&#x27; rather than bespoke.</p>
+    </section>
+<section class="row" id="pair-16">
+      <header>
+        <span class="num">16</span>
+        <code class="pairname">DM Sans <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">4/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"DM Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"DM Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Low-contrast geometric sans widely used as a Space Grotesk body partner</p>
+      <p><b>Why it fits</b> Its quieter, rounded-terminal geometry is a proven complement to Space Grotesk-style display type in product design systems.</p>
+      <p class="weak"><b>Weakness</b> Fairly neutral and quiet at body size, carrying little of the mark&#x27;s confident, heavy presence on its own.</p>
+    </section>
+<section class="row" id="pair-17">
+      <header>
+        <span class="num">17</span>
+        <code class="pairname">Noto Sans <span class="plus">pairs with</span> Archivo</code>
+        <span class="score">3/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Noto Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Noto Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Google&#x27;s exhaustive-coverage grotesque, built to never show a missing-glyph box</p>
+      <p><b>Why it fits</b> Massive script and glyph coverage future-proofs Routstr&#x27;s docs for a genuinely international developer audience.</p>
+      <p class="weak"><b>Weakness</b> Its extreme neutrality tips into blandness; it carries almost no character of its own.</p>
+    </section>
+<section class="row" id="pair-18">
+      <header>
+        <span class="num">18</span>
+        <code class="pairname">Work Sans <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">3/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Early-20th-century grotesque revival, warmed slightly for screen reading</p>
+      <p><b>Why it fits</b> A humanist skeleton under a grotesque surface keeps long paragraphs from feeling clinical or cold.</p>
+      <p class="weak"><b>Weakness</b> Lighter weights look thin set against the mark&#x27;s heavy, confident stroke weight.</p>
+    </section>
+<section class="row" id="pair-19">
+      <header>
+        <span class="num">19</span>
+        <code class="pairname">Literata <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">3/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Literata", ui-serif, Georgia, serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Literata", ui-serif, Georgia, serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Google&#x27;s screen-optimized serif for long-form reading</p>
+      <p><b>Why it fits</b> A serif body deliberately breaks from the mark&#x27;s all-geometric register to slow the reader down for docs or blog-length content.</p>
+      <p class="weak"><b>Weakness</b> Its serif warmth fights the brand&#x27;s monospace-first, engineered-sans identity outside long-form editorial pages.</p>
+    </section>
+<section class="row" id="pair-20">
+      <header>
+        <span class="num">20</span>
+        <code class="pairname">Spectral <span class="plus">pairs with</span> Space Grotesk</code>
+        <span class="score">3/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Spectral", ui-serif, Georgia, serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Spectral", ui-serif, Georgia, serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Screen-tuned serif designed explicitly for long-form digital reading</p>
+      <p><b>Why it fits</b> Purpose-built for on-screen reading comfort at length, which is the literal brief for a body face.</p>
+      <p class="weak"><b>Weakness</b> Its editorial warmth needs a hard contextual boundary (e.g., blog-only) or it undercuts the site&#x27;s terminal-brand tone.</p>
+    </section>
+<section class="row" id="pair-21">
+      <header>
+        <span class="num">21</span>
+        <code class="pairname">Newsreader <span class="plus">pairs with</span> Archivo</code>
+        <span class="score">2/10</span>
+      </header>
+
+      <div class="pair">
+        <div class="tile light"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#ffffff" x="0" y="0" width="32" height="32" rx="7"/><path fill="#0a0a0a" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#0a0a0a" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Newsreader", ui-serif, Georgia, serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+        <div class="tile dark"><div class="lockup small"><span class="lockicon"><svg width="16" height="16" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect fill="#111111" x="0" y="0" width="32" height="32" rx="7"/><path fill="#e5e5e5" fill-rule="evenodd" d="M12.5 3h7c5 0 9 4 9 9v8c0 5-4 9-9 9h-7c-5 0-9-4-9-9v-8c0-5 4-9 9-9z M12.5 5.8h7c3.4 0 6.2 2.8 6.2 6.2v8c0 3.4-2.8 6.2-6.2 6.2h-7c-3.4 0-6.2-2.8-6.2-6.2v-8c0-3.4 2.8-6.2 6.2-6.2z"/><g transform="rotate(112 16 16)"><rect fill="#e5e5e5" x="8.7" y="13.85" width="14.6" height="4.3" rx="2.15"/></g></svg></span><span class="word small">Routstr</span></div><p class="body-sample" style='font-family:"Newsreader", ui-serif, Georgia, serif;font-weight:400;'>Pay-per-request access to AI models over the Lightning Network. Cashu tokens settle instantly in sats — no accounts, no subscriptions, no card on file. Routstr auto-routes every call to whichever provider is cheapest right now.</p></div>
+      </div>
+      <p><b>Concept</b> Editorial transitional serif built for article-length reading on screen</p>
+      <p><b>Why it fits</b> Its transitional forms give real reading stamina for a blog or long-form docs section without turning decorative.</p>
+      <p class="weak"><b>Weakness</b> Serif warmth reads off-brand next to the mark&#x27;s cold, high-contrast, engineered geometry.</p>
+    </section>
+</div>
+
+<footer class="note">Fonts load from Google Fonts and Fontshare (Clash Display) over HTTPS. Tokens lifted from <code>app/globals.css</code>. Mark is Routstr's real <code>/icon.svg</code>, rendered as fixed light/dark variants so both preview together. This page is not linked from the site nav — <code>noindex</code>, reachable only at <code>/text-lab</code>.</footer>
+
+<script>
+(function () {
+  var KEY = "routstr-text-lab-theme";
+  var root = document.documentElement;
+  var btns = document.querySelectorAll("[data-theme-btn]");
+  function setTheme(t) {
+    root.setAttribute("data-theme", t);
+    try { localStorage.setItem(KEY, t); } catch (e) {}
+    btns.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-theme-btn") === t)); });
+  }
+  setTheme(root.getAttribute("data-theme") || "dark");
+  btns.forEach(function (b) { b.addEventListener("click", function () { setTheme(b.getAttribute("data-theme-btn")); }); });
+
+  var tabs = document.querySelectorAll('.tabs [role="tab"]');
+  var panels = { hero: document.getElementById("panel-hero"), headings: document.getElementById("panel-headings"), body: document.getElementById("panel-body") };
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      tabs.forEach(function (t) { t.setAttribute("aria-selected", "false"); });
+      Object.keys(panels).forEach(function (k) { panels[k].classList.remove("active"); });
+      tab.setAttribute("aria-selected", "true");
+      panels[tab.getAttribute("data-tab")].classList.add("active");
+    });
+  });
+})();
+</script>
+
+</body></html>

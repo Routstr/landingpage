@@ -87,8 +87,9 @@ export default function ProvidersPage() {
   }, [sortedItems, searchTerm]);
 
   return (
-    <SiteShell contentClassName="py-12 md:py-20">
-      <PageContainer>
+    <SiteShell>
+      <section className="py-12 md:py-20">
+        <PageContainer>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-12">
             <div className="text-left">
               <h1 className="text-2xl md:text-3xl font-medium text-foreground mb-4 tracking-tight">Providers</h1>
@@ -138,7 +139,7 @@ export default function ProvidersPage() {
                     className="grid grid-cols-12 gap-4 py-6 border-b border-border/30 px-4 hover:bg-card transition-colors group items-center"
                   >
                     <div className="col-span-8 md:col-span-8 flex flex-col justify-center min-w-0">
-                      <span className="font-bold text-sm text-white group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
+                      <span className="font-bold text-sm text-foreground group-hover:underline decoration-muted-foreground underline-offset-4 truncate block">
                         {provider.name}
                       </span>
                       <span className="text-[10px] text-muted-foreground truncate mt-0.5">
@@ -156,7 +157,8 @@ export default function ProvidersPage() {
               })
             )}
           </div>
-      </PageContainer>
+        </PageContainer>
+      </section>
     </SiteShell>
   );
 }

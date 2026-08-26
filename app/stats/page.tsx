@@ -1630,11 +1630,11 @@ function StatsPageContent() {
   );
 
   return (
-    <SiteShell useMain={false}>
+    <SiteShell>
       <section className="w-full relative">
-        <PageContainer className="pb-14 pt-20">
-          <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
+        <PageContainer className="py-12 md:py-20">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-12">
+            <div className="text-left">
               <h1 className="mb-4 text-2xl font-medium tracking-tight text-foreground md:text-3xl">
                 Network Stats
               </h1>

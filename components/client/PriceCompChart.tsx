@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { useMemo, useRef } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { formatCompactPriceValue } from "@/lib/number-format";
 
 export interface PriceData {
@@ -39,8 +39,26 @@ export function PriceCompChart({
     );
   }, [data]);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const bars = rootRef.current?.querySelectorAll<HTMLDivElement>("[data-bar-target]");
+      bars?.forEach((el) => {
+        const target = Number(el.dataset.barTarget);
+        const delay = Number(el.dataset.barDelay);
+        gsap.fromTo(
+          el,
+          { width: 0 },
+          { width: `${target}%`, duration: 0.5, delay, ease: "power2.out" }
+        );
+      });
+    },
+    { dependencies: [sortedData], scope: rootRef }
+  );
+
   return (
-    <div className={`w-full overflow-hidden font-mono ${className}`}>
+    <div ref={rootRef} className={`w-full overflow-hidden font-mono ${className}`}>
       {currencyLabel ? (
         <div className="mb-4 flex justify-end">
           <span className="text-[10px] text-muted-foreground">{currencyLabel}</span>
@@ -67,10 +85,9 @@ export function PriceCompChart({
                 <div className="flex items-center gap-4 text-[10px]">
                   <span className="w-12 text-muted-foreground shrink-0">input</span>
                   <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.max(promptPercent, 1)}%` }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    <div
+                      data-bar-target={Math.max(promptPercent, 1)}
+                      data-bar-delay={index * 0.1}
                       className="h-full rounded-full bg-primary"
                     />
                   </div>
@@ -84,13 +101,9 @@ export function PriceCompChart({
                 <div className="flex items-center gap-4 text-[10px]">
                   <span className="w-12 text-muted-foreground shrink-0">output</span>
                   <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.max(completionPercent, 1)}%` }}
-                      transition={{
-                        duration: 0.5,
-                        delay: index * 0.1 + 0.1,
-                      }}
+                    <div
+                      data-bar-target={Math.max(completionPercent, 1)}
+                      data-bar-delay={index * 0.1 + 0.1}
                       className="h-full rounded-full bg-muted-foreground"
                     />
                   </div>

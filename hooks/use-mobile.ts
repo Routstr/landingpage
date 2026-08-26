@@ -3,6 +3,10 @@
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
+type LegacyMediaQueryList = MediaQueryList & {
+  addListener(listener: (event: MediaQueryListEvent) => void): void;
+  removeListener(listener: (event: MediaQueryListEvent) => void): void;
+};
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
@@ -14,9 +18,19 @@ export function useIsMobile() {
     const onChange = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };
-    mql.addEventListener("change", onChange);
+    if ("addEventListener" in mql) {
+      mql.addEventListener("change", onChange);
+    } else {
+      (mql as LegacyMediaQueryList).addListener(onChange);
+    }
     setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    return () => mql.removeEventListener("change", onChange);
+    return () => {
+      if ("removeEventListener" in mql) {
+        mql.removeEventListener("change", onChange);
+      } else {
+        (mql as LegacyMediaQueryList).removeListener(onChange);
+      }
+    };
   }, []);
 
   return !!isMobile;
