@@ -4,9 +4,9 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { gsap, useGSAP } from "@/lib/gsap";
 import {
-  ROUTSTR_MARK_BAR_PATH,
-  ROUTSTR_MARK_BAR_ROTATION,
   ROUTSTR_MARK_PATH,
+  ROUTSTR_MARK_VIEWBOX_MIN,
+  ROUTSTR_MARK_VIEWBOX_SIZE,
 } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -130,12 +130,9 @@ function makeRoutstrMarkTexture(): THREE.CanvasTexture {
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = "#f2ebdd";
   ctx.save();
-  ctx.scale(s / 32, s / 32);
-  ctx.fill(new Path2D(ROUTSTR_MARK_PATH), "evenodd");
-  ctx.translate(16, 16);
-  ctx.rotate((ROUTSTR_MARK_BAR_ROTATION * Math.PI) / 180);
-  ctx.translate(-16, -16);
-  ctx.fill(new Path2D(ROUTSTR_MARK_BAR_PATH));
+  ctx.scale(s / ROUTSTR_MARK_VIEWBOX_SIZE, s / ROUTSTR_MARK_VIEWBOX_SIZE);
+  ctx.translate(-ROUTSTR_MARK_VIEWBOX_MIN, -ROUTSTR_MARK_VIEWBOX_MIN);
+  ctx.fill(new Path2D(ROUTSTR_MARK_PATH));
   ctx.restore();
   const tex = new THREE.CanvasTexture(canvas);
   tex.needsUpdate = true;
