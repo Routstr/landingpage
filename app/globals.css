@@ -209,6 +209,17 @@ h1:not([data-hero-title]), h2, h3, h4, h5, h6 {
 }
 
 /* Typography tweaks for markdown */
+/* Testimonial marquee. Each track renders its cards twice, so shifting it by
+   half its width lands the copy exactly where the original started. */
+@keyframes marquee-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @layer utilities {
   /* Subtle elevation preset for cards and code blocks, light and dark. */
   .shadow-elevation {
@@ -233,5 +244,43 @@ h1:not([data-hero-title]), h2, h3, h4, h5, h6 {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
+  }
+
+  .marquee-track-left,
+  .marquee-track-right {
+    animation: marquee-left var(--marquee-duration, 60s) linear infinite;
+  }
+
+  .marquee-track-right {
+    animation-direction: reverse;
+  }
+
+  .marquee:hover .marquee-track-left,
+  .marquee:hover .marquee-track-right,
+  .marquee:focus-within .marquee-track-left,
+  .marquee:focus-within .marquee-track-right {
+    animation-play-state: paused;
+  }
+
+  /* Only keyboard focus resets the track, because the focusable copy can be a
+     full sequence width outside the clipped row. Resetting on pointer focus
+     too would move the card out from under the cursor between press and
+     release. The row stays clipped; browsers scroll a hidden container to
+     bring the focused card into view. */
+  .marquee:has(:focus-visible) .marquee-track-left,
+  .marquee:has(:focus-visible) .marquee-track-right {
+    animation: none;
+  }
+
+  /* Without the scroll the row would strand most of its cards off-screen. */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee {
+      overflow-x: auto;
+    }
+
+    .marquee-track-left,
+    .marquee-track-right {
+      animation: none;
+    }
   }
 }
