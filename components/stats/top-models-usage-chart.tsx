@@ -1,16 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-} from "@/components/ui/chart";
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import type {
+  Chart as ChartJS,
+  ChartData,
+  ChartOptions,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 import { Button } from "@/components/ui/button";
+import {
+  getSeriesColor,
+  useChartTheme,
+  useStableSeriesColors,
+} from "@/components/stats/chart-js-runtime";
+import { ModelCompanyIcon } from "@/components/stats/model-company-icon";
+import {
+  CHART_MODEL_LIMIT,
+  MIN_CHART_MODEL_SHARE,
+  type ChartMode,
+} from "@/components/stats/stats-chart-domain";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatCompactNumber } from "@/lib/number-format";
-import { cn } from "@/lib/utils";
 
 type DisplayUnit = "msat" | "sat" | "usd";
 
@@ -40,29 +58,23 @@ interface TopModelsUsageChartProps {
   displayUnit?: DisplayUnit;
   usdPerSat?: number | null;
   mode?: ChartMode;
-  headerRight?: ReactNode;
 }
 
-export type ChartMode = "requests" | "revenue" | "tokens";
-
-interface TooltipRow {
-  color: string;
-  dataKey: string;
-  label: string;
-  value: number;
-}
-
-type LeaderboardTrend = "up" | "down" | "flat" | "new";
 
 interface LeaderboardRow {
-  chartDataKey: string | null;
   displayName: string;
   model: string;
   provider: string;
   rank: number;
   totalRaw: number;
-  trend: LeaderboardTrend;
-  trendPercent: number | null;
+}
+
+interface PlotSeries {
+  color: string;
+  key: string;
+  label: string;
+  model: string | null;
+  values: number[];
 }
 
 const DEFAULT_LEADERBOARD_LIMIT = 10;
@@ -73,110 +85,42 @@ function parseBucketDate(value: string): Date | null {
     ? value
     : `${value.replace(" ", "T")}Z`;
   const parsed = new Date(normalized);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed;
-  }
+  if (!Number.isNaN(parsed.getTime())) return parsed;
   const fallback = new Date(value);
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
-// Extended series palette. The first five come from the theme via CSS vars;
-// the rest are hardcoded HSL with a light-theme variant so stacked bars stay
-// legible on the light stats page.
-const SERIES_DARK = [
-  "hsl(196 72% 60%)",
-  "hsl(326 72% 62%)",
-  "hsl(255 74% 64%)",
-  "hsl(144 58% 54%)",
-  "hsl(18 78% 60%)",
-  "hsl(214 80% 64%)",
-  "hsl(48 88% 58%)",
-  "hsl(174 66% 56%)",
-  "hsl(292 68% 62%)",
-  "hsl(96 56% 56%)",
-  "hsl(8 74% 58%)",
-  "hsl(228 68% 70%)",
-  "hsl(334 78% 58%)",
-  "hsl(120 44% 60%)",
-  "hsl(276 58% 64%)",
-];
-const SERIES_LIGHT = [
-  "hsl(196 72% 38%)",
-  "hsl(326 72% 42%)",
-  "hsl(255 74% 46%)",
-  "hsl(144 58% 34%)",
-  "hsl(18 78% 42%)",
-  "hsl(214 80% 42%)",
-  "hsl(48 88% 36%)",
-  "hsl(174 66% 34%)",
-  "hsl(292 68% 40%)",
-  "hsl(96 56% 36%)",
-  "hsl(8 74% 40%)",
-  "hsl(228 68% 46%)",
-  "hsl(334 78% 40%)",
-  "hsl(120 44% 36%)",
-  "hsl(276 58% 42%)",
-];
-
-function useSeriesColor(): (model: string, index: number) => string {
-  const [mode, setMode] = useState<"light" | "dark">("dark");
-  useEffect(() => {
-    const el = document.documentElement;
-    const update = () => setMode(el.classList.contains("dark") ? "dark" : "light");
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
-
-  return useCallback(
-    (model: string, index: number) => {
-      void model;
-      const themed = mode === "light" ? SERIES_LIGHT : SERIES_DARK;
-      if (index < 5) return `var(--chart-${index + 1})`;
-      if (index < 5 + themed.length) return themed[index - 5];
-
-      const extendedIndex = index - 5 - themed.length;
-      const hue = (extendedIndex * 71 + 23) % 360;
-      const saturation = 64 + (extendedIndex % 3) * 6;
-      const lightness = mode === "light" ? 36 + (Math.floor(extendedIndex / 3) % 3) * 5 : 54 + (Math.floor(extendedIndex / 3) % 3) * 5;
-      return `hsl(${hue} ${saturation}% ${lightness}%)`;
-    },
-    [mode]
-  );
-}
-
-function formatTooltipTimestamp(
+function formatBucketTimestamp(
   label: string,
   intervalMinutes: number,
   hoursBack: number
 ): string {
   const date = parseBucketDate(label);
-  if (!date) {
-    return label;
-  }
-  const isMonthlyOrCoarser = intervalMinutes >= 28 * 24 * 60;
-  if (isMonthlyOrCoarser) {
-    return date.toLocaleString([], {
+  if (!date) return label;
+  if (intervalMinutes >= 28 * 24 * 60) {
+    return `${date.toLocaleString([], {
       month: "long",
       year: "numeric",
-    });
+      timeZone: "UTC",
+    })} UTC`;
   }
-  const shouldShowTime = intervalMinutes <= 6 * 60 || hoursBack <= 48;
-  if (shouldShowTime) {
+  if (intervalMinutes <= 6 * 60 || hoursBack <= 48) {
     return date.toLocaleString([], {
       month: "long",
       day: "numeric",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "UTC",
+      timeZoneName: "short",
     });
   }
-  return date.toLocaleString([], {
+  return `${date.toLocaleString([], {
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+    timeZone: "UTC",
+  })} UTC`;
 }
 
 function formatAxisTimestamp(
@@ -186,15 +130,13 @@ function formatAxisTimestamp(
   hoursBack: number
 ): string {
   const date = parseBucketDate(timestamp);
-  if (!date) {
-    return "";
-  }
+  if (!date) return "";
 
-  const isMonthlyOrCoarser = intervalMinutes >= 28 * 24 * 60;
-  if (isMonthlyOrCoarser) {
+  if (intervalMinutes >= 28 * 24 * 60) {
     return date.toLocaleDateString([], {
       month: "short",
       year: "numeric",
+      timeZone: "UTC",
     });
   }
 
@@ -205,26 +147,27 @@ function formatAxisTimestamp(
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "UTC",
     });
   }
-
   if (shouldShowTime) {
     return date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "UTC",
     });
   }
-
   if (hasMultipleDays) {
     return date.toLocaleDateString([], {
       month: "short",
       day: "numeric",
+      timeZone: "UTC",
     });
   }
-
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "UTC",
   });
 }
 
@@ -233,16 +176,15 @@ function convertRevenueMsats(
   displayUnit: DisplayUnit,
   usdPerSat: number | null
 ): number {
-  if (displayUnit === "msat") {
-    return amountMsats;
-  }
-
+  if (displayUnit === "msat") return amountMsats;
   const sats = amountMsats / 1000;
-  if (displayUnit === "usd") {
-    return sats * (usdPerSat ?? 0);
-  }
+  return displayUnit === "usd" ? sats * (usdPerSat ?? 0) : sats;
+}
 
-  return sats;
+function formatShare(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0%";
+  if (value < 0.1) return "<0.1%";
+  return `${value.toFixed(1).replace(/\.0$/, "")}%`;
 }
 
 function prettifyProvider(provider: string): string {
@@ -255,10 +197,7 @@ function prettifyProvider(provider: string): string {
     open_ai: "openai",
     openai: "openai",
   };
-  if (aliasMap[normalized]) {
-    return aliasMap[normalized];
-  }
-  return normalized.replace(/[_-]+/g, " ");
+  return aliasMap[normalized] ?? normalized.replace(/[_-]+/g, " ");
 }
 
 function detectProviderFromModel(model: string): string {
@@ -266,11 +205,7 @@ function detectProviderFromModel(model: string): string {
   if (value.includes("claude")) return "anthropic";
   if (value.includes("gpt") || value.includes("openai")) return "openai";
   if (value.includes("gemini")) return "google";
-  if (
-    value.includes("grok") ||
-    value.includes("x-ai") ||
-    value.includes("xai")
-  ) {
+  if (value.includes("grok") || value.includes("x-ai") || value.includes("xai")) {
     return "x-ai";
   }
   if (value.includes("deepseek")) return "deepseek";
@@ -278,6 +213,10 @@ function detectProviderFromModel(model: string): string {
   if (value.includes("kimi") || value.includes("moonshot")) return "moonshot";
   if (value.includes("mistral")) return "mistral";
   if (value.includes("qwen") || value.includes("alibaba")) return "alibaba";
+  if (value.includes("xiaomi") || value.includes("mimo")) return "xiaomi";
+  if (value.includes("stepfun")) return "stepfun";
+  if (value.includes("venice")) return "venice";
+  if (value.includes("text-embedding")) return "openai";
   if (value.includes("glm") || value.includes("z-ai") || value.includes("z ai")) {
     return "z-ai";
   }
@@ -290,23 +229,48 @@ function getModelPresentation(
   const trimmed = model.trim();
   const slashIndex = trimmed.indexOf("/");
   if (slashIndex > 0 && slashIndex < trimmed.length - 1) {
-    const provider = prettifyProvider(trimmed.slice(0, slashIndex));
-    const displayName = trimmed.slice(slashIndex + 1);
-    return { displayName, provider };
+    return {
+      displayName: trimmed.slice(slashIndex + 1),
+      provider: prettifyProvider(trimmed.slice(0, slashIndex)),
+    };
   }
-
   return {
     displayName: trimmed,
     provider: detectProviderFromModel(trimmed),
   };
 }
 
-function deriveRankedModelsByMode(
+function readModelValue(
+  metric: ModelUsageMixMetric,
+  model: string,
+  mode: ChartMode
+): number {
+  const source =
+    mode === "requests"
+      ? metric.model_counts
+      : mode === "revenue"
+        ? metric.model_revenue_msats
+        : metric.model_tokens;
+  const value = Number((source ?? {})[model] ?? 0);
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function readBucketTotal(metric: ModelUsageMixMetric, mode: ChartMode): number {
+  const value =
+    mode === "requests"
+      ? Number(metric.total_successful ?? 0)
+      : mode === "revenue"
+        ? Number(metric.total_revenue_msats ?? 0)
+        : Number(metric.total_tokens ?? 0);
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+/** One period total per model, shared by ranking, chart inclusion and the leaderboard. */
+function deriveModelTotals(
   metrics: ModelUsageMixMetric[],
   mode: ChartMode
-): string[] {
+): Map<string, number> {
   const totals = new Map<string, number>();
-
   for (const metric of metrics) {
     const source =
       mode === "requests"
@@ -314,7 +278,6 @@ function deriveRankedModelsByMode(
         : mode === "revenue"
           ? metric.model_revenue_msats ?? {}
           : metric.model_tokens ?? {};
-
     for (const [model, rawValue] of Object.entries(source)) {
       if (!model || model === "unknown") continue;
       const value = Number(rawValue || 0);
@@ -322,10 +285,7 @@ function deriveRankedModelsByMode(
       totals.set(model, (totals.get(model) ?? 0) + value);
     }
   }
-
-  return Array.from(totals.entries())
-    .sort((a, b) => b[1] - a[1])
-    .map(([model]) => model);
+  return totals;
 }
 
 export function TopModelsUsageChart({
@@ -333,13 +293,33 @@ export function TopModelsUsageChart({
   displayUnit = "sat",
   usdPerSat = null,
   mode = "requests",
-  headerRight,
 }: TopModelsUsageChartProps) {
-  const [hoveredSeriesKey, setHoveredSeriesKey] = useState<string | null>(null);
-  const [isChartPointerInside, setIsChartPointerInside] = useState(false);
   const [showAllModels, setShowAllModels] = useState(false);
   const isMobile = useIsMobile();
-  const seriesColor = useSeriesColor();
+  const chartTheme = useChartTheme();
+  const readoutId = useId();
+  const chartRef = useRef<ChartJS<"bar", number[], string> | null>(null);
+  const chartShellRef = useRef<HTMLDivElement | null>(null);
+  const guideRef = useRef<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const timestampRef = useRef<HTMLParagraphElement | null>(null);
+  const totalRef = useRef<HTMLSpanElement | null>(null);
+  const emptyTooltipRef = useRef<HTMLParagraphElement | null>(null);
+  const liveRegionRef = useRef<HTMLSpanElement | null>(null);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const rowValueRefs = useRef<Record<string, HTMLSpanElement | null>>({});
+  const rowShareRefs = useRef<Record<string, HTMLSpanElement | null>>(
+    {}
+  );
+  const selectedIndexRef = useRef(-1);
+  const selectedTimestampRef = useRef<string | null>(null);
+  const overlayVisibleRef = useRef(false);
+  const pointerFrameRef = useRef<number | null>(null);
+  const pendingPointerPositionRef = useRef<{ x: number; y: number } | null>(
+    null
+  );
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
   const fallbackTopModels = useMemo(
     () => (Array.isArray(mix.top_models) ? mix.top_models : []),
     [mix.top_models]
@@ -348,315 +328,556 @@ export function TopModelsUsageChart({
     () => (Array.isArray(mix.metrics) ? mix.metrics : []),
     [mix.metrics]
   );
+  const modelTotals = useMemo(
+    () => deriveModelTotals(mixMetrics, mode),
+    [mixMetrics, mode]
+  );
   const rankedModels = useMemo(() => {
-    const ranked = deriveRankedModelsByMode(mixMetrics, mode);
-    if (ranked.length > 0) {
-      return ranked;
-    }
-    return fallbackTopModels;
-  }, [fallbackTopModels, mixMetrics, mode]);
-
-  const chartModelLimit = showAllModels
-    ? EXPANDED_LEADERBOARD_LIMIT
-    : DEFAULT_LEADERBOARD_LIMIT;
-  const chartModels = useMemo(
-    () => rankedModels.slice(0, chartModelLimit),
-    [rankedModels, chartModelLimit]
+    const ranked = Array.from(modelTotals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([model]) => model);
+    return ranked.length > 0 ? ranked : fallbackTopModels;
+  }, [fallbackTopModels, modelTotals]);
+  const chartModels = useMemo(() => {
+    const scopeTotal = mixMetrics.reduce(
+      (sum, metric) => sum + readBucketTotal(metric, mode),
+      0
+    );
+    if (scopeTotal <= 0) return [];
+    return rankedModels
+      .filter(
+        (model) =>
+          (modelTotals.get(model) ?? 0) / scopeTotal >= MIN_CHART_MODEL_SHARE
+      )
+      .slice(0, CHART_MODEL_LIMIT);
+  }, [mixMetrics, mode, modelTotals, rankedModels]);
+  const chartModelColors = useStableSeriesColors(
+    chartModels,
+    chartTheme.seriesColors
   );
   const leaderboardModels = useMemo(
     () => rankedModels.slice(0, EXPANDED_LEADERBOARD_LIMIT),
     [rankedModels]
   );
-  const revenueDisplayUnit: DisplayUnit = useMemo(() => {
-    if (displayUnit === "usd" && usdPerSat === null) {
-      return "sat";
-    }
-    return displayUnit;
-  }, [displayUnit, usdPerSat]);
+  const revenueDisplayUnit: DisplayUnit =
+    displayUnit === "usd" && usdPerSat === null ? "sat" : displayUnit;
   const revenueUnitLabel =
     revenueDisplayUnit === "usd"
       ? "usd"
       : revenueDisplayUnit === "sat"
         ? "sats"
-        : revenueDisplayUnit === "msat"
-          ? "msats"
-          : revenueDisplayUnit;
+        : "msats";
 
-  const series = useMemo(
-    () =>
-      chartModels.map((model, index) => ({
-        requestsKey: `model_req_${index}`,
-        revenueKey: `model_rev_${index}`,
-        tokensKey: `model_tok_${index}`,
-        label: model,
-        color: seriesColor(model, index),
-      })),
-    [chartModels, seriesColor]
+  const formatValue = useCallback(
+    (rawValue: number): string => {
+      if (mode !== "revenue") {
+        return formatCompactNumber(rawValue, {
+          standardMaximumFractionDigits: 0,
+          compactMaximumFractionDigits: 2,
+        });
+      }
+      const converted = convertRevenueMsats(
+        rawValue,
+        revenueDisplayUnit,
+        usdPerSat
+      );
+      const compact = formatCompactNumber(converted, {
+        standardMinimumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
+        standardMaximumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
+        compactMaximumFractionDigits: 2,
+      });
+      return revenueDisplayUnit === "usd"
+        ? `$${compact}`
+        : `${compact} ${revenueUnitLabel}`;
+    },
+    [mode, revenueDisplayUnit, revenueUnitLabel, usdPerSat]
   );
 
-  const chartData = useMemo(
+  const bucketTotals = useMemo(
+    () => mixMetrics.map((metric) => readBucketTotal(metric, mode)),
+    [mixMetrics, mode]
+  );
+  const plotSeries = useMemo<PlotSeries[]>(() => {
+    const named = chartModels.map((model) => {
+      const presentation = getModelPresentation(model);
+      return {
+        color:
+          chartModelColors.get(model) ??
+          getSeriesColor(model, chartTheme.seriesColors),
+        key: `model:${model}`,
+        label: presentation.displayName,
+        model,
+        values: mixMetrics.map((metric) => readModelValue(metric, model, mode)),
+      };
+    });
+    const otherValues = mixMetrics.map((metric, bucketIndex) => {
+      const namedTotal = chartModels.reduce(
+        (sum, model) => sum + readModelValue(metric, model, mode),
+        0
+      );
+      return Math.max(0, bucketTotals[bucketIndex] - namedTotal);
+    });
+    return [
+      ...named,
+      {
+        color: chartTheme.other,
+        key: "other",
+        label: "Other models",
+        model: null,
+        values: otherValues,
+      },
+    ];
+  }, [
+    bucketTotals,
+    chartModelColors,
+    chartModels,
+    chartTheme.seriesColors,
+    chartTheme.other,
+    mixMetrics,
+    mode,
+  ]);
+  const stackTotals = useMemo(
     () =>
-      mixMetrics.map((metric) => {
-        const modelCounts = metric.model_counts ?? {};
-        const modelRevenue = metric.model_revenue_msats ?? {};
-        const modelTokens = metric.model_tokens ?? {};
-        const totalSuccessful = Number(metric.total_successful ?? 0);
-        const totalRevenueMsats = Number(metric.total_revenue_msats ?? 0);
-        const totalTokens = Number(metric.total_tokens ?? 0);
-        let displayedRequests = 0;
-        let displayedRevenueMsats = 0;
-        let displayedTokens = 0;
-        const point: Record<string, number | string> = {
-          timestamp: metric.timestamp,
-          total_successful: totalSuccessful,
-          total_revenue_msats: totalRevenueMsats,
-          total_tokens: totalTokens,
-          others_requests: 0,
-          others_revenue_msats: 0,
-          others_tokens: 0,
-        };
-
-        for (const item of series) {
-          const requestsValue = Number(modelCounts[item.label] ?? 0);
-          const revenueValue = Number(modelRevenue[item.label] ?? 0);
-          const tokensValue = Number(modelTokens[item.label] ?? 0);
-          point[item.requestsKey] = requestsValue;
-          point[item.revenueKey] = revenueValue;
-          point[item.tokensKey] = tokensValue;
-          displayedRequests += requestsValue;
-          displayedRevenueMsats += revenueValue;
-          displayedTokens += tokensValue;
-        }
-
-        point.others_requests = Math.max(0, totalSuccessful - displayedRequests);
-        point.others_revenue_msats = Math.max(
-          0,
-          totalRevenueMsats - displayedRevenueMsats
-        );
-        point.others_tokens = Math.max(0, totalTokens - displayedTokens);
-
-        return point;
-      }),
-    [mixMetrics, series]
+      mixMetrics.map((_, bucketIndex) =>
+        plotSeries.reduce(
+          (sum, series) => sum + (series.values[bucketIndex] ?? 0),
+          0
+        )
+      ),
+    [mixMetrics, plotSeries]
   );
 
   const hasMultipleDays = useMemo(() => {
     const daySet = new Set(
-      chartData.map((item) =>
+      mixMetrics.map((item) =>
         parseBucketDate(String(item.timestamp))?.toDateString()
       )
     );
     return daySet.size > 1;
-  }, [chartData]);
+  }, [mixMetrics]);
 
-  const chartConfig = useMemo(() => {
-    const config: ChartConfig = {};
-    for (const item of series) {
-      config[item.requestsKey] = {
-        label: item.label,
-        color: item.color,
-      };
-      config[item.revenueKey] = {
-        label: item.label,
-        color: item.color,
-      };
-      config[item.tokensKey] = {
-        label: item.label,
-        color: item.color,
-      };
+  const chartData = useMemo<ChartData<"bar", number[], string>>(
+    () => ({
+      labels: mixMetrics.map((metric) => metric.timestamp),
+      datasets: plotSeries.map((series) => ({
+        label: series.key,
+        data: series.values,
+        backgroundColor: series.color,
+        borderWidth: 0,
+        borderSkipped: false,
+        stack: "models",
+        maxBarThickness: 38,
+        categoryPercentage: 0.92,
+        barPercentage: 1,
+      })),
+    }),
+    [mixMetrics, plotSeries]
+  );
+
+  const chartOptions = useMemo<ChartOptions<"bar">>(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      events: [],
+      normalized: true,
+      layout: { padding: { top: 8, right: isMobile ? 4 : 10 } },
+      scales: {
+        x: {
+          stacked: true,
+          border: { display: false },
+          grid: { display: false },
+          ticks: {
+            autoSkip: true,
+            color: chartTheme.mutedForeground,
+            font: { family: chartTheme.fontFamily, size: 11 },
+            maxRotation: 0,
+            maxTicksLimit: isMobile ? 4 : 8,
+            callback: (_value, index) =>
+              formatAxisTimestamp(
+                mixMetrics[index]?.timestamp ?? "",
+                hasMultipleDays,
+                mix.interval_minutes,
+                mix.hours_back
+              ),
+          },
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          min: 0,
+          border: { display: false },
+          grid: { color: chartTheme.grid },
+          ticks: {
+            color: chartTheme.mutedForeground,
+            font: { family: chartTheme.fontFamily, size: 11 },
+            maxTicksLimit: 5,
+            callback: (value) => formatValue(Number(value || 0)),
+          },
+        },
+      },
+    }),
+    [
+      chartTheme.fontFamily,
+      chartTheme.grid,
+      chartTheme.mutedForeground,
+      formatValue,
+      hasMultipleDays,
+      isMobile,
+      mix.hours_back,
+      mix.interval_minutes,
+      mixMetrics,
+    ]
+  );
+
+  const hideBucketOverlay = useCallback(() => {
+    overlayVisibleRef.current = false;
+    pendingPointerPositionRef.current = null;
+    if (pointerFrameRef.current !== null) {
+      window.cancelAnimationFrame(pointerFrameRef.current);
+      pointerFrameRef.current = null;
     }
-    config.others_requests = {
-      label: "Others",
-      color: "var(--muted-foreground)",
-    };
-    config.others_revenue_msats = {
-      label: "Others",
-      color: "var(--muted-foreground)",
-    };
-    config.others_tokens = {
-      label: "Others",
-      color: "var(--muted-foreground)",
-    };
-    return config;
-  }, [series]);
+    if (guideRef.current) {
+      guideRef.current.style.opacity = "0";
+      guideRef.current.style.visibility = "hidden";
+    }
+    if (tooltipRef.current) {
+      tooltipRef.current.style.opacity = "0";
+      tooltipRef.current.style.visibility = "hidden";
+    }
+  }, []);
+
+  const selectBucket = useCallback(
+    (
+      index: number,
+      {
+        announceToScreenReader = false,
+        showOverlay = true,
+      }: { announceToScreenReader?: boolean; showOverlay?: boolean } = {}
+    ) => {
+      if (mixMetrics.length === 0) return;
+      const boundedIndex = Math.max(0, Math.min(mixMetrics.length - 1, index));
+      const metric = mixMetrics[boundedIndex];
+      const isSameVisibleBucket =
+        selectedIndexRef.current === boundedIndex &&
+        selectedTimestampRef.current === metric.timestamp &&
+        overlayVisibleRef.current;
+      if (isSameVisibleBucket && showOverlay && !announceToScreenReader)
+        return;
+
+      selectedIndexRef.current = boundedIndex;
+      selectedTimestampRef.current = metric.timestamp;
+
+      if (timestampRef.current) {
+        timestampRef.current.textContent = formatBucketTimestamp(
+          metric.timestamp,
+          mix.interval_minutes,
+          mix.hours_back
+        );
+      }
+      if (totalRef.current) {
+        totalRef.current.textContent = formatValue(bucketTotals[boundedIndex] ?? 0);
+      }
+      const orderedSeries = plotSeries
+        .map((series) => ({
+          series,
+          value: series.values[boundedIndex] ?? 0,
+        }))
+        .sort((a, b) => b.value - a.value);
+      let visibleRows = 0;
+      const stackTotal = stackTotals[boundedIndex] ?? 0;
+      for (const { series, value } of orderedSeries) {
+        const rowNode = rowRefs.current[series.key];
+        const valueNode = rowValueRefs.current[series.key];
+        const shareNode = rowShareRefs.current[series.key];
+        const share = stackTotal > 0 ? (value / stackTotal) * 100 : 0;
+        if (rowNode) {
+          rowNode.hidden = value <= 0;
+          if (value > 0) {
+            rowNode.style.order = String(visibleRows);
+            visibleRows += 1;
+          }
+        }
+        if (valueNode) {
+          valueNode.textContent = formatValue(value);
+        }
+        if (shareNode) {
+          shareNode.textContent = `· ${formatShare(share)}`;
+        }
+      }
+      if (emptyTooltipRef.current) {
+        emptyTooltipRef.current.hidden = visibleRows > 0;
+      }
+
+      const chart = chartRef.current;
+      const shell = chartShellRef.current;
+      const tooltip = tooltipRef.current;
+      if (chart) {
+        const timestamp = formatBucketTimestamp(
+          metric.timestamp,
+          mix.interval_minutes,
+          mix.hours_back
+        );
+        chart.canvas.setAttribute("aria-valuenow", String(boundedIndex + 1));
+        chart.canvas.setAttribute(
+          "aria-valuetext",
+          `${timestamp}, total ${formatValue(bucketTotals[boundedIndex] ?? 0)}`
+        );
+        if (showOverlay && shell && tooltip) {
+          const shellBounds = shell.getBoundingClientRect();
+          const canvasBounds = chart.canvas.getBoundingClientRect();
+          const x =
+            canvasBounds.left - shellBounds.left +
+            chart.scales.x.getPixelForValue(boundedIndex);
+          const chartTop =
+            canvasBounds.top - shellBounds.top + chart.chartArea.top;
+          const gap = 12;
+          const edge = 8;
+          const tooltipWidth = tooltip.offsetWidth;
+          const tooltipHeight = tooltip.offsetHeight;
+          const rightSide = x + gap;
+          const preferredLeft =
+            rightSide + tooltipWidth <= shell.clientWidth - edge
+              ? rightSide
+              : x - gap - tooltipWidth;
+          const left = Math.max(
+            edge,
+            Math.min(preferredLeft, shell.clientWidth - tooltipWidth - edge)
+          );
+          const maxTop = Math.max(edge, shell.clientHeight - tooltipHeight - edge);
+          const top = Math.max(
+            edge,
+            Math.min(chart.chartArea.top + edge, maxTop)
+          );
+          tooltip.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+          tooltip.style.visibility = "visible";
+          tooltip.style.opacity = "1";
+          if (guideRef.current) {
+            guideRef.current.style.height = `${Math.round(
+              chart.chartArea.bottom - chart.chartArea.top
+            )}px`;
+            guideRef.current.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(chartTop)}px, 0)`;
+            guideRef.current.style.visibility = "visible";
+            guideRef.current.style.opacity = "1";
+          }
+          overlayVisibleRef.current = true;
+        } else {
+          hideBucketOverlay();
+        }
+      }
+
+      if (announceToScreenReader && liveRegionRef.current) {
+        const details = plotSeries
+          .filter((series) => (series.values[boundedIndex] ?? 0) > 0)
+          .map(
+            (series) => {
+              const value = series.values[boundedIndex] ?? 0;
+              const share = stackTotal > 0 ? (value / stackTotal) * 100 : 0;
+              return `${series.label} ${formatValue(value)}, ${formatShare(share)}`;
+            }
+          )
+          .join(", ");
+        liveRegionRef.current.textContent = `${formatBucketTimestamp(
+          metric.timestamp,
+          mix.interval_minutes,
+          mix.hours_back
+        )}. Total ${formatValue(bucketTotals[boundedIndex] ?? 0)}. ${details}`;
+      }
+    },
+    [
+      bucketTotals,
+      formatValue,
+      hideBucketOverlay,
+      mix.hours_back,
+      mix.interval_minutes,
+      mixMetrics,
+      plotSeries,
+      stackTotals,
+    ]
+  );
+
+  const selectBucketAtPixel = useCallback(
+    (
+      pixelX: number,
+      pixelY: number,
+      { announceToScreenReader = false } = {}
+    ) => {
+      const chart = chartRef.current;
+      if (!chart || mixMetrics.length === 0) return;
+      if (
+        pixelX < chart.chartArea.left ||
+        pixelX > chart.chartArea.right ||
+        pixelY < chart.chartArea.top ||
+        pixelY > chart.chartArea.bottom
+      ) {
+        hideBucketOverlay();
+        return;
+      }
+      const rawIndex = Number(chart.scales.x.getValueForPixel(pixelX));
+      if (!Number.isFinite(rawIndex)) return;
+      selectBucket(Math.round(rawIndex), { announceToScreenReader });
+    },
+    [hideBucketOverlay, mixMetrics.length, selectBucket]
+  );
 
   useEffect(() => {
-    setHoveredSeriesKey(null);
-    setIsChartPointerInside(false);
-  }, [mode]);
+    const shell = chartShellRef.current;
+    if (!shell) return;
+
+    const getCanvasPosition = (event: PointerEvent) => {
+      const canvas = chartRef.current?.canvas;
+      if (!canvas) return null;
+      const bounds = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      };
+    };
+    const scheduleSelection = (event: PointerEvent) => {
+      if (event.pointerType === "touch") return;
+      const position = getCanvasPosition(event);
+      if (position === null) return;
+      pendingPointerPositionRef.current = position;
+      if (pointerFrameRef.current !== null) return;
+      pointerFrameRef.current = window.requestAnimationFrame(() => {
+        pointerFrameRef.current = null;
+        if (pendingPointerPositionRef.current !== null) {
+          selectBucketAtPixel(
+            pendingPointerPositionRef.current.x,
+            pendingPointerPositionRef.current.y
+          );
+        }
+      });
+    };
+    const beginSelection = (event: PointerEvent) => {
+      if (event.pointerType === "touch") {
+        touchStartRef.current = { x: event.clientX, y: event.clientY };
+        return;
+      }
+      scheduleSelection(event);
+    };
+    const finishSelection = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      if (
+        !start ||
+        Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8
+      ) {
+        return;
+      }
+      const position = getCanvasPosition(event);
+      if (position !== null) {
+        selectBucketAtPixel(position.x, position.y, {
+          announceToScreenReader: true,
+        });
+      }
+    };
+    const cancelTouchSelection = () => {
+      touchStartRef.current = null;
+      hideBucketOverlay();
+    };
+    const hideMouseSelection = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") hideBucketOverlay();
+    };
+    const hideOutsideSelection = (event: PointerEvent) => {
+      if (event.target instanceof Node && !shell.contains(event.target)) {
+        hideBucketOverlay();
+      }
+    };
+    const resizeObserver = new ResizeObserver(hideBucketOverlay);
+    resizeObserver.observe(shell);
+
+    shell.addEventListener("pointerdown", beginSelection, { passive: true });
+    shell.addEventListener("pointermove", scheduleSelection, { passive: true });
+    shell.addEventListener("pointerup", finishSelection, { passive: true });
+    shell.addEventListener("pointercancel", cancelTouchSelection, {
+      passive: true,
+    });
+    shell.addEventListener("pointerleave", hideMouseSelection, { passive: true });
+    document.addEventListener("pointerdown", hideOutsideSelection, {
+      passive: true,
+    });
+    return () => {
+      shell.removeEventListener("pointerdown", beginSelection);
+      shell.removeEventListener("pointermove", scheduleSelection);
+      shell.removeEventListener("pointerup", finishSelection);
+      shell.removeEventListener("pointercancel", cancelTouchSelection);
+      shell.removeEventListener("pointerleave", hideMouseSelection);
+      document.removeEventListener("pointerdown", hideOutsideSelection);
+      resizeObserver.disconnect();
+      if (pointerFrameRef.current !== null) {
+        window.cancelAnimationFrame(pointerFrameRef.current);
+        pointerFrameRef.current = null;
+      }
+    };
+  }, [hideBucketOverlay, selectBucket, selectBucketAtPixel]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const selectedTimestamp = selectedTimestampRef.current;
+      const matchingIndex = selectedTimestamp
+        ? mixMetrics.findIndex(
+            (metric) => metric.timestamp === selectedTimestamp
+          )
+        : -1;
+      selectBucket(matchingIndex >= 0 ? matchingIndex : mixMetrics.length - 1, {
+        showOverlay: false,
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [chartData, mixMetrics, selectBucket]);
 
   useEffect(() => {
     setShowAllModels(false);
-  }, [rankedModels, mode]);
+  }, [mode, rankedModels]);
 
-  const formatValue = (rawValue: number): string => {
-    if (mode === "requests") {
-      return formatCompactNumber(rawValue, {
-        standardMaximumFractionDigits: 0,
-        compactMaximumFractionDigits: 2,
-      });
+  const handleChartKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      hideBucketOverlay();
+      return;
     }
-
-    if (mode === "tokens") {
-      return formatCompactNumber(rawValue, {
-        standardMaximumFractionDigits: 0,
-        compactMaximumFractionDigits: 2,
-      });
-    }
-
-    const converted = convertRevenueMsats(
-      rawValue,
-      revenueDisplayUnit,
-      usdPerSat
-    );
-    const compact = formatCompactNumber(converted, {
-      standardMinimumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
-      standardMaximumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
-      compactMaximumFractionDigits: 2,
-    });
-    if (revenueDisplayUnit === "usd") {
-      return `$${compact}`;
-    }
-    return `${compact} ${revenueUnitLabel}`;
+    let nextIndex = selectedIndexRef.current;
+    if (event.key === "ArrowLeft") nextIndex -= 1;
+    else if (event.key === "ArrowRight") nextIndex += 1;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = mixMetrics.length - 1;
+    else return;
+    event.preventDefault();
+    selectBucket(nextIndex, { announceToScreenReader: true });
   };
 
-  const activeSeries = series.map((item) => ({
-    dataKey:
-      mode === "requests"
-        ? item.requestsKey
-        : mode === "revenue"
-          ? item.revenueKey
-          : item.tokensKey,
-    name: item.label,
-    color: item.color,
-  }));
-  const othersKey = (
-    mode === "requests"
-      ? "others_requests"
-      : mode === "revenue"
-        ? "others_revenue_msats"
-        : "others_tokens"
-  ) as "others_requests" | "others_revenue_msats" | "others_tokens";
-  const activeSeriesKeys = [...activeSeries.map((item) => item.dataKey), othersKey];
-  const activeHoverSeriesKey =
-    hoveredSeriesKey && activeSeriesKeys.includes(hoveredSeriesKey)
-      ? hoveredSeriesKey
-      : null;
-  const getSeriesOpacity = (dataKey: string): number =>
-    activeHoverSeriesKey && activeHoverSeriesKey !== dataKey ? 0.18 : 1;
   const formatLeaderboardTotal = (rawValue: number): string => {
-    if (mode === "requests") {
-      return `${formatCompactNumber(rawValue, {
-        standardMaximumFractionDigits: 0,
-        compactMaximumFractionDigits: 2,
-      })} requests`;
-    }
-
-    if (mode === "tokens") {
-      return `${formatCompactNumber(rawValue, {
-        standardMaximumFractionDigits: 0,
-        compactMaximumFractionDigits: 2,
-      })} tokens`;
-    }
-
-    const converted = convertRevenueMsats(
-      rawValue,
-      revenueDisplayUnit,
-      usdPerSat
-    );
-    const compact = formatCompactNumber(converted, {
-      standardMinimumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
-      standardMaximumFractionDigits: revenueDisplayUnit === "usd" ? 2 : 0,
-      compactMaximumFractionDigits: 2,
-    });
-    if (revenueDisplayUnit === "usd") {
-      return `$${compact}`;
-    }
-    return `${compact} ${revenueUnitLabel}`;
+    if (mode === "requests") return `${formatValue(rawValue)} requests`;
+    if (mode === "tokens") return `${formatValue(rawValue)} tokens`;
+    return formatValue(rawValue);
   };
-  const formatTrendPercent = (value: number): string => {
-    const abs = Math.abs(value);
-    const rounded = abs >= 10 ? abs.toFixed(0) : abs.toFixed(1);
-    return rounded.replace(/\.0$/, "");
-  };
+
   const leaderboardRows = useMemo<LeaderboardRow[]>(() => {
-    if (leaderboardModels.length === 0 || mixMetrics.length === 0) {
-      return [];
-    }
+    if (leaderboardModels.length === 0 || mixMetrics.length === 0) return [];
 
-    const windowSize = Math.floor(mixMetrics.length / 2);
-    const previousMetrics =
-      windowSize > 0 ? mixMetrics.slice(-windowSize * 2, -windowSize) : [];
-    const currentMetrics = windowSize > 0 ? mixMetrics.slice(-windowSize) : mixMetrics;
-
-    const rows = leaderboardModels
+    return leaderboardModels
       .map((model) => {
-        const readMetric = (metric: (typeof mixMetrics)[number]): number =>
-          mode === "requests"
-            ? (metric.model_counts ?? {})[model] ?? 0
-            : mode === "revenue"
-              ? (metric.model_revenue_msats ?? {})[model] ?? 0
-              : (metric.model_tokens ?? {})[model] ?? 0;
-
-        const totalRaw = mixMetrics.reduce((sum, metric) => sum + readMetric(metric), 0);
-        const previousRaw = previousMetrics.reduce(
-          (sum, metric) => sum + readMetric(metric),
-          0
-        );
-        const currentRaw = currentMetrics.reduce(
-          (sum, metric) => sum + readMetric(metric),
-          0
-        );
-        const trendPercent =
-          previousRaw > 0 ? ((currentRaw - previousRaw) / previousRaw) * 100 : null;
-
-        let trend: LeaderboardTrend = "flat";
-        if (previousRaw <= 0 && currentRaw > 0) {
-          trend = "new";
-        } else if (trendPercent !== null && trendPercent > 0.5) {
-          trend = "up";
-        } else if (trendPercent !== null && trendPercent < -0.5) {
-          trend = "down";
-        }
-
+        const totalRaw = modelTotals.get(model) ?? 0;
         const presentation = getModelPresentation(model);
-        const matchingSeries = series.find((item) => item.label === model);
-        const chartDataKey = matchingSeries
-          ? mode === "requests"
-            ? matchingSeries.requestsKey
-            : mode === "revenue"
-              ? matchingSeries.revenueKey
-              : matchingSeries.tokensKey
-          : null;
-
         return {
-          chartDataKey,
           displayName: presentation.displayName,
           model,
           provider: presentation.provider,
           rank: 0,
           totalRaw,
-          trend,
-          trendPercent,
-        } satisfies LeaderboardRow;
+        };
       })
       .filter((row) => row.totalRaw > 0)
       .sort((a, b) => b.totalRaw - a.totalRaw)
       .slice(0, EXPANDED_LEADERBOARD_LIMIT)
-      .map((row, index) => ({
-        ...row,
-        rank: index + 1,
-      }));
+      .map((row, index) => ({ ...row, rank: index + 1 }));
+  }, [leaderboardModels, mixMetrics, modelTotals]);
 
-    return rows;
-  }, [leaderboardModels, mixMetrics, mode, series]);
-  const visibleLeaderboardRows = useMemo(
-    () =>
-      leaderboardRows.slice(
-        0,
-        showAllModels ? EXPANDED_LEADERBOARD_LIMIT : DEFAULT_LEADERBOARD_LIMIT
-      ),
-    [leaderboardRows, showAllModels]
+  const visibleLeaderboardRows = leaderboardRows.slice(
+    0,
+    showAllModels ? EXPANDED_LEADERBOARD_LIMIT : DEFAULT_LEADERBOARD_LIMIT
   );
   const canShowMore = leaderboardRows.length > DEFAULT_LEADERBOARD_LIMIT;
   const remainingModelsCount = Math.max(
@@ -664,285 +885,214 @@ export function TopModelsUsageChart({
     leaderboardRows.length - DEFAULT_LEADERBOARD_LIMIT
   );
 
-  if (chartData.length === 0) {
-    return null;
-  }
+  if (mixMetrics.length === 0) return null;
 
   return (
-    <div className="dark">
-      <section className="py-4 sm:py-5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h3 className="text-xl font-bold text-foreground">Model Usage</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Stacked requests, revenue, or tokens by model ({mix.interval_minutes}
-              m buckets).
-            </p>
-          </div>
-          {headerRight ? (
-            <div className="shrink-0 text-xs text-muted-foreground">{headerRight}</div>
-          ) : null}
+    <div>
+      <section className="border border-border bg-card px-4 py-5 shadow-sm shadow-black/5 sm:px-6 sm:py-6 dark:shadow-black/20">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold text-foreground">Model Usage</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Reported {mode} over time, split by model.
+          </p>
         </div>
 
         <div className="pt-2 sm:pt-3">
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[250px] w-full sm:h-[320px]"
-            onMouseLeave={() => {
-              setHoveredSeriesKey(null);
-              setIsChartPointerInside(false);
-            }}
-          >
-            <BarChart
-              data={chartData}
-              onMouseEnter={() => setIsChartPointerInside(true)}
-              onMouseMove={() => setIsChartPointerInside(true)}
-              onMouseLeave={() => {
-                setHoveredSeriesKey(null);
-                setIsChartPointerInside(false);
-              }}
-              margin={{
-                top: 12,
-                right: isMobile ? 8 : 18,
-                left: isMobile ? 0 : 8,
-                bottom: 0,
-              }}
+          <div className="min-w-0">
+            <div
+              ref={chartShellRef}
+              className="relative h-[250px] min-w-0 w-full sm:h-[320px]"
             >
-              <CartesianGrid vertical={false} className="stroke-border" />
-              <XAxis
-                dataKey="timestamp"
-                tickLine={false}
-                axisLine={false}
-                minTickGap={isMobile ? 14 : 24}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                tickFormatter={(value) =>
-                  formatAxisTimestamp(
-                    String(value),
-                    hasMultipleDays,
-                    mix.interval_minutes,
-                    mix.hours_back
+              <Bar
+                ref={(chart) => {
+                  chartRef.current = chart ?? null;
+                }}
+                data={chartData}
+                options={chartOptions}
+                datasetIdKey="label"
+                redraw={false}
+                role="slider"
+                tabIndex={0}
+                aria-label={`Model usage by ${mode}. Use Left and Right arrow keys to inspect time buckets.`}
+                aria-valuemin={1}
+                aria-valuemax={mixMetrics.length}
+                aria-valuenow={mixMetrics.length}
+                aria-orientation="horizontal"
+                aria-describedby={`${readoutId}-instructions`}
+                onKeyDown={handleChartKeyDown}
+                onFocus={() =>
+                  selectBucket(
+                    selectedIndexRef.current >= 0
+                      ? selectedIndexRef.current
+                      : mixMetrics.length - 1
                   )
                 }
+                onBlur={hideBucketOverlay}
+                className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                style={{ touchAction: "pan-y pinch-zoom" }}
+                fallbackContent="Model usage chart. Use the arrow keys to inspect time buckets."
               />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={isMobile ? 40 : 56}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                tickFormatter={(value) =>
-                  formatValue(typeof value === "number" ? value : Number(value || 0))
-                }
+              <div
+                ref={guideRef}
+                aria-hidden="true"
+                className="pointer-events-none invisible absolute left-0 top-0 z-[1] w-px bg-foreground/30 opacity-0"
               />
-              <ChartTooltip
-                cursor={false}
-                content={({ active, payload, label }) => {
-                  if (!isChartPointerInside || !active || !payload?.length) {
-                    return null;
-                  }
-
-                  const rows = payload
-                    .map((entry) => {
-                      const value =
-                        typeof entry.value === "number"
-                          ? entry.value
-                          : Number(entry.value || 0);
-
-                      return {
-                        color: String(entry.color || "var(--muted-foreground)"),
-                        dataKey: String(entry.dataKey || ""),
-                        label: String(entry.name || ""),
-                        value,
-                      } satisfies TooltipRow;
-                    })
-                    .filter((row) => Number.isFinite(row.value) && row.value > 0)
-                    .sort((a, b) => b.value - a.value);
-
-                  const total = rows.reduce((sum, row) => sum + row.value, 0);
-                  if (rows.length === 0) {
-                    return null;
-                  }
-
-                  return (
-                    <div className="min-w-[200px] rounded-md border border-border bg-card px-2 py-1.5 text-[11px] shadow-none">
-                      <p className="mb-1.5 text-xs font-medium text-foreground">
-                        {formatTooltipTimestamp(
-                          String(label || ""),
-                          mix.interval_minutes,
-                          mix.hours_back
-                        )}
-                      </p>
-                      <div className="space-y-1">
-                        {rows.map((row) => (
-                          <div
-                            key={row.label}
-                            className={cn(
-                              "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3",
-                              activeHoverSeriesKey &&
-                                row.dataKey !== activeHoverSeriesKey &&
-                                "opacity-45"
-                            )}
-                          >
-                            <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                              <span
-                                className="h-2.5 w-1.5 shrink-0 rounded-sm"
-                                style={{ backgroundColor: row.color }}
-                              />
-                              <span className="truncate text-muted-foreground">{row.label}</span>
-                            </span>
-                            <span className="font-mono tabular-nums text-foreground">
-                              {formatValue(row.value)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-1.5 border-t border-border pt-1.5">
-                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3">
-                          <span className="text-muted-foreground">Total</span>
-                          <span className="font-mono font-semibold tabular-nums text-foreground">
-                            {formatValue(total)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }}
-              />
-              {activeSeries.map((item) => (
-                <Bar
-                  key={item.dataKey}
-                  dataKey={item.dataKey}
-                  name={item.name}
-                  stackId="models"
-                  fill={item.color}
-                  fillOpacity={getSeriesOpacity(item.dataKey)}
-                  maxBarSize={38}
-                  onMouseEnter={() => setHoveredSeriesKey(item.dataKey)}
-                  onMouseLeave={() => setHoveredSeriesKey(null)}
-                />
-              ))}
-              <Bar
-                dataKey={othersKey}
-                name="Others"
-                stackId="models"
-                fill="var(--muted-foreground)"
-                fillOpacity={getSeriesOpacity(othersKey)}
-                maxBarSize={38}
-                onMouseEnter={() => setHoveredSeriesKey(othersKey)}
-                onMouseLeave={() => setHoveredSeriesKey(null)}
-              />
-            </BarChart>
-          </ChartContainer>
-        </div>
-      </section>
-
-      <section className="pt-5 sm:pt-6">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-medium text-foreground">Top Models</p>
-          {!isMobile ? (
-            <p className="text-xs text-muted-foreground">Change vs prior period</p>
-          ) : null}
-        </div>
-
-        {leaderboardRows.length > 0 ? (
-          <div className="space-y-0.5">
-            {visibleLeaderboardRows.map((row) => {
-              const rowIsLinked = Boolean(row.chartDataKey);
-              const rowIsActive =
-                row.chartDataKey !== null &&
-                activeHoverSeriesKey === row.chartDataKey;
-              const rowIsDimmed =
-                Boolean(activeHoverSeriesKey) &&
-                row.chartDataKey !== null &&
-                row.chartDataKey !== activeHoverSeriesKey;
-
-              let trendLabel = "0%";
-              let trendClass = "text-muted-foreground";
-              if (row.trend === "new") {
-                trendLabel = "new";
-                trendClass = "text-sky-600 dark:text-sky-400";
-              } else if (row.trend === "up" && row.trendPercent !== null) {
-                trendLabel = `↑${formatTrendPercent(row.trendPercent)}%`;
-                trendClass = "text-emerald-600 dark:text-emerald-400";
-              } else if (row.trend === "down" && row.trendPercent !== null) {
-                trendLabel = `↓${formatTrendPercent(row.trendPercent)}%`;
-                trendClass = "text-destructive";
-              } else if (row.trendPercent !== null) {
-                trendLabel = `${formatTrendPercent(row.trendPercent)}%`;
-              }
-
-              return (
-                <div
-                  key={row.model}
-                  className={cn(
-                    isMobile
-                      ? "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-1.5 py-2.5 text-xs"
-                      : "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 px-1.5 py-2.5 text-xs",
-                    rowIsLinked && "cursor-pointer transition hover:bg-muted/70",
-                    rowIsActive && "bg-muted",
-                    rowIsDimmed && "opacity-45"
-                  )}
-                  title={row.model}
-                  onMouseEnter={() => {
-                    if (row.chartDataKey) {
-                      setHoveredSeriesKey(row.chartDataKey);
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    if (row.chartDataKey) {
-                      setHoveredSeriesKey(null);
-                    }
-                  }}
-                >
-                  <span className="w-5 text-right font-mono tabular-nums text-muted-foreground">
-                    {row.rank}.
-                  </span>
-                  <div className="min-w-0">
-                    <span className="truncate font-medium text-foreground">
-                      {row.displayName}
-                    </span>{" "}
-                    <span className="truncate text-muted-foreground">by {row.provider}</span>
-                  </div>
-                  {isMobile ? (
-                    <div className="text-right">
-                      <div className="font-mono tabular-nums text-foreground">
-                        {formatLeaderboardTotal(row.totalRaw)}
-                      </div>
-                      <div className={cn("mt-0.5 tabular-nums", trendClass)}>
-                        {trendLabel}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="font-mono tabular-nums text-foreground">
-                      {formatLeaderboardTotal(row.totalRaw)}
-                    </span>
-                  )}
-                  {!isMobile ? (
-                    <span className={cn("font-medium tabular-nums", trendClass)}>
-                      {trendLabel}
-                    </span>
-                  ) : null}
+              <div
+                id={readoutId}
+                ref={tooltipRef}
+                data-slot="bucket-tooltip"
+                role="tooltip"
+                aria-hidden="true"
+                className="pointer-events-none invisible absolute left-0 top-0 z-10 w-60 border border-border bg-card p-3 text-xs opacity-0 shadow-elevation"
+              >
+                <div className="border-b border-border pb-2">
+                  <p
+                    ref={timestampRef}
+                    className="truncate font-medium text-foreground"
+                  />
+                  <p className="mt-1 text-muted-foreground">
+                    Total{" "}
+                    <span
+                      ref={totalRef}
+                      className="font-medium tabular-nums text-foreground"
+                    />
+                  </p>
                 </div>
-              );
-            })}
-            {canShowMore ? (
-              <div className="pt-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowAllModels((current) => !current)}
-                >
-                  {showAllModels
-                    ? "Show less"
-                    : `Show ${remainingModelsCount} more`}
-                </Button>
+                <div className="mt-2 flex flex-col gap-1">
+                  {plotSeries.map((series) => (
+                    <div
+                      key={series.key}
+                      ref={(node) => {
+                        rowRefs.current[series.key] = node;
+                      }}
+                      className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: series.color }}
+                      />
+                      <span
+                        className="truncate text-muted-foreground"
+                        title={series.model ?? series.label}
+                      >
+                        {series.label}
+                      </span>
+                      <span className="whitespace-nowrap text-right">
+                        <span
+                          ref={(node) => {
+                            rowValueRefs.current[series.key] = node;
+                          }}
+                          className="tabular-nums text-foreground"
+                        />
+                        <span
+                          ref={(node) => {
+                            rowShareRefs.current[series.key] = node;
+                          }}
+                          className="ml-1 text-[10px] tabular-nums text-muted-foreground"
+                        />
+                      </span>
+                    </div>
+                  ))}
+                  <p
+                    ref={emptyTooltipRef}
+                    hidden
+                    className="text-muted-foreground"
+                  >
+                    No usage in this bucket.
+                  </p>
+                </div>
               </div>
-            ) : null}
+              <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
+            </div>
+
+            <span id={`${readoutId}-instructions`} className="sr-only">
+              Use Left and Right arrow keys to inspect exact bucket values.
+            </span>
           </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">No model totals available for this range.</p>
-        )}
+
+          <section
+            className="mt-6 min-w-0 border-t border-border pt-4"
+            aria-labelledby={`${readoutId}-models`}
+          >
+            <div className="mb-3">
+              <p
+                id={`${readoutId}-models`}
+                className="text-sm font-medium text-foreground"
+              >
+                Top Models
+              </p>
+            </div>
+
+            {leaderboardRows.length > 0 ? (
+              <div>
+                <ol className="columns-1 lg:columns-2 lg:gap-10">
+                  {visibleLeaderboardRows.map((row) => (
+                    <li
+                      key={row.model}
+                      className="mb-0.5 grid min-h-14 w-full break-inside-avoid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-border/60 px-2 py-2.5 text-left transition-colors hover:bg-muted/40"
+                      title={row.model}
+                    >
+                      <span className="w-5 text-right text-xs tabular-nums text-muted-foreground">
+                        {row.rank}.
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none flex h-7 w-8 items-center gap-2"
+                      >
+                        <span
+                          className="h-7 w-0.5 shrink-0"
+                          style={{
+                            backgroundColor:
+                              chartModelColors.get(row.model) ??
+                              chartTheme.other,
+                          }}
+                        />
+                        <ModelCompanyIcon
+                          model={row.model}
+                          provider={row.provider}
+                          className="size-5 shrink-0 text-foreground"
+                        />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-foreground">
+                          {row.displayName}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                          {row.provider}
+                        </span>
+                      </span>
+                      <span className="whitespace-nowrap text-right">
+                        <span className="text-xs font-medium tabular-nums text-foreground">
+                          {formatLeaderboardTotal(row.totalRaw)}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {canShowMore ? (
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowAllModels((current) => !current)}
+                    >
+                      {showAllModels
+                        ? "Show less"
+                        : `Show ${remainingModelsCount} more`}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No model totals available for this range.
+              </p>
+            )}
+          </section>
+        </div>
       </section>
     </div>
   );

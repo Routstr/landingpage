@@ -1,27 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import type {
+  ChartData,
+  ChartOptions,
+  Plugin,
+} from "chart.js";
+import { Doughnut } from "react-chartjs-2";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Label,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { useIsMobile } from "@/hooks/use-mobile";
+  getSeriesColor,
+  useChartTheme,
+  useStableSeriesColors,
+} from "@/components/stats/chart-js-runtime";
+import { ModelCompanyIcon } from "@/components/stats/model-company-icon";
 import { formatCompactNumber } from "@/lib/number-format";
-import type { ChartMode } from "@/components/stats/top-models-usage-chart";
+import {
+  getModeLabel,
+  getModeUnit,
+  isChartMode,
+  type ChartMode,
+} from "@/components/stats/stats-chart-domain";
 
 export type ProviderComparisonPoint = {
+  providerId: string;
   providerLabel: string;
   value: number;
   share: number;
@@ -32,6 +33,7 @@ export type ProviderComparisonPoint = {
 };
 
 export type ModelSharePoint = {
+  kind: "model" | "other";
   label: string;
   value: number;
   share: number;
@@ -51,55 +53,39 @@ type ModelShareChartProps = {
   description?: string;
 };
 
-// Series colors: the first five follow the theme via CSS vars. The rest are
-// hardcoded HSL with a light-theme variant so the bars stay legible on the
-// light stats page (60% lightness reads washed-out on paper).
-const PIE_COLORS_DARK = [
-  "hsl(196 72% 60%)",
-  "hsl(18 78% 60%)",
-  "hsl(334 78% 58%)",
-];
-const PIE_COLORS_LIGHT = [
-  "hsl(196 72% 38%)",
-  "hsl(18 78% 42%)",
-  "hsl(334 78% 40%)",
-];
+type ProviderShareSegment =
+  | {
+      kind: "provider";
+      id: string;
+      label: string;
+      value: number;
+      share: number;
+      activeModels: number;
+    }
+  | {
+      kind: "other";
+      id: string;
+      label: string;
+      value: number;
+      share: number;
+      providerCount: number;
+    };
 
-function useThemeMode(): "light" | "dark" {
-  const [mode, setMode] = useState<"light" | "dark">("dark");
-  useEffect(() => {
-    const el = document.documentElement;
-    const update = () => setMode(el.classList.contains("dark") ? "dark" : "light");
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
-  return mode;
-}
+const PROVIDER_COMPOSITION_LIMIT = 5;
 
 function formatModeValue(
   value: number,
   mode: ChartMode,
-  {
-    withUnit = false,
-  }: { withUnit?: boolean } = {}
+  { withUnit = false }: { withUnit?: boolean } = {}
 ): string {
   const formatted = formatCompactNumber(value, {
     standardMaximumFractionDigits: mode === "revenue" ? 1 : 0,
     compactMaximumFractionDigits: 1,
   });
-
   if (!withUnit) return formatted;
   if (mode === "requests") return `${formatted} requests`;
   if (mode === "tokens") return `${formatted} tokens`;
   return `${formatted} sats`;
-}
-
-function getModeLabel(mode: ChartMode): string {
-  if (mode === "requests") return "Requests";
-  if (mode === "tokens") return "Tokens";
-  return "Revenue";
 }
 
 function clampLabel(value: string, max = 26): string {
@@ -107,46 +93,92 @@ function clampLabel(value: string, max = 26): string {
   return `${value.slice(0, max - 1)}…`;
 }
 
-function useSeriesColors(): (index: number) => string {
-  const mode = useThemeMode();
-  return useCallback(
-    (index: number) => {
-      const themed = mode === "light" ? PIE_COLORS_LIGHT : PIE_COLORS_DARK;
-      if (index < 5) {
-        return `var(--chart-${index + 1})`;
-      }
-      const fallback = themed[(index - 5) % themed.length];
-      return fallback;
-    },
-    [mode]
-  );
-}
+const MODEL_SHARE_CENTER_LABEL: Plugin<"doughnut"> = {
+  id: "modelShareCenterLabel",
+  afterDraw(chart) {
+    const dataset = chart.data.datasets[0];
+    const totalValue = (dataset?.data ?? []).reduce(
+      (sum, value) => sum + Number(value || 0),
+      0
+    );
+    const rawMode = String(dataset?.label ?? "");
+    const mode: ChartMode = isChartMode(rawMode) ? rawMode : "requests";
+    const { left, right, top, bottom } = chart.chartArea;
+    const centerX = (left + right) / 2;
+    const centerY = (top + bottom) / 2;
+    const context = chart.ctx;
+    context.save();
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    const foreground = String(chart.options.color ?? "#e5e5e5");
+    const mutedForeground = String(chart.options.borderColor ?? "#a1a1a1");
+    const fontFamily = chart.options.font?.family ?? "monospace";
+    context.fillStyle = foreground;
+    context.font = `600 14px ${fontFamily}`;
+    context.fillText(formatModeValue(totalValue, mode), centerX, centerY - 8);
+    context.fillStyle = mutedForeground;
+    context.font = `10px ${fontFamily}`;
+    context.fillText(getModeUnit(mode), centerX, centerY + 10);
+    context.restore();
+  },
+};
 
 export function ProviderComparisonChart({
   data,
   mode,
-  title = "Provider Comparison",
+  title = "Provider Share",
   description,
 }: ProviderComparisonChartProps) {
-  const isMobile = useIsMobile();
-  const getSeriesColor = useSeriesColors();
-  const chartData = useMemo(() => data.slice(0, 10).reverse(), [data]);
-  const chartConfig = useMemo<ChartConfig>(
-    () => ({
-      value: {
-        label: getModeLabel(mode),
-        color: "var(--chart-3)",
-      },
-    }),
-    [mode]
+  const chartTheme = useChartTheme();
+  const duplicateLabels = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const point of data) {
+      counts.set(
+        point.providerLabel,
+        (counts.get(point.providerLabel) ?? 0) + 1
+      );
+    }
+    return new Set(
+      Array.from(counts.entries())
+        .filter(([, count]) => count > 1)
+        .map(([label]) => label)
+    );
+  }, [data]);
+  const topProviders = useMemo(
+    () => data.slice(0, PROVIDER_COMPOSITION_LIMIT),
+    [data]
   );
+  const providerColors = useStableSeriesColors(
+    topProviders.map((point) => point.providerId),
+    chartTheme.seriesColors
+  );
+  const composition = useMemo<ProviderShareSegment[]>(() => {
+    const segments: ProviderShareSegment[] = topProviders.map((point) => ({
+      kind: "provider",
+      id: point.providerId,
+      label: point.providerLabel,
+      value: point.value,
+      share: point.share,
+      activeModels: point.activeModels,
+    }));
+    const remaining = data.slice(PROVIDER_COMPOSITION_LIMIT);
+    if (remaining.length > 0) {
+      segments.push({
+        kind: "other",
+        id: "other-providers",
+        label: "Other providers",
+        value: remaining.reduce((sum, point) => sum + point.value, 0),
+        share: remaining.reduce((sum, point) => sum + point.share, 0),
+        providerCount: remaining.length,
+      });
+    }
+    return segments;
+  }, [data, topProviders]);
 
-  if (chartData.length === 0) {
-    return null;
-  }
+  if (data.length === 0) return null;
 
   return (
-    <section className="py-4 sm:py-5">
+    <section className="border border-border bg-card px-4 py-5 shadow-sm shadow-black/5 sm:px-6 sm:py-6 dark:shadow-black/20">
       <div className="min-w-0">
         <h3 className="text-xl font-bold text-foreground">{title}</h3>
         {description ? (
@@ -154,87 +186,119 @@ export function ProviderComparisonChart({
         ) : null}
       </div>
 
-      <div className="pt-2 sm:pt-3">
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-[220px] w-full sm:h-[260px]"
-        >
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{
-              top: 4,
-              right: isMobile ? 8 : 18,
-              left: isMobile ? 4 : 14,
-              bottom: 0,
+      <div
+        className="mt-5 flex h-3 w-full overflow-hidden bg-muted"
+        aria-hidden="true"
+      >
+        {composition.map((segment) => (
+          <span
+            key={segment.id}
+            className="h-full"
+            style={{
+              width: `${Math.max(0, segment.share) * 100}%`,
+              backgroundColor:
+                segment.kind === "other"
+                  ? chartTheme.other
+                  : providerColors.get(segment.id) ?? chartTheme.other,
             }}
-          >
-            <CartesianGrid horizontal={false} className="stroke-border" />
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-              tickFormatter={(value) =>
-                formatModeValue(
-                  typeof value === "number" ? value : Number(value || 0),
-                  mode
-                )
-              }
-            />
-            <YAxis
-              type="category"
-              dataKey="providerLabel"
-              tickLine={false}
-              axisLine={false}
-              width={isMobile ? 72 : 96}
-              tick={{ fill: "var(--foreground)", fontSize: 10 }}
-              tickFormatter={(value) => clampLabel(String(value), isMobile ? 10 : 15)}
-            />
-            <ChartTooltip
-              cursor={{ fill: "var(--muted)", opacity: 0.16 }}
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const point = payload[0]?.payload as ProviderComparisonPoint | undefined;
-                if (!point) return null;
-
-                return (
-                  <div className="border-border/50 bg-background grid min-w-[210px] items-start gap-1.5 border px-2.5 py-1.5 text-xs shadow-xl">
-                    <p className="mb-1.5 text-xs font-medium text-foreground">
-                      {point.providerLabel}
-                    </p>
-                    <div className="space-y-1">
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3">
-                        <span className="text-muted-foreground">{getModeLabel(mode)}</span>
-                        <span className="font-mono tabular-nums text-foreground">
-                          {formatModeValue(point.value, mode, { withUnit: true })}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3">
-                        <span className="text-muted-foreground">Share</span>
-                        <span className="font-mono tabular-nums text-foreground">
-                          {(point.share * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3">
-                        <span className="text-muted-foreground">Active models</span>
-                        <span className="font-mono tabular-nums text-foreground">
-                          {point.activeModels}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }}
-            />
-            <Bar dataKey="value">
-              {chartData.map((entry, index) => (
-                <Cell key={`${entry.providerLabel}-${index}`} fill={getSeriesColor(index)} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+          />
+        ))}
       </div>
+
+      <ul
+        data-slot="provider-list"
+        className="grid gap-x-8 pt-3 sm:grid-cols-2 lg:grid-cols-3"
+        aria-label={`${title}, share of reported ${mode}`}
+      >
+        {composition.map((segment) => {
+          const sharePercent = Math.max(0, segment.share) * 100;
+          const color =
+            segment.kind === "other"
+              ? chartTheme.other
+              : providerColors.get(segment.id) ?? chartTheme.other;
+          return (
+            <li
+              key={segment.id}
+              className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border/60 py-2.5 text-xs"
+            >
+              <span
+                aria-hidden="true"
+                className="h-7 w-0.5"
+                style={{ backgroundColor: color }}
+              />
+              <div className="min-w-0">
+                <p
+                  className="truncate font-medium text-foreground"
+                  title={segment.label}
+                >
+                  {segment.label}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {segment.kind === "other"
+                    ? `${segment.providerCount} ${segment.providerCount === 1 ? "provider" : "providers"}`
+                    : `${segment.activeModels} ${segment.activeModels === 1 ? "model" : "models"} reported`}
+                  {segment.kind !== "other" && duplicateLabels.has(segment.label)
+                    ? ` · ${segment.id.slice(0, 12)}`
+                    : ""}
+                </p>
+              </div>
+              <div className="pl-2 text-right">
+                <p className="whitespace-nowrap tabular-nums text-foreground">
+                  {formatModeValue(segment.value, mode, { withUnit: true })}
+                </p>
+                <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                  {sharePercent.toFixed(1)}%
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {data.length > PROVIDER_COMPOSITION_LIMIT ? (
+        <details className="mt-3 border-t border-border">
+          <summary className="cursor-pointer py-3 text-xs font-medium text-muted-foreground hover:text-foreground">
+            View all {data.length} providers
+          </summary>
+          <ol
+            data-slot="provider-detail-list"
+            className="border-t border-border"
+            aria-label={`${title}, highest reported ${mode} first`}
+          >
+            {data.map((point, index) => (
+              <li
+                key={point.providerId}
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 border-b border-border/60 px-1.5 py-2.5 text-xs last:border-b-0"
+                title={point.providerLabel}
+              >
+                <span className="w-5 text-right tabular-nums text-muted-foreground">
+                  {index + 1}.
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-foreground">
+                    {point.providerLabel}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {point.activeModels}{" "}
+                    {point.activeModels === 1 ? "model" : "models"} reported
+                    {duplicateLabels.has(point.providerLabel)
+                      ? ` · ${point.providerId.slice(0, 12)}`
+                      : ""}
+                  </p>
+                </div>
+                <div className="pl-2 text-right">
+                  <p className="whitespace-nowrap tabular-nums text-foreground">
+                    {formatModeValue(point.value, mode, { withUnit: true })}
+                  </p>
+                  <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                    {(Math.max(0, point.share) * 100).toFixed(1)}%
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
     </section>
   );
 }
@@ -245,29 +309,62 @@ export function ModelShareChart({
   title = "Model Share",
   description,
 }: ModelShareChartProps) {
-  const getSeriesColor = useSeriesColors();
+  const chartTheme = useChartTheme();
   const chartData = useMemo(() => data.slice(0, 8), [data]);
-  const totalValue = useMemo(
-    () => chartData.reduce((sum, item) => sum + item.value, 0),
+  const namedModels = useMemo(
+    () =>
+      chartData
+        .filter((item) => item.kind !== "other")
+        .map((item) => item.label),
     [chartData]
   );
-  const chartConfig = useMemo<ChartConfig>(() => {
-    const config: ChartConfig = {};
-    chartData.forEach((item, index) => {
-      config[item.label] = {
-        label: item.label,
-        color: getSeriesColor(index),
-      };
-    });
-    return config;
-  }, [chartData, getSeriesColor]);
-
-  if (chartData.length === 0) {
-    return null;
-  }
+  const modelColors = useStableSeriesColors(namedModels, chartTheme.seriesColors);
+  const colors = useMemo(
+    () =>
+      chartData.map((item) =>
+        item.kind === "other"
+          ? chartTheme.other
+          : modelColors.get(item.label) ??
+            getSeriesColor(item.label, chartTheme.seriesColors)
+      ),
+    [chartData, chartTheme.seriesColors, chartTheme.other, modelColors]
+  );
+  const canvasData = useMemo<ChartData<"doughnut", number[], string>>(
+    () => ({
+      labels: chartData.map((item) => item.label),
+      datasets: [
+        {
+          label: mode,
+          data: chartData.map((item) => item.value),
+          backgroundColor: colors,
+          borderColor: chartTheme.card,
+          borderWidth: 2,
+          hoverOffset: 0,
+          spacing: 1,
+        },
+      ],
+    }),
+    [chartData, chartTheme.card, colors, mode]
+  );
+  const options = useMemo<ChartOptions<"doughnut">>(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      events: [],
+      color: chartTheme.foreground,
+      borderColor: chartTheme.mutedForeground,
+      font: { family: chartTheme.fontFamily },
+      cutout: "68%",
+      rotation: -90,
+      circumference: 360,
+    }),
+    [chartTheme]
+  );
+  if (chartData.length === 0) return null;
 
   return (
-    <section className="py-4 sm:py-5">
+    <section className="border border-border bg-card px-4 py-5 shadow-sm shadow-black/5 sm:px-6 sm:py-6 dark:shadow-black/20">
       <div className="min-w-0">
         <h3 className="text-xl font-bold text-foreground">{title}</h3>
         {description ? (
@@ -276,87 +373,28 @@ export function ModelShareChart({
       </div>
 
       <div className="grid gap-6 pt-2 sm:pt-3 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-center">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square h-[220px] w-[220px] sm:h-[240px] sm:w-[240px]"
+        <div
+          data-slot="chart"
+          className="mx-auto h-[220px] w-[220px] sm:h-[240px] sm:w-[240px]"
         >
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const entry = payload[0];
-                const point = entry?.payload as ModelSharePoint | undefined;
-                if (!point) return null;
-
-                return (
-                  <div className="border-border/50 bg-background grid min-w-[180px] items-start gap-1.5 border px-2.5 py-1.5 text-xs shadow-xl">
-                    <div className="grid gap-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{point.label}</span>
-                        <span className="font-mono tabular-nums text-foreground">
-                          {formatModeValue(point.value, mode, { withUnit: true })}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">Share</span>
-                        <span className="font-mono tabular-nums text-foreground">
-                          {(point.share * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }}
-            />
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="label"
-              innerRadius={56}
-              outerRadius={82}
-              paddingAngle={2}
-              stroke="none"
-            >
-              <Label
-                content={({ viewBox }) => {
-                  if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
-                    return null;
-                  }
-                  return (
-                    <text
-                      x={viewBox.cx}
-                      y={viewBox.cy}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                    >
-                      <tspan
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                        className="fill-foreground text-sm font-semibold"
-                      >
-                        {formatCompactNumber(totalValue, {
-                          standardMaximumFractionDigits: mode === "revenue" ? 1 : 0,
-                          compactMaximumFractionDigits: 1,
-                        })}
-                      </tspan>
-                      <tspan
-                        x={viewBox.cx}
-                        y={viewBox.cy + 18}
-                        className="fill-muted-foreground text-[10px]"
-                      >
-                        {mode === "revenue" ? "sats" : mode}
-                      </tspan>
-                    </text>
-                  );
-                }}
-              />
-              {chartData.map((entry, index) => (
-                <Cell key={entry.label} fill={getSeriesColor(index)} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ChartContainer>
+          <Doughnut
+            data={canvasData}
+            options={options}
+            plugins={[MODEL_SHARE_CENTER_LABEL]}
+            datasetIdKey="label"
+            redraw={false}
+            role="img"
+            aria-label={`${title}. ${getModeLabel(mode)} split across the models listed beside the chart.`}
+            fallbackContent="Model share chart. Exact values are listed beside the chart."
+          />
+          <p className="sr-only">
+            {getModeLabel(mode)} total:{" "}
+            {formatModeValue(
+              chartData.reduce((sum, item) => sum + item.value, 0),
+              mode
+            )}
+          </p>
+        </div>
 
         <div>
           <div className="mb-2 flex items-center justify-between gap-3">
@@ -366,14 +404,23 @@ export function ModelShareChart({
           <div className="space-y-0.5">
             {chartData.map((item, index) => (
               <div
-                key={item.label}
+                key={`${item.kind}:${item.label}`}
                 className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-1.5 py-2 text-xs"
                 title={item.label}
               >
                 <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: getSeriesColor(index) }}
-                />
+                  aria-hidden="true"
+                  className="pointer-events-none flex h-7 w-8 items-center gap-2"
+                >
+                  <span
+                    className="h-7 w-0.5 shrink-0"
+                    style={{ backgroundColor: colors[index] }}
+                  />
+                  <ModelCompanyIcon
+                    model={item.label}
+                    className="size-5 shrink-0 text-foreground"
+                  />
+                </span>
                 <div className="min-w-0">
                   <p className="truncate font-medium text-foreground">
                     {clampLabel(item.label, 32)}
@@ -382,7 +429,7 @@ export function ModelShareChart({
                     {formatModeValue(item.value, mode, { withUnit: true })}
                   </p>
                 </div>
-                <p className="font-mono tabular-nums text-foreground">
+                <p className="tabular-nums text-foreground">
                   {(item.share * 100).toFixed(1)}%
                 </p>
               </div>

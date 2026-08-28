@@ -222,6 +222,23 @@ h1:not([data-hero-title]), h2, h3, h4, h5, h6 {
       0 8px 24px rgb(0 0 0 / 0.5);
   }
 
+  .scrollbar-subtle {
+    scrollbar-color: var(--border) transparent;
+    scrollbar-width: thin;
+  }
+  .scrollbar-subtle::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: var(--border);
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+
   .prose-custom {
     @apply prose prose-sm sm:prose-base dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-em:text-muted-foreground prose-blockquote:border-border prose-hr:border-border prose-a:text-foreground hover:prose-a:underline prose-a:underline-offset-4 prose-code:text-foreground prose-pre:bg-muted prose-pre:border prose-pre:border-border prose-img:rounded-lg prose-img:border prose-img:border-border max-w-3xl;
   }
