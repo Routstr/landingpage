@@ -87,3 +87,11 @@ export function formatCompactPriceValue(
     compactMaximumFractionDigits: 1,
   });
 }
+
+// Sats are whole units, so compacting them to "2.6K" implies a precision that
+// does not exist and, worse, makes 79 and 65,881 occupy the same width in a
+// column. Plain integers keep one format across the whole range.
+export function formatSatsPriceValue(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  return getFormatter("standard", 0, 0).format(value);
+}

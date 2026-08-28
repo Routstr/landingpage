@@ -221,6 +221,26 @@ h1:not([data-hero-title]), h2, h3, h4, h5, h6 {
 }
 
 @layer utilities {
+  /* Scroll regions on these flat surfaces should not show the stock platform
+     scrollbar. */
+  .scrollbar-subtle {
+    scrollbar-color: var(--border) transparent;
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 9999px;
+  }
+
   /* Subtle elevation preset for cards and code blocks, light and dark. */
   .shadow-elevation {
     box-shadow:
