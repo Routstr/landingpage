@@ -88,7 +88,7 @@ export default function RoutstrdPage() {
             </div>
             <Button asChild className="hidden md:inline-flex">
               <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
-                Get Help
+                Or Just Get an API Key
               </a>
             </Button>
           </div>
@@ -126,7 +126,7 @@ export default function RoutstrdPage() {
           <div className="mt-6 flex justify-center md:hidden">
             <Button asChild className="w-full">
               <a href="https://chat.routstr.com" target="_blank" rel="noopener noreferrer">
-                Get Help
+                Or Just Get an API Key
               </a>
             </Button>
           </div>
