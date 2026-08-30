@@ -7,6 +7,7 @@ import {
   QueryClient,
   QueryClientProvider,
   useQuery,
+  useQueryClient,
 } from "@tanstack/react-query";
 import { PageContainer, SiteShell } from "@/components/layout/site-shell";
 import {
@@ -29,8 +30,13 @@ import {
   type ProviderComparisonPoint,
 } from "@/components/stats/stats-analytics-charts";
 import {
-  TopModelsUsageChart,
+  CHART_MODEL_LIMIT,
+  CHART_MODES,
+  MIN_CHART_MODEL_SHARE,
   type ChartMode,
+} from "@/components/stats/stats-chart-domain";
+import {
+  TopModelsUsageChart,
   type ModelUsageMix,
   type ModelUsageMixMetric,
 } from "@/components/stats/top-models-usage-chart";
@@ -66,6 +72,7 @@ type AnalyticsPayload = {
 };
 
 type PeriodSnapshot = {
+  eventId: string;
   providerId: string;
   providerLabel: string;
   eventCreatedAt: number;
@@ -93,21 +100,29 @@ type WindowPayload = {
 type RelayStatus = {
   url: string;
   state: RelayState;
-  events: number;
-  reason: string | null;
 };
 
 type StatsQueryData = {
   timelines: ProviderTimeline[];
   relayStatuses: Record<string, RelayStatus>;
   emptyMessage: string | null;
-  fromCache?: boolean;
-  cachedAtMs?: number | null;
+};
+
+type StatsFetchData = {
+  relayStatuses: Record<string, RelayStatus>;
+  coords: Record<string, CachedCoord>;
+};
+
+// One retained snapshot per Nostr address (pubkey + d tag). The cache merges
+// per coordinate so partial relay responses cannot replace the whole dataset.
+type CachedCoord = {
+  d: string;
+  lastObservedAtMs: number;
+  snapshot: PeriodSnapshot;
 };
 
 type StatsCacheEnvelope = {
-  savedAtMs: number;
-  timelines: ProviderTimeline[];
+  coords: Record<string, CachedCoord>;
 };
 
 const ANALYTICS_KIND = 38422;
@@ -124,7 +139,7 @@ const WINDOW_OPTIONS: Array<{ id: WindowKey; label: string }> = [
   { id: "24h", label: "24h" },
   { id: "7d", label: "7d" },
   { id: "30d", label: "30d" },
-  { id: "3m", label: "3m" },
+  { id: "3m", label: "90d" },
   { id: "1y", label: "1y" },
 ];
 
@@ -137,13 +152,12 @@ const WINDOW_HOURS: Record<WindowKey, number> = {
 };
 
 const ALL_PROVIDERS_ID = "__all_providers__";
-const MODE_OPTIONS: Array<{ id: ChartMode; label: string }> = [
-  { id: "requests", label: "Requests" },
-  { id: "revenue", label: "Revenue" },
-  { id: "tokens", label: "Tokens" },
-];
-const STATS_CACHE_KEY = "stats_snapshots_cache_v1";
+const STATS_CACHE_KEY = "stats_snapshots_cache_v2";
+const LEGACY_STATS_CACHE_KEY = "stats_snapshots_cache_v1";
 const STATS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const STATS_QUERY_KEY = ["stats-snapshots"] as const;
+const STATS_REFETCH_MS = 15 * 60_000;
+const STATS_EMPTY_RETRY_MS = 60_000;
 
 function normalizeRelayUrl(url: string): string {
   try {
@@ -155,61 +169,17 @@ function normalizeRelayUrl(url: string): string {
   }
 }
 
-function formatRelayLabel(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const pathname = parsed.pathname === "/" ? "" : parsed.pathname;
-    return `${parsed.host}${pathname}`;
-  } catch {
-    return url;
-  }
-}
-
-function getRelayStateMeta(state: RelayState): {
-  label: string;
-  dotClass: string;
-  textClass: string;
-} {
-  switch (state) {
-    case "active":
-      return {
-        label: "receiving",
-        dotClass: "bg-green-500",
-        textClass: "text-emerald-300",
-      };
-    case "done":
-      return {
-        label: "synced",
-        dotClass: "bg-lime-400",
-        textClass: "text-lime-300",
-      };
-    case "no-data":
-      return {
-        label: "no data",
-        dotClass: "bg-muted-foreground",
-        textClass: "text-muted-foreground",
-      };
-    case "timeout":
-      return {
-        label: "timeout",
-        dotClass: "bg-amber-500",
-        textClass: "text-amber-300",
-      };
-    case "error":
-      return {
-        label: "error",
-        dotClass: "bg-red-500",
-        textClass: "text-rose-300",
-      };
-    case "connecting":
-    default:
-      return {
-        label: "connecting",
-        dotClass: "bg-muted-foreground",
-        textClass: "text-muted-foreground",
-      };
-  }
-}
+const RELAY_STATE_META: Record<
+  RelayState,
+  { label: string; answered: boolean }
+> = {
+  connecting: { label: "connecting", answered: false },
+  active: { label: "receiving", answered: true },
+  done: { label: "synced", answered: true },
+  "no-data": { label: "no data", answered: true },
+  timeout: { label: "timed out", answered: false },
+  error: { label: "failed", answered: false },
+};
 
 function createInitialRelayStatuses(): Record<string, RelayStatus> {
   const next: Record<string, RelayStatus> = {};
@@ -218,8 +188,6 @@ function createInitialRelayStatuses(): Record<string, RelayStatus> {
     next[key] = {
       url: relay,
       state: "connecting",
-      events: 0,
-      reason: null,
     };
   }
   return next;
@@ -680,14 +648,24 @@ function buildModelShare(
   const ranked = Array.from(totals.entries())
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value);
-  const topRows = ranked.slice(0, 7);
-  const remainingTotal =
-    othersTotal + ranked.slice(7).reduce((sum, row) => sum + row.value, 0);
   const total = ranked.reduce((sum, row) => sum + row.value, 0) + othersTotal;
 
   if (total <= 0) return [];
 
-  const rows = topRows.map((row) => ({
+  // Same cohort rule as the timeline, so a model is never named here while the
+  // chart folds it into Other.
+  const topRows = ranked
+    .filter((row) => row.value / total >= MIN_CHART_MODEL_SHARE)
+    .slice(0, CHART_MODEL_LIMIT);
+  const named = new Set(topRows.map((row) => row.label));
+  const remainingTotal =
+    othersTotal +
+    ranked
+      .filter((row) => !named.has(row.label))
+      .reduce((sum, row) => sum + row.value, 0);
+
+  const rows: ModelSharePoint[] = topRows.map((row) => ({
+    kind: "model",
     label: row.label,
     value: row.value,
     share: row.value / total,
@@ -695,7 +673,8 @@ function buildModelShare(
 
   if (remainingTotal > 0) {
     rows.push({
-      label: "Others",
+      kind: "other",
+      label: "Other models",
       value: remainingTotal,
       share: remainingTotal / total,
     });
@@ -705,11 +684,13 @@ function buildModelShare(
 }
 
 function formatUpdatedAt(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleString([], {
-    month: "short",
+  return new Date(unixSeconds * 1000).toLocaleString("en-GB", {
     day: "numeric",
-    hour: "numeric",
+    month: "short",
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
   });
 }
 
@@ -811,14 +792,71 @@ function resolveProviderLabel(
   }
 }
 
-function getTagValue(event: Event, name: string): string {
-  return event.tags.find((tag) => tag[0] === name)?.[1] ?? "";
+function getCoordKey(pubkey: string, d: string): string {
+  return `${pubkey}|${d}`;
+}
+
+function shouldReplaceSnapshot(
+  candidate: PeriodSnapshot,
+  current: PeriodSnapshot,
+): boolean {
+  if (candidate.eventCreatedAt !== current.eventCreatedAt) {
+    return candidate.eventCreatedAt > current.eventCreatedAt;
+  }
+  return candidate.eventId < current.eventId;
+}
+
+function mergeCachedCoord(
+  current: CachedCoord | undefined,
+  candidate: CachedCoord,
+): CachedCoord {
+  if (!current) return candidate;
+
+  const candidateWins = shouldReplaceSnapshot(candidate.snapshot, current.snapshot);
+  const snapshot = candidateWins ? candidate.snapshot : current.snapshot;
+  const lastObservedAtMs = Math.max(
+    current.lastObservedAtMs,
+    candidate.lastObservedAtMs,
+  );
+  if (
+    snapshot === current.snapshot &&
+    lastObservedAtMs === current.lastObservedAtMs
+  ) {
+    return current;
+  }
+  return {
+    d: candidateWins ? candidate.d : current.d,
+    lastObservedAtMs,
+    snapshot,
+  };
+}
+
+function mergeCachedCoords(
+  current: Record<string, CachedCoord>,
+  incoming: Record<string, CachedCoord>,
+): Record<string, CachedCoord> {
+  const merged = { ...current };
+  for (const [key, candidate] of Object.entries(incoming)) {
+    merged[key] = mergeCachedCoord(merged[key], candidate);
+  }
+  return merged;
+}
+
+function retainFreshCachedCoords(
+  coords: Record<string, CachedCoord>,
+  nowMs = Date.now(),
+): Record<string, CachedCoord> {
+  const cutoffMs = nowMs - STATS_CACHE_TTL_MS;
+  return Object.fromEntries(
+    Object.entries(coords).filter(
+      ([, coord]) => coord.lastObservedAtMs >= cutoffMs,
+    ),
+  );
 }
 
 function parsePeriodFromEvent(
-  event: Event,
   payload: AnalyticsPayload,
-  providerId: string,
+  dTag: string,
 ): { periodType: PeriodType; periodKey: string } | null {
   const periodTypeRaw = asString(payload.period_type);
   const periodKeyRaw = asString(payload.period_key);
@@ -831,13 +869,12 @@ function parsePeriodFromEvent(
     return { periodType: periodTypeRaw, periodKey: periodKeyRaw };
   }
 
-  const dTag = getTagValue(event, "d");
-  if (!dTag || dTag.includes(":checkpoint:")) return null;
+  if (dTag.includes(":checkpoint:")) return null;
 
-  if (dTag === `${providerId}:usage` || dTag.endsWith(":usage:latest")) {
+  if (dTag.endsWith(":usage") || dTag.endsWith(":usage:latest")) {
     return { periodType: "latest", periodKey: "latest" };
   }
-  if (dTag === `${providerId}:stats` || dTag.endsWith(":stats")) {
+  if (dTag.endsWith(":stats")) {
     return { periodType: "latest", periodKey: "latest" };
   }
 
@@ -929,45 +966,137 @@ function getPayloadsForTimeline(
   return [];
 }
 
-function readStatsCache(): StatsCacheEnvelope | null {
-  if (typeof window === "undefined") return null;
+function readStatsCache(): Record<string, CachedCoord> {
+  if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(STATS_CACHE_KEY);
-    if (!raw) return null;
+    if (!raw) return {};
 
     const parsed = JSON.parse(raw) as Partial<StatsCacheEnvelope> | null;
-    if (
-      !parsed ||
-      typeof parsed.savedAtMs !== "number" ||
-      !Array.isArray(parsed.timelines)
-    ) {
-      return null;
-    }
-    if (
-      parsed.savedAtMs <= 0 ||
-      Date.now() - parsed.savedAtMs > STATS_CACHE_TTL_MS ||
-      parsed.timelines.length === 0
-    ) {
-      return null;
-    }
+    if (!parsed || !isRecord(parsed.coords)) return {};
 
-    return parsed as StatsCacheEnvelope;
+    const coords: Record<string, CachedCoord> = {};
+    for (const [key, value] of Object.entries(parsed.coords)) {
+      if (!isRecord(value) || !isRecord(value.snapshot)) continue;
+      const snapshot = value.snapshot;
+      if (
+        typeof value.d !== "string" ||
+        value.d.length === 0 ||
+        typeof value.lastObservedAtMs !== "number" ||
+        !Number.isFinite(value.lastObservedAtMs) ||
+        typeof snapshot.eventId !== "string" ||
+        !/^[0-9a-f]{64}$/.test(snapshot.eventId) ||
+        typeof snapshot.providerId !== "string" ||
+        !/^[0-9a-f]{64}$/.test(snapshot.providerId) ||
+        typeof snapshot.providerLabel !== "string" ||
+        typeof snapshot.eventCreatedAt !== "number" ||
+        !Number.isFinite(snapshot.eventCreatedAt) ||
+        (snapshot.periodType !== "latest" &&
+          snapshot.periodType !== "day" &&
+          snapshot.periodType !== "month") ||
+        typeof snapshot.periodKey !== "string" ||
+        !isRecord(snapshot.payload)
+      ) {
+        continue;
+      }
+      const coord = value as unknown as CachedCoord;
+      if (key !== getCoordKey(coord.snapshot.providerId, coord.d)) continue;
+      coords[key] = coord;
+    }
+    return retainFreshCachedCoords(coords);
   } catch {
-    return null;
+    return {};
   }
 }
 
-function writeStatsCache(timelines: ProviderTimeline[]): void {
-  if (typeof window === "undefined" || timelines.length === 0) return;
+async function updateStatsCache(
+  coords: Record<string, CachedCoord>,
+): Promise<Record<string, CachedCoord>> {
+  if (typeof window === "undefined") return coords;
+
+  const persist = () => {
+    const merged = retainFreshCachedCoords(
+      mergeCachedCoords(readStatsCache(), coords),
+    );
+    if (Object.keys(merged).length === 0) return merged;
+    try {
+      const payload: StatsCacheEnvelope = {
+        coords: merged,
+      };
+      window.localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(payload));
+      window.localStorage.removeItem(LEGACY_STATS_CACHE_KEY);
+    } catch {
+      // ignore storage errors
+    }
+    return merged;
+  };
+
   try {
-    const payload: StatsCacheEnvelope = {
-      savedAtMs: Date.now(),
-      timelines,
-    };
-    window.localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(payload));
+    return await window.navigator.locks.request(STATS_CACHE_KEY, persist);
   } catch {
-    // ignore storage errors
+    return persist();
   }
+}
+
+function buildTimelinesFromCoords(coords: CachedCoord[]): ProviderTimeline[] {
+  const latestByProvider = new Map<string, PeriodSnapshot>();
+  const dayByProvider = new Map<string, Map<string, PeriodSnapshot>>();
+  const monthByProvider = new Map<string, Map<string, PeriodSnapshot>>();
+
+  for (const coord of coords) {
+    const snapshot = coord.snapshot;
+    if (snapshot.periodType === "latest") {
+      const current = latestByProvider.get(snapshot.providerId);
+      if (!current || shouldReplaceSnapshot(snapshot, current)) {
+        latestByProvider.set(snapshot.providerId, snapshot);
+      }
+      continue;
+    }
+    const byPeriod =
+      snapshot.periodType === "day" ? dayByProvider : monthByProvider;
+    const map =
+      byPeriod.get(snapshot.providerId) ?? new Map<string, PeriodSnapshot>();
+    const current = map.get(snapshot.periodKey);
+    if (!current || shouldReplaceSnapshot(snapshot, current)) {
+      map.set(snapshot.periodKey, snapshot);
+    }
+    byPeriod.set(snapshot.providerId, map);
+  }
+
+  const providerIds = new Set<string>([
+    ...Array.from(latestByProvider.keys()),
+    ...Array.from(dayByProvider.keys()),
+    ...Array.from(monthByProvider.keys()),
+  ]);
+
+  const timelines: ProviderTimeline[] = Array.from(providerIds).map(
+    (providerId) => {
+      const latest = latestByProvider.get(providerId) ?? null;
+      const day = Array.from(
+        dayByProvider.get(providerId)?.values() ?? [],
+      ).sort((a, b) => a.periodKey.localeCompare(b.periodKey));
+      const month = Array.from(
+        monthByProvider.get(providerId)?.values() ?? [],
+      ).sort((a, b) => a.periodKey.localeCompare(b.periodKey));
+
+      const labelSource =
+        latest ?? day[day.length - 1] ?? month[month.length - 1] ?? null;
+      const providerLabel = labelSource
+        ? labelSource.providerLabel
+        : providerId.slice(0, 12);
+
+      return {
+        providerId,
+        providerLabel,
+        latest,
+        day,
+        month,
+      };
+    },
+  );
+
+  timelines.sort((a, b) => a.providerLabel.localeCompare(b.providerLabel));
+  return timelines;
 }
 
 function isAbortError(error: unknown): boolean {
@@ -983,7 +1112,10 @@ function createAbortError(): Error {
   return error;
 }
 
-function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
+function fetchStatsSnapshots(
+  seedCoords: Record<string, CachedCoord>,
+  signal?: AbortSignal,
+): Promise<StatsFetchData> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(createAbortError());
@@ -998,9 +1130,9 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
     const pool = createPool();
     let sub: ReturnType<typeof pool.subscribeMany> | null = null;
 
-    const latestByProvider = new Map<string, PeriodSnapshot>();
-    const dayByProvider = new Map<string, Map<string, PeriodSnapshot>>();
-    const monthByProvider = new Map<string, Map<string, PeriodSnapshot>>();
+    // Seed live results from fresh cached coordinates, so a partial relay
+    // response cannot drop coordinates it does not observe.
+    const coords = new Map<string, CachedCoord>(Object.entries(seedCoords));
 
     const cleanup = () => {
       active = false;
@@ -1043,34 +1175,25 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
         const next = { ...current };
         for (const relay of RELAYS) {
           const key = normalizeRelayUrl(relay);
-          const status = next[key] ?? {
+          const status: RelayStatus = next[key] ?? {
             url: relay,
-            state: "connecting" as RelayState,
-            events: 0,
-            reason: null,
+            state: "connecting",
           };
           if (status.state === "active") {
-            next[key] = { ...status, state: "done", reason: null };
+            next[key] = { ...status, state: "done" };
             continue;
           }
           if (status.state !== "connecting") {
             continue;
           }
           if (finishReason === "timeout") {
-            next[key] = {
-              ...status,
-              state: "timeout",
-              reason: status.reason ?? "request timed out",
-            };
+            next[key] = { ...status, state: "timeout" };
             continue;
           }
           const connected = connectionMap.get(key) ?? false;
           next[key] = {
             ...status,
             state: connected ? "no-data" : "error",
-            reason:
-              status.reason ??
-              (connected ? "no events returned" : "connection failed"),
           };
         }
         return next;
@@ -1078,45 +1201,9 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
 
       cleanup();
 
-      const providerIds = new Set<string>([
-        ...Array.from(latestByProvider.keys()),
-        ...Array.from(dayByProvider.keys()),
-        ...Array.from(monthByProvider.keys()),
-      ]);
-
-      const timelines: ProviderTimeline[] = Array.from(providerIds).map(
-        (providerId) => {
-          const latest = latestByProvider.get(providerId) ?? null;
-          const day = Array.from(
-            dayByProvider.get(providerId)?.values() ?? [],
-          ).sort((a, b) => a.periodKey.localeCompare(b.periodKey));
-          const month = Array.from(
-            monthByProvider.get(providerId)?.values() ?? [],
-          ).sort((a, b) => a.periodKey.localeCompare(b.periodKey));
-
-          const labelSource =
-            latest ?? day[day.length - 1] ?? month[month.length - 1] ?? null;
-          const providerLabel = labelSource
-            ? resolveProviderLabel(labelSource.payload, providerId)
-            : providerId;
-
-          return {
-            providerId,
-            providerLabel,
-            latest,
-            day,
-            month,
-          };
-        },
-      );
-
-      timelines.sort((a, b) => a.providerLabel.localeCompare(b.providerLabel));
-
       resolve({
-        timelines,
         relayStatuses,
-        emptyMessage:
-          timelines.length === 0 ? "No analytics snapshots found yet." : null,
+        coords: Object.fromEntries(coords),
       });
     };
 
@@ -1136,11 +1223,9 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
         receivedEvent(relay) {
           updateRelayStatuses((current) => {
             const key = normalizeRelayUrl(relay.url);
-            const existing = current[key] ?? {
+            const existing: RelayStatus = current[key] ?? {
               url: relay.url,
-              state: "connecting" as RelayState,
-              events: 0,
-              reason: null,
+              state: "connecting",
             };
             return {
               ...current,
@@ -1148,8 +1233,6 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
                 ...existing,
                 url: relay.url,
                 state: "active",
-                events: existing.events + 1,
-                reason: null,
               },
             };
           });
@@ -1172,81 +1255,63 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
           const schema = asString(parsed.schema);
           if (!ANALYTICS_SCHEMAS.has(schema)) return;
 
-          const providerIdFromTag = getTagValue(event, "provider");
-          const providerId =
-            asString(parsed.provider_id) ||
-            providerIdFromTag ||
-            event.pubkey.slice(0, 12);
-          if (!providerId) return;
+          const dTags = event.tags.filter((tag) => tag[0] === "d");
+          const dTag = dTags[0]?.[1] ?? "";
+          if (dTags.length !== 1 || !dTag) return;
 
-          const payload: AnalyticsPayload = {
-            schema,
-            provider_id: providerId,
-            endpoint_urls: Array.isArray(parsed.endpoint_urls)
-              ? parsed.endpoint_urls.filter(
-                  (value): value is string => typeof value === "string",
-                )
-              : undefined,
-            windows: isRecord(parsed.windows) ? parsed.windows : undefined,
-            summary: isRecord(parsed.summary) ? parsed.summary : undefined,
-            model_usage_mix: isRecord(parsed.model_usage_mix)
-              ? parsed.model_usage_mix
-              : undefined,
-            top_model_usage: Array.isArray(parsed.top_model_usage)
-              ? parsed.top_model_usage
-              : undefined,
-            period_type: asString(parsed.period_type) || undefined,
-            period_key: asString(parsed.period_key) || undefined,
-            interval_minutes:
-              typeof parsed.interval_minutes === "number"
-                ? parsed.interval_minutes
-                : undefined,
-            window_hours:
-              typeof parsed.window_hours === "number"
-                ? parsed.window_hours
-                : undefined,
-          };
+          // Identity is the signing pubkey. The payload's provider_id is a
+          // self-reported string and is only ever used as a display label.
+          const claimedProviderId = asString(parsed.provider_id);
 
-          const period = parsePeriodFromEvent(event, payload, providerId);
+          const payload: AnalyticsPayload = { schema };
+          if (claimedProviderId) payload.provider_id = claimedProviderId;
+          if (Array.isArray(parsed.endpoint_urls)) {
+            payload.endpoint_urls = parsed.endpoint_urls.filter(
+              (value): value is string => typeof value === "string",
+            );
+          }
+          if (isRecord(parsed.windows)) payload.windows = parsed.windows;
+          if (isRecord(parsed.summary)) payload.summary = parsed.summary;
+          if (isRecord(parsed.model_usage_mix)) {
+            payload.model_usage_mix = parsed.model_usage_mix;
+          }
+          if (Array.isArray(parsed.top_model_usage)) {
+            payload.top_model_usage = parsed.top_model_usage;
+          }
+          const periodType = asString(parsed.period_type);
+          if (periodType) payload.period_type = periodType;
+          const periodKey = asString(parsed.period_key);
+          if (periodKey) payload.period_key = periodKey;
+          if (typeof parsed.interval_minutes === "number") {
+            payload.interval_minutes = parsed.interval_minutes;
+          }
+          if (typeof parsed.window_hours === "number") {
+            payload.window_hours = parsed.window_hours;
+          }
+
+          const period = parsePeriodFromEvent(payload, dTag);
           if (!period) return;
 
           const snapshot: PeriodSnapshot = {
-            providerId,
-            providerLabel: resolveProviderLabel(payload, providerId),
+            eventId: event.id,
+            providerId: event.pubkey,
+            providerLabel: resolveProviderLabel(
+              payload,
+              claimedProviderId || event.pubkey.slice(0, 12),
+            ),
             eventCreatedAt: event.created_at,
             periodType: period.periodType,
             periodKey: period.periodKey,
             payload,
           };
 
-          if (period.periodType === "latest") {
-            const current = latestByProvider.get(providerId);
-            if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
-              latestByProvider.set(providerId, snapshot);
-            }
-            return;
-          }
-
-          if (period.periodType === "day") {
-            const byDay =
-              dayByProvider.get(providerId) ??
-              new Map<string, PeriodSnapshot>();
-            const current = byDay.get(period.periodKey);
-            if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
-              byDay.set(period.periodKey, snapshot);
-            }
-            dayByProvider.set(providerId, byDay);
-            return;
-          }
-
-          const byMonth =
-            monthByProvider.get(providerId) ??
-            new Map<string, PeriodSnapshot>();
-          const current = byMonth.get(period.periodKey);
-          if (!current || current.eventCreatedAt < snapshot.eventCreatedAt) {
-            byMonth.set(period.periodKey, snapshot);
-          }
-          monthByProvider.set(providerId, byMonth);
+          const key = getCoordKey(event.pubkey, dTag);
+          const candidate: CachedCoord = {
+            d: dTag,
+            lastObservedAtMs: Date.now(),
+            snapshot,
+          };
+          coords.set(key, mergeCachedCoord(coords.get(key), candidate));
         },
         onclose(reasons) {
           updateRelayStatuses((current) => {
@@ -1255,15 +1320,13 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
               const relay = RELAYS[index];
               if (!relay || !reason) return;
               const key = normalizeRelayUrl(relay);
-              const status = next[key] ?? {
+              const status: RelayStatus = next[key] ?? {
                 url: relay,
-                state: "connecting" as RelayState,
-                events: 0,
-                reason: null,
+                state: "connecting",
               };
               const lower = reason.toLowerCase();
               if (lower.includes("timeout") || lower.includes("timed out")) {
-                next[key] = { ...status, state: "timeout", reason };
+                next[key] = { ...status, state: "timeout" };
                 return;
               }
               if (
@@ -1273,18 +1336,16 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
                 lower.includes("disconnect") ||
                 lower.includes("refused")
               ) {
-                next[key] = { ...status, state: "error", reason };
+                next[key] = { ...status, state: "error" };
                 return;
               }
               if (lower.includes("closed by caller")) {
                 next[key] = {
                   ...status,
                   state: status.state === "active" ? "done" : "no-data",
-                  reason: null,
                 };
                 return;
               }
-              next[key] = { ...status, reason };
             });
             return next;
           });
@@ -1303,36 +1364,30 @@ function fetchStatsSnapshots(signal?: AbortSignal): Promise<StatsQueryData> {
 async function fetchStatsSnapshotsWithFallback(
   signal?: AbortSignal,
 ): Promise<StatsQueryData> {
-  const cached = readStatsCache();
+  const cachedCoords = readStatsCache();
 
   try {
-    const liveData = await fetchStatsSnapshots(signal);
-    if (liveData.timelines.length > 0) {
-      writeStatsCache(liveData.timelines);
-      return { ...liveData, fromCache: false, cachedAtMs: null };
-    }
-
-    if (cached) {
-      return {
-        ...liveData,
-        timelines: cached.timelines,
-        emptyMessage: null,
-        fromCache: true,
-        cachedAtMs: cached.savedAtMs,
-      };
-    }
-
-    return { ...liveData, fromCache: false, cachedAtMs: null };
+    const liveData = await fetchStatsSnapshots(cachedCoords, signal);
+    const mergedCoords = await updateStatsCache(liveData.coords);
+    const timelines = buildTimelinesFromCoords(Object.values(mergedCoords));
+    return {
+      relayStatuses: liveData.relayStatuses,
+      timelines,
+      emptyMessage:
+        timelines.length === 0 ? "No analytics snapshots found yet." : null,
+    };
   } catch (error) {
     if (isAbortError(error)) throw error;
 
-    if (cached) {
+    const fallbackCoords = retainFreshCachedCoords(
+      mergeCachedCoords(cachedCoords, readStatsCache()),
+    );
+    const timelines = buildTimelinesFromCoords(Object.values(fallbackCoords));
+    if (timelines.length > 0) {
       return {
-        timelines: cached.timelines,
+        timelines,
         relayStatuses: createInitialRelayStatuses(),
         emptyMessage: null,
-        fromCache: true,
-        cachedAtMs: cached.savedAtMs,
       };
     }
 
@@ -1345,27 +1400,44 @@ function StatsPageContent() {
   const [selectedMode, setSelectedMode] = useState<ChartMode>("requests");
   const [selectedProviderId, setSelectedProviderId] =
     useState<string>(ALL_PROVIDERS_ID);
+  const selectedWindowLabel =
+    WINDOW_OPTIONS.find((option) => option.id === selectedWindow)?.label ??
+    selectedWindow;
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
-  const [relayStatusOpen, setRelayStatusOpen] = useState(false);
+  const [relayDetailOpen, setRelayDetailOpen] = useState(false);
+  const queryClient = useQueryClient();
   const emptyTimelines = useMemo<ProviderTimeline[]>(() => [], []);
-  const fallbackRelayStatuses = useMemo(() => createInitialRelayStatuses(), []);
   const {
     data,
     error: queryError,
-    isFetching,
     isPending,
-    refetch,
   } = useQuery({
-    queryKey: ["stats-snapshots"],
+    queryKey: STATS_QUERY_KEY,
     queryFn: ({ signal }) => fetchStatsSnapshotsWithFallback(signal),
     placeholderData: (previousData) => previousData,
     gcTime: STATS_CACHE_TTL_MS,
-    refetchInterval: 90_000,
-    refetchIntervalInBackground: true,
+    refetchInterval: (query) =>
+      (query.state.data?.timelines?.length ?? 0) > 0
+        ? STATS_REFETCH_MS
+        : STATS_EMPTY_RETRY_MS,
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
   });
   const timelines = data?.timelines ?? emptyTimelines;
-  const relayStatuses = data?.relayStatuses ?? fallbackRelayStatuses;
+  const relaySummary = useMemo(() => {
+    const list = Object.values(data?.relayStatuses ?? {});
+    if (list.length === 0) return null;
+    const relays = list.map((relay) => ({
+      url: relay.url,
+      host: relay.url.replace(/^wss:\/\//, "").replace(/\/$/, ""),
+      ...RELAY_STATE_META[relay.state],
+    }));
+    return {
+      answered: relays.filter((relay) => relay.answered).length,
+      total: relays.length,
+      relays,
+    };
+  }, [data?.relayStatuses]);
   const loading = isPending && !data;
   const hasUsableTimelines = timelines.length > 0;
   const error = !hasUsableTimelines
@@ -1378,6 +1450,23 @@ function StatsPageContent() {
             ? "Unable to load analytics snapshots."
             : null))
     : null;
+
+  useEffect(() => {
+    const timelines = buildTimelinesFromCoords(
+      Object.values(readStatsCache()),
+    );
+    if (timelines.length === 0) return;
+
+    queryClient.setQueryData<StatsQueryData>(STATS_QUERY_KEY, (current) =>
+      current
+        ? current
+        : {
+            timelines,
+            relayStatuses: createInitialRelayStatuses(),
+            emptyMessage: null,
+          },
+    );
+  }, [queryClient]);
 
   useEffect(() => {
     if (timelines.length === 0) {
@@ -1499,6 +1588,7 @@ function StatsPageContent() {
         if (value <= 0) return null;
 
         return {
+          providerId: timeline.providerId,
           providerLabel: timeline.providerLabel,
           value,
           share: 0,
@@ -1540,100 +1630,16 @@ function StatsPageContent() {
       ? "Top provider share"
       : "Top model share";
   const updatedStatusText = latestSnapshotUnixSeconds
-    ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)}`
+    ? `Updated ${formatUpdatedAt(latestSnapshotUnixSeconds)} UTC`
     : loading
       ? "Loading snapshots..."
       : "No snapshots yet";
-
-  const relayStatusList = RELAYS.map((relay) => {
-    const key = normalizeRelayUrl(relay);
-    return (
-      relayStatuses[key] ?? {
-        url: relay,
-        state: "connecting" as RelayState,
-        events: 0,
-        reason: null,
-      }
-    );
-  });
-  const respondingRelays = relayStatusList.filter(
-    (relay) =>
-      relay.state === "active" ||
-      relay.state === "done" ||
-      relay.state === "no-data",
-  ).length;
-  const relayDots = relayStatusList.slice(0, 8);
-  const hiddenRelayDotsCount = Math.max(
-    0,
-    relayStatusList.length - relayDots.length,
-  );
-
-  const relayStatusControl = (
-    <Popover open={relayStatusOpen} onOpenChange={setRelayStatusOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label="Show relay statuses"
-          className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
-        >
-          <span>
-            Relays {respondingRelays}/{relayStatusList.length}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            {relayDots.map((relay) => {
-              const meta = getRelayStateMeta(relay.state);
-              return (
-                <span
-                  key={`relay-dot-${relay.url}`}
-                  className={cn("h-1.5 w-1.5 rounded-full", meta.dotClass)}
-                />
-              );
-            })}
-            {hiddenRelayDotsCount > 0 ? (
-              <span className="text-[10px] leading-none text-muted-foreground">
-                +{hiddenRelayDotsCount}
-              </span>
-            ) : null}
-          </span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[min(88vw,20rem)] border-border bg-card p-2 shadow-xl"
-      >
-        <div className="space-y-1">
-          {relayStatusList.map((relay) => {
-            const meta = getRelayStateMeta(relay.state);
-            return (
-              <div
-                key={relay.url}
-                title={relay.reason ?? `${relay.events} events`}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-1 py-0.5 text-[10px]"
-              >
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span
-                    className={cn("h-1.5 w-1.5 rounded-full", meta.dotClass)}
-                  />
-                  <span className="truncate text-muted-foreground">
-                    {formatRelayLabel(relay.url)}
-                  </span>
-                </span>
-                <span className={cn("shrink-0 capitalize", meta.textClass)}>
-                  {meta.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
 
   return (
     <SiteShell>
       <section className="w-full relative">
         <PageContainer className="py-12 md:py-20">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-12">
+          <div className="mb-12 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
             <div className="text-left">
               <h1 className="mb-4 text-2xl font-medium tracking-tight text-foreground md:text-3xl">
                 Network Stats
@@ -1642,33 +1648,21 @@ function StatsPageContent() {
                 Shared usage analytics published by Routstr nodes.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 self-start md:self-end">
-              <p className="text-xs text-muted-foreground">
-                {updatedStatusText}
-              </p>
-              <Button
-                variant="outline"
-                className="h-9 w-auto border-border bg-transparent px-3 text-xs text-foreground hover:bg-muted"
-                onClick={() => {
-                  void refetch();
-                }}
-                disabled={isFetching}
-              >
-                {isFetching ? "Refreshing..." : "Refresh"}
-              </Button>
-            </div>
+            <p className="self-start text-xs text-muted-foreground md:self-end">
+              {updatedStatusText}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
             <div className="border-t border-border pt-3">
               <div className="flex items-center gap-1.5">
                 <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                  Active providers
+                  Providers
                 </p>
                 <div className="relative">
                   <button
                     type="button"
-                    aria-label="What counts as an active provider?"
+                    aria-label="Which providers are counted?"
                     className="peer text-muted-foreground/80 transition-colors hover:text-foreground"
                   >
                     <CircleHelp className="h-3.5 w-3.5" />
@@ -1679,8 +1673,9 @@ function StatsPageContent() {
                     className="pointer-events-none invisible absolute left-0 top-full z-20 mt-2 w-56 border border-border bg-card/95 p-3 opacity-0 shadow-md transition-all duration-150 peer-hover:visible peer-hover:opacity-100"
                   >
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      This only counts providers that have enabled analytics
-                      sharing.
+                      Providers represented in the reports received. This does
+                      not indicate current availability, and sharing is
+                      optional.
                     </p>
                   </div>
                 </div>
@@ -1695,7 +1690,7 @@ function StatsPageContent() {
             </div>
             <div className="border-t border-border pt-3">
               <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                {selectedWindow} Requests
+                {selectedWindowLabel} Requests
               </p>
               {loading ? (
                 <Skeleton className="mt-2 h-8 w-20" />
@@ -1707,7 +1702,7 @@ function StatsPageContent() {
             </div>
             <div className="border-t border-border pt-3">
               <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                {selectedWindow} Tokens
+                {selectedWindowLabel} Tokens
               </p>
               {loading ? (
                 <Skeleton className="mt-2 h-8 w-20" />
@@ -1719,7 +1714,7 @@ function StatsPageContent() {
             </div>
             <div className="border-t border-border pt-3">
               <p className="text-[10px] tracking-[0.04em] text-muted-foreground">
-                {selectedWindow} Revenue (sats)
+                {selectedWindowLabel} Revenue (sats)
               </p>
               {loading ? (
                 <Skeleton className="mt-2 h-8 w-24" />
@@ -1799,7 +1794,7 @@ function StatsPageContent() {
       <section className="relative w-full flex-grow">
         <PageContainer className="py-14">
           <div className="mb-10 flex flex-col gap-8">
-            <div className="grid gap-6 md:grid-cols-3 md:items-start">
+            <div className="grid gap-6 md:grid-cols-[1fr_1fr_1fr_auto] md:items-start">
               <div className="min-w-0">
                 <p className="mb-3 text-[10px] tracking-[0.04em] text-muted-foreground">
                   Provider
@@ -1816,9 +1811,16 @@ function StatsPageContent() {
                       aria-expanded={providerDropdownOpen}
                       className="h-10 w-full justify-between border-border bg-card px-3 text-left text-sm font-normal text-foreground hover:bg-muted hover:text-foreground"
                     >
-                      <span className="truncate">
+                      <span className="min-w-0 truncate">
                         {selectedProviderOption.providerLabel}
                       </span>
+                      {selectedProviderOption.providerId !== ALL_PROVIDERS_ID &&
+                      selectedProviderOption.providerLabel !==
+                        selectedProviderOption.providerId.slice(0, 12) ? (
+                        <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+                          {selectedProviderOption.providerId.slice(0, 12)}
+                        </span>
+                      ) : null}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
                     </Button>
                   </PopoverTrigger>
@@ -1831,7 +1833,7 @@ function StatsPageContent() {
                         placeholder="Find provider..."
                         className="text-sm text-foreground placeholder:text-muted-foreground"
                       />
-                      <CommandList className="max-h-64">
+                      <CommandList className="scrollbar-subtle max-h-64">
                         <CommandEmpty className="py-4 text-sm text-muted-foreground">
                           No providers found.
                         </CommandEmpty>
@@ -1846,9 +1848,16 @@ function StatsPageContent() {
                               }}
                               className="rounded px-2 py-2 text-sm text-muted-foreground data-[selected=true]:bg-muted data-[selected=true]:text-foreground"
                             >
-                              <span className="truncate">
+                              <span className="min-w-0 flex-1 truncate">
                                 {option.providerLabel}
                               </span>
+                              {option.providerId !== ALL_PROVIDERS_ID &&
+                              option.providerLabel !==
+                                option.providerId.slice(0, 12) ? (
+                                <span className="ml-2 shrink-0 font-mono text-[10px] text-muted-foreground">
+                                  {option.providerId.slice(0, 12)}
+                                </span>
+                              ) : null}
                               <Check
                                 className={cn(
                                   "ml-auto h-4 w-4",
@@ -1868,7 +1877,7 @@ function StatsPageContent() {
 
               <div className="min-w-0">
                 <p className="mb-3 text-[10px] tracking-[0.04em] text-muted-foreground">
-                  Window
+                  Period
                 </p>
                 <Tabs
                   value={selectedWindow}
@@ -1895,7 +1904,7 @@ function StatsPageContent() {
                   onValueChange={(value) => setSelectedMode(value as ChartMode)}
                 >
                   <TabsList variant="line">
-                    {MODE_OPTIONS.map((option) => (
+                    {CHART_MODES.map((option) => (
                       <TabsTrigger key={option.id} value={option.id}>
                         {option.label}
                       </TabsTrigger>
@@ -1903,90 +1912,133 @@ function StatsPageContent() {
                   </TabsList>
                 </Tabs>
               </div>
+
+              {relaySummary ? (
+                <div className="min-w-0 md:text-right">
+                  <p className="mb-3 text-[10px] tracking-[0.04em] text-muted-foreground">
+                    Relays
+                  </p>
+                  <Popover
+                    open={relayDetailOpen}
+                    onOpenChange={setRelayDetailOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        onPointerEnter={() => setRelayDetailOpen(true)}
+                        onPointerLeave={() => setRelayDetailOpen(false)}
+                        onFocus={() => setRelayDetailOpen(true)}
+                        onBlur={() => setRelayDetailOpen(false)}
+                        aria-label={`${relaySummary.answered} of ${relaySummary.total} relays responded`}
+                        className="flex h-8 items-center gap-1.5 rounded-full px-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:ml-auto"
+                      >
+                        {relaySummary.relays.map((relay) => (
+                          <span
+                            key={relay.url}
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              relay.answered ? "bg-muted-foreground" : "bg-border",
+                            )}
+                          />
+                        ))}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="end"
+                      onOpenAutoFocus={(event) => event.preventDefault()}
+                      onCloseAutoFocus={(event) => event.preventDefault()}
+                      onPointerEnter={() => setRelayDetailOpen(true)}
+                      onPointerLeave={() => setRelayDetailOpen(false)}
+                      className="w-[min(88vw,18rem)] border-border bg-card p-2 shadow-xl"
+                    >
+                      <div className="space-y-1">
+                        {relaySummary.relays.map((relay) => (
+                          <div
+                            key={relay.url}
+                            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-1 py-0.5 text-[10px]"
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <span
+                                className={cn(
+                                  "h-1.5 w-1.5 shrink-0 rounded-full",
+                                  relay.answered
+                                    ? "bg-muted-foreground"
+                                    : "bg-border",
+                                )}
+                              />
+                              <span className="truncate text-muted-foreground">
+                                {relay.host}
+                              </span>
+                            </span>
+                            <span
+                              className={cn(
+                                "shrink-0",
+                                relay.answered
+                                  ? "text-foreground"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              {relay.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : null}
             </div>
           </div>
 
           {loading ? (
             <div className="space-y-6">
-              <section className="py-4 sm:py-5">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <h3 className="text-xl font-bold text-foreground">
-                      Model Usage
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Stacked requests, revenue, or tokens by model.
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-xs text-muted-foreground">
-                    Relays —/—
-                  </div>
-                </div>
-
-                <div className="pt-2 sm:pt-3">
-                  <div className="aspect-auto h-[250px] w-full sm:h-[320px]">
-                    <div className="flex h-full items-end gap-2">
-                      {Array.from({ length: 12 }).map((_, index) => (
-                        <Skeleton
-                          key={`model-usage-bar-${index}`}
-                          className="flex-1"
-                          style={{ height: `${24 + ((index * 13) % 64)}%` }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="pt-5 sm:pt-6">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium text-foreground">
-                    Top Models
-                  </p>
-                  <p className="hidden text-xs text-muted-foreground sm:block">
-                    Change vs prior period
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  {Array.from({ length: 10 }).map((_, index) => (
-                    <div
-                      key={`top-model-row-${index}`}
-                      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-1.5 py-2.5 text-xs sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:gap-3"
-                    >
-                      <Skeleton className="h-3 w-5" />
-                      <Skeleton className="h-3 w-56 max-w-full" />
-                      <Skeleton className="h-3 w-24" />
-                      <Skeleton className="hidden h-3 w-12 sm:block" />
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="py-4 sm:py-5">
+              <section className="border border-border bg-card px-4 py-5 shadow-sm shadow-black/5 sm:px-6 sm:py-6 dark:shadow-black/20">
                 <div className="min-w-0">
                   <h3 className="text-xl font-bold text-foreground">
-                    Provider Comparison
+                    Model Usage
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Top providers by {selectedMode} in the {selectedWindow}{" "}
-                    window.
+                    Reported {selectedMode} over time, split by model.
                   </p>
                 </div>
+
                 <div className="pt-2 sm:pt-3">
-                  <div className="aspect-auto h-[220px] w-full sm:h-[260px]">
-                    <div className="space-y-2 pt-1">
-                      {Array.from({ length: 8 }).map((_, index) => (
+                  <div className="min-w-0">
+                    <div className="h-[250px] w-full sm:h-[320px]">
+                      <div className="flex h-full items-end gap-2">
+                        {Array.from({ length: 12 }).map((_, index) => (
+                          <Skeleton
+                            key={`model-usage-bar-${index}`}
+                            className="flex-1"
+                            style={{ height: `${24 + ((index * 13) % 64)}%` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 min-w-0 border-t border-border pt-4">
+                    <div className="mb-3">
+                      <p className="text-sm font-medium text-foreground">
+                        Top Models
+                      </p>
+                    </div>
+                    <div className="columns-1 lg:columns-2 lg:gap-10">
+                      {Array.from({ length: 10 }).map((_, index) => (
                         <div
-                          key={`provider-comparison-row-${index}`}
-                          className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[96px_minmax(0,1fr)]"
+                          key={`top-model-row-${index}`}
+                          className="mb-0.5 grid min-h-14 break-inside-avoid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-border/60 px-2 py-2.5"
                         >
-                          <Skeleton className="h-3 w-full" />
-                          <div className="flex items-center">
-                            <Skeleton
-                              className="h-4 rounded-sm"
-                              style={{ width: `${34 + ((index * 9) % 62)}%` }}
-                            />
+                          <Skeleton className="h-3 w-5" />
+                          <div className="flex h-7 w-8 items-center gap-2">
+                            <Skeleton className="h-7 w-0.5 shrink-0" />
+                            <Skeleton className="size-5 shrink-0" />
                           </div>
+                          <div className="min-w-0 space-y-1.5">
+                            <Skeleton className="h-3 w-40 max-w-full" />
+                            <Skeleton className="h-2.5 w-20 max-w-full" />
+                          </div>
+                          <Skeleton className="ml-auto h-3 w-20" />
                         </div>
                       ))}
                     </div>
@@ -1994,14 +2046,55 @@ function StatsPageContent() {
                 </div>
               </section>
 
-              <section className="py-4 sm:py-5">
+              <section className="border border-border bg-card px-4 py-5 shadow-sm shadow-black/5 sm:px-6 sm:py-6 dark:shadow-black/20">
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-foreground">
+                    Provider Share
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Share of reported {selectedMode} by provider in this period.
+                  </p>
+                </div>
+                <div className="mt-5 flex h-3 w-full overflow-hidden bg-muted">
+                  {[28, 22, 18, 14, 10, 8].map((width, index) => (
+                    <Skeleton
+                      key={`provider-share-segment-${index}`}
+                      className="h-full"
+                      style={{ width: `${width}%` }}
+                    />
+                  ))}
+                </div>
+                <div className="grid gap-x-8 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={`provider-share-row-${index}`}
+                      className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border/60 py-2.5"
+                    >
+                      <Skeleton className="h-7 w-0.5" />
+                      <div className="min-w-0 space-y-1.5">
+                        <Skeleton className="h-3 w-32 max-w-full" />
+                        <Skeleton className="h-2.5 w-20 max-w-full" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Skeleton className="ml-auto h-3 w-16" />
+                        <Skeleton className="ml-auto h-2.5 w-10" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 border-t border-border py-3">
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </section>
+
+              <section className="border border-border bg-card px-4 py-5 shadow-sm shadow-black/5 sm:px-6 sm:py-6 dark:shadow-black/20">
                 <div className="min-w-0">
                   <h3 className="text-xl font-bold text-foreground">
                     Model Share
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     How {selectedMode} concentrates across models in the
-                    selected window.
+                    selected period.
                   </p>
                 </div>
                 <div className="grid gap-6 pt-2 sm:pt-3 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-center">
@@ -2021,7 +2114,10 @@ function StatsPageContent() {
                           key={`model-share-row-${index}`}
                           className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-1.5 py-2 text-xs"
                         >
-                          <Skeleton className="h-2 w-2 rounded-full" />
+                          <div className="flex h-7 w-8 items-center gap-2">
+                            <Skeleton className="h-7 w-0.5 shrink-0" />
+                            <Skeleton className="size-5 shrink-0" />
+                          </div>
                           <div className="space-y-1">
                             <Skeleton className="h-3 w-44 max-w-full" />
                             <Skeleton className="h-3 w-28 max-w-full" />
@@ -2050,29 +2146,20 @@ function StatsPageContent() {
                 displayUnit="sat"
                 usdPerSat={null}
                 mode={selectedMode}
-                headerRight={relayStatusControl}
               />
 
               {showProviderComparison ? (
-                <div className="space-y-6">
-                  <ProviderComparisonChart
-                    data={providerComparison}
-                    mode={selectedMode}
-                    description={`Top providers by ${selectedMode} in the ${selectedWindow} window.`}
-                  />
-                  <ModelShareChart
-                    data={modelShare}
-                    mode={selectedMode}
-                    description={`How ${selectedMode} concentrates across models in the selected window.`}
-                  />
-                </div>
-              ) : (
-                <ModelShareChart
-                  data={modelShare}
+                <ProviderComparisonChart
+                  data={providerComparison}
                   mode={selectedMode}
-                  description={`How ${selectedMode} concentrates across models in the selected window.`}
+                  description={`Share of reported ${selectedMode} by provider in this period.`}
                 />
-              )}
+              ) : null}
+              <ModelShareChart
+                data={modelShare}
+                mode={selectedMode}
+                description={`How ${selectedMode} concentrates across models in the selected period.`}
+              />
             </div>
           )}
         </PageContainer>
