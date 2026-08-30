@@ -118,7 +118,6 @@ export const getDefaultRelays = (): string[] => {
   return [
     'wss://relay.damus.io',
     'wss://relay.nostr.band',
-    'wss://nos.lol',
-    'wss://nostr.mutinywallet.com'
+    'wss://nos.lol'
   ];
 }; 

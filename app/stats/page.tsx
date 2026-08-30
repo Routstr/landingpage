@@ -131,8 +131,15 @@ const ANALYTICS_SCHEMAS = new Set([
   "routstr.analytics.usage.v2",
   "routstr.analytics.snapshot.v1",
 ]);
+// relay.ditto.pub accepts 4 MB events, so it holds provider reports that the
+// 128 KiB relays reject outright. Stats only, other features do not need it.
 const RELAYS = Array.from(
-  new Set([...getDefaultRelays(), "wss://relay.routstr.com", "wss://nos.lol"]),
+  new Set([
+    ...getDefaultRelays(),
+    "wss://relay.routstr.com",
+    "wss://nos.lol",
+    "wss://relay.ditto.pub",
+  ]),
 );
 
 const WINDOW_OPTIONS: Array<{ id: WindowKey; label: string }> = [
