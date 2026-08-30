@@ -18,10 +18,10 @@ export function CurrencyTabs({ className = '' }: CurrencyTabsProps) {
       className={cn('w-auto', className)}
     >
       <TabsList variant="line" className="h-8">
-        <TabsTrigger value="sats" className="h-7 text-xs">
+        <TabsTrigger value="sats" className="h-7 text-xs transition-none">
           sats
         </TabsTrigger>
-        <TabsTrigger value="usd" className="h-7 text-xs">
+        <TabsTrigger value="usd" className="h-7 text-xs transition-none">
           usd
         </TabsTrigger>
       </TabsList>
