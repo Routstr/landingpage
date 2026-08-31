@@ -1,5 +1,11 @@
 [
   {
+    "slug": "tinfoil-attestation-in-routstr-sdk",
+    "title": "How Routstr Verifies Tinfoil Enclaves Before Spending a Single Sat",
+    "description": "A look under the hood at how Routstr SDK attests Tinfoil enclaves client-side, encrypts requests with EHBP, and refuses to spend until the code measurement checks out.",
+    "tags": ["guide", "security"]
+  },
+  {
     "slug": "introducing-routstrd",
     "title": "Introducing Routstrd: The Nostr + Bitcoin Router for Permissionless AI",
     "description": "Routstrd is a local tool, not an inference provider — powered by Nostr and Bitcoin, that automatically finds the cheapest AI node, falls back seamlessly, and lets you pay-per-use with Lightning. No KYC, no subscriptions, no lock-in.",
