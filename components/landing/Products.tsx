@@ -100,7 +100,7 @@ export function LandingProducts() {
               Serve routstrd to your whole team — or just yourself — from a hosted instance. Bearer-token auth proxy, per-member Nostr keys, and usage tracking included.
             </p>
             <Link
-              href="https://github.com/routstr/routstrd-auth"
+              href="https://github.com/routstr/routstrd-remote"
               target="_blank"
               rel="noopener noreferrer"
               className={CTA_LINK_CLASS}

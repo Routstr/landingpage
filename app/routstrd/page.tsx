@@ -223,7 +223,7 @@ export default function RoutstrdPage() {
           <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-12">
             <div>
               <p className="mb-8 font-light leading-relaxed text-muted-foreground">
-                <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer" className="text-foreground font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-auth</a> is a standalone auth proxy in front of the daemon — the public gatekeeper, while routstrd stays private on localhost.
+                <a href="https://github.com/routstr/routstrd-remote" target="_blank" rel="noopener noreferrer" className="text-foreground font-medium underline underline-offset-4 hover:text-amber-500 transition-colors">routstrd-remote</a> is a standalone auth proxy in front of the daemon — the public gatekeeper, while routstrd stays private on localhost.
               </p>
               <div className="space-y-4 text-base text-muted-foreground font-light">
                 <div className="flex items-start gap-3">
@@ -244,7 +244,7 @@ export default function RoutstrdPage() {
                 </div>
               </div>
               <Button asChild className="mt-8">
-                <a href="https://github.com/routstr/routstrd-auth" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/routstr/routstrd-remote" target="_blank" rel="noopener noreferrer">
                   View on GitHub <ArrowRight className="h-3 w-3" aria-hidden="true" />
                 </a>
               </Button>

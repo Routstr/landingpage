@@ -71,7 +71,7 @@ const menuGroups: MenuGroup[] = [
       },
       {
         title: "Hosted Daemon",
-        href: "https://github.com/routstr/routstrd-auth",
+        href: "https://github.com/routstr/routstrd-remote",
         description: "Serve routstrd to your team from a hosted instance.",
         external: true,
       },
@@ -388,7 +388,7 @@ export default function Header() {
           </a>
 
           <a
-            href="https://github.com/routstr/routstrd-auth"
+            href="https://github.com/routstr/routstrd-remote"
             target="_blank"
             rel="noopener noreferrer"
             onClick={closeMobileMenu}
