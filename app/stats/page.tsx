@@ -131,8 +131,15 @@ const ANALYTICS_SCHEMAS = new Set([
   "routstr.analytics.usage.v2",
   "routstr.analytics.snapshot.v1",
 ]);
+// relay.ditto.pub accepts 4 MB events, so it holds provider reports that the
+// 128 KiB relays reject outright. Stats only, other features do not need it.
 const RELAYS = Array.from(
-  new Set([...getDefaultRelays(), "wss://relay.routstr.com", "wss://nos.lol"]),
+  new Set([
+    ...getDefaultRelays(),
+    "wss://relay.routstr.com",
+    "wss://nos.lol",
+    "wss://relay.ditto.pub",
+  ]),
 );
 
 const WINDOW_OPTIONS: Array<{ id: WindowKey; label: string }> = [
@@ -1370,11 +1377,20 @@ async function fetchStatsSnapshotsWithFallback(
     const liveData = await fetchStatsSnapshots(cachedCoords, signal);
     const mergedCoords = await updateStatsCache(liveData.coords);
     const timelines = buildTimelinesFromCoords(Object.values(mergedCoords));
+    // Only a delivered event proves a relay replied. nostr-tools fires a
+    // synthetic EOSE after 4.4s, so an open socket proves nothing.
+    const anyRelayDelivered = Object.values(liveData.relayStatuses).some(
+      (relay) => relay.state === "active" || relay.state === "done",
+    );
     return {
       relayStatuses: liveData.relayStatuses,
       timelines,
       emptyMessage:
-        timelines.length === 0 ? "No analytics snapshots found yet." : null,
+        timelines.length > 0
+          ? null
+          : anyRelayDelivered
+            ? "No analytics snapshots found yet."
+            : "No relay returned analytics stats. Retrying shortly.",
     };
   } catch (error) {
     if (isAbortError(error)) throw error;
