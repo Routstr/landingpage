@@ -287,7 +287,7 @@ export default function ModelDetailPage() {
             <div>
               <h2 className="text-xl font-bold text-foreground mb-6">Description</h2>
               <div 
-                className={`prose prose-sm md:prose-base prose-invert max-w-none text-muted-foreground leading-relaxed transition-all relative ${!descExpanded ? 'max-h-48 overflow-hidden [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)]' : ''}`}
+                className={`prose prose-sm md:prose-base dark:prose-invert max-w-none text-muted-foreground leading-relaxed transition-all relative ${!descExpanded ? 'max-h-48 overflow-hidden [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)]' : ''}`}
               >
                 <ReactMarkdown>{model.description || "No description available for this model."}</ReactMarkdown>
               </div>

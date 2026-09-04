@@ -62,7 +62,7 @@ export default function BlogPostPage() {
             {errorMessage && <p className="text-sm text-muted-foreground">{errorMessage}</p>}
 
             {markdown && (
-              <article className="prose prose-sm md:prose-base prose-invert max-w-none prose-headings:font-medium prose-strong:font-medium prose-pre:bg-card prose-pre:border prose-pre:border-border prose-img:rounded-lg prose-img:border prose-img:border-border text-muted-foreground">
+              <article className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-headings:font-medium prose-strong:font-medium prose-pre:bg-card prose-pre:border prose-pre:border-border prose-img:rounded-lg prose-img:border prose-img:border-border text-muted-foreground">
                 <ReactMarkdown
                   components={{
                     a({ href, children, ...props }) {
