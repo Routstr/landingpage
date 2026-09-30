@@ -375,6 +375,7 @@ async function fetchStatsSnapshots(
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      clearTimeout(cap);
       signal?.removeEventListener("abort", abort);
       subscription.close();
       await Promise.all(parsing);
@@ -383,12 +384,17 @@ async function fetchStatsSnapshots(
     };
     const abort = () => { void finish(); };
     signal?.addEventListener("abort", abort, { once: true });
-    const timer = setTimeout(() => { void finish("timeout"); }, 7000);
+    const timeout = () => { void finish("timeout"); };
+    // 7s of silence ends a page; a relay still sending gets up to 30s.
+    let timer = setTimeout(timeout, 7000);
+    const cap = setTimeout(timeout, 30_000);
     const subscription = pool.subscribeMany([url], { kinds: [ANALYTICS_KIND], since: oldest, until, limit: 1000 }, {
       // Our deadline must run before the SDK synthesizes EOSE on its own timeout.
-      maxWait: 8000,
+      maxWait: 31_000,
       receivedEvent(_relay, id) {
         if (finished) return;
+        clearTimeout(timer);
+        timer = setTimeout(timeout, 7000);
         page.count++;
         if (!known.has(id)) page.fresh++;
         known.add(id);
