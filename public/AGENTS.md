@@ -7,6 +7,11 @@ that discovers the cheapest available AI provider, routes requests, and pays nod
 This file is for AI agents/assistants. Use it to onboard any user onto Routstr quickly.
 The human-facing instructions live at <https://routstr.com/routstrd>.
 
+## Just want to chat? No install
+
+Send the user to **https://chat.routstr.com**: a browser chat app. They top up with
+Lightning or a Cashu token, pick a model and chat. Nothing to install.
+
 ## TL;DR — 3 commands
 
 ```bash
