@@ -23,6 +23,12 @@ function parseVersionParts(version: string | null | undefined): number[] {
   return segments;
 }
 
+// The pubkey is the node's identity: one row per key, so a repeated emission or
+// a second load replaces the existing row instead of adding a duplicate.
+function providerRowKey(provider: Provider): string {
+  return provider.pubkey?.trim() || provider.id;
+}
+
 function compareVersionsDesc(
   aVersion: string | null | undefined,
   bVersion: string | null | undefined
@@ -51,7 +57,15 @@ export default function ProvidersPage() {
 
       await fetchModels((provider) => {
         if (!active) return;
-        setItems((prev) => [...prev, provider]);
+        setItems((prev) => {
+          const key = providerRowKey(provider);
+          const index = prev.findIndex((item) => providerRowKey(item) === key);
+          if (index === -1) return [...prev, provider];
+          if (prev[index] === provider) return prev;
+          const next = prev.slice();
+          next[index] = provider;
+          return next;
+        });
       });
 
       if (!active) return;
@@ -149,7 +163,7 @@ export default function ProvidersPage() {
                 const modelCount = provider.supported_models?.length || 0;
                 return (
                   <Link
-                    key={provider.id}
+                    key={providerRowKey(provider)}
                     href={`/providers/${encodeURIComponent(provider.id)}`}
                     className="grid grid-cols-12 gap-4 py-6 border-b border-border/30 px-4 hover:bg-card transition-colors group items-center"
                   >
@@ -196,7 +210,7 @@ export default function ProvidersPage() {
                   {emptyItems.map((provider) => {
                     return (
                       <Link
-                        key={provider.id}
+                        key={providerRowKey(provider)}
                         href={`/providers/${encodeURIComponent(provider.id)}`}
                         className="grid grid-cols-12 gap-4 py-6 border-b border-border/30 px-4 hover:bg-card transition-colors group items-center"
                       >

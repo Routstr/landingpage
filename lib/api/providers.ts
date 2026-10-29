@@ -1,6 +1,7 @@
 import { SimplePool } from "nostr-tools";
 import type { Event } from "nostr-tools";
 import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
+import { consolidateAnnouncementsByKey } from "./provider-consolidation";
 
 const PROVIDER_ANNOUNCEMENT_KIND = 38421;
 const DISCOVERY_RELAYS = [
@@ -186,6 +187,7 @@ export async function fetchProvidersList(
     fetchProvidersFromHttp(fetchImpl),
   ]);
 
+  // Same address (pubkey + d) from both sources collapses to the newest event.
   const merged = new Map<string, ProviderApiRecord>();
   for (const result of [http, nostr]) {
     if (result.status !== "fulfilled") continue;
@@ -200,5 +202,10 @@ export async function fetchProvidersList(
     if (nostr.status === "rejected") throw nostr.reason;
     if (http.status === "rejected") throw http.reason;
   }
-  return Array.from(merged.values()).sort((a, b) => b.created_at - a.created_at);
+
+  // A key that rotated its `d` tag still has its previous announcement on the
+  // relays, so keep one row per key (see provider-consolidation.ts).
+  return consolidateAnnouncementsByKey(Array.from(merged.values())).sort(
+    (a, b) => b.created_at - a.created_at
+  );
 }
