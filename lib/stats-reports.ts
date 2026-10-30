@@ -218,6 +218,7 @@ function parseLegacy(event: Event, payload: Record<string, unknown>, d: string):
   if (!providerD || providerD === d) return null;
   const providerId = `38421:${event.pubkey}:${providerD}`;
   const endpoint = Array.isArray(payload.endpoint_urls) ? payload.endpoint_urls.find((value) => typeof value === "string") : null;
+  if (!endpoint) return null;
   let providerLabel = providerD;
   try { if (endpoint) providerLabel = new URL(endpoint).host.replace(/^www\./, ""); } catch { /* Keep signed node identifier. */ }
   const windows = record(payload.windows);
