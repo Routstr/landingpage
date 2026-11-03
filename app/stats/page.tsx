@@ -6,7 +6,7 @@ import { verifyEvent, type Event } from "nostr-tools";
 import { AbstractSimplePool } from "nostr-tools/abstract-pool";
 import {
   ANALYTICS_KIND, DAY_MS, WINDOW_OPTIONS, buildProviders, completedRange,
-  dayKey, parseStatsEvent, reportWins, selectStats,
+  dayKey, parseStatsEvent, reportWins, sanitizeStatsProviders, selectStats,
   type StatsGrouping, type StatsProvider, type StatsReport, type WindowKey,
 } from "@/lib/stats-reports";
 import {
@@ -541,28 +541,43 @@ function StatsPageContent() {
             : null))
     : null;
 
+  const [today, setToday] = useState<string | null>(null);
   useEffect(() => {
-    if (timelines.length === 0) {
+    setToday(dayKey(Date.now()));
+    const timer = window.setInterval(() => setToday(dayKey(Date.now())), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const range = useMemo(() => completedRange(selectedWindow, today ? Date.parse(`${today}T00:00:00Z`) : 0), [selectedWindow, today]);
+  // Reports are signed but self-reported. Drop staging hosts, known test signers
+  // and provider-days whose revenue is orders of magnitude off the window
+  // median before anything is counted, so totals and shares agree.
+  const { providers: visibleTimelines, sanity } = useMemo(
+    () => sanitizeStatsProviders(timelines, range),
+    [timelines, range],
+  );
+
+  useEffect(() => {
+    if (visibleTimelines.length === 0) {
       setSelectedProviderId(ALL_PROVIDERS_ID);
       return;
     }
     if (selectedProviderId === ALL_PROVIDERS_ID) {
       return;
     }
-    const exists = timelines.some(
+    const exists = visibleTimelines.some(
       (timeline) => timeline.providerId === selectedProviderId,
     );
     if (!exists) {
       setSelectedProviderId(ALL_PROVIDERS_ID);
     }
-  }, [selectedProviderId, timelines]);
+  }, [selectedProviderId, visibleTimelines]);
 
   const providerOptions = useMemo(
     () => [
       { providerId: ALL_PROVIDERS_ID, providerLabel: "All providers" },
-      ...timelines,
+      ...visibleTimelines,
     ],
-    [timelines],
+    [visibleTimelines],
   );
 
   const selectedProviderOption =
@@ -573,21 +588,14 @@ function StatsPageContent() {
   const selectedTimeline = useMemo(() => {
     if (selectedProviderId === ALL_PROVIDERS_ID) return null;
     return (
-      timelines.find(
+      visibleTimelines.find(
         (timeline) => timeline.providerId === selectedProviderId,
       ) ?? null
     );
-  }, [selectedProviderId, timelines]);
-  const [today, setToday] = useState<string | null>(null);
-  useEffect(() => {
-    setToday(dayKey(Date.now()));
-    const timer = window.setInterval(() => setToday(dayKey(Date.now())), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const range = useMemo(() => completedRange(selectedWindow, today ? Date.parse(`${today}T00:00:00Z`) : 0), [selectedWindow, today]);
+  }, [selectedProviderId, visibleTimelines]);
   const selection = useMemo(() => selectStats(
-    selectedProviderId === ALL_PROVIDERS_ID ? timelines : selectedTimeline ? [selectedTimeline] : [], range, grouping,
-  ), [range, grouping, selectedProviderId, selectedTimeline, timelines]);
+    selectedProviderId === ALL_PROVIDERS_ID ? visibleTimelines : selectedTimeline ? [selectedTimeline] : [], range, grouping,
+  ), [range, grouping, selectedProviderId, selectedTimeline, visibleTimelines]);
   const selectedWindowPayload: WindowPayload | null = selection.hasData ? { metrics: selection.metrics } : null;
   const modelUsageMix: ModelUsageMix | null = selection.hasData ? {
     top_models: [], metrics: selection.metrics, interval_minutes: grouping === "weekly" ? 10080 : 1440,
@@ -612,7 +620,7 @@ function StatsPageContent() {
     [selectedMode, selection.metrics],
   );
   const providerComparison = useMemo<ProviderComparisonPoint[]>(() => {
-    const rows = timelines
+    const rows = visibleTimelines
       .map((timeline) => {
         const providerSelection = selectStats([timeline], range, grouping);
         const payload: WindowPayload | null = providerSelection.hasData ? { metrics: providerSelection.metrics } : null;
@@ -649,7 +657,7 @@ function StatsPageContent() {
       ...row,
       share: row.value / totalValue,
     }));
-  }, [selectedMode, range, grouping, timelines]);
+  }, [selectedMode, range, grouping, visibleTimelines]);
   const showProviderComparison =
     selectedProviderId === ALL_PROVIDERS_ID && providerComparison.length > 0;
   const activeModelCount = selectedWindowPayload?.metrics.length
@@ -1070,6 +1078,8 @@ function StatsPageContent() {
                 <p>Weekly bars run Thursday to Wednesday to preserve older reports. Only the selected dates are counted. Weekly view can include older totals with no daily breakdown, so its totals may be higher than Daily. Missing records are never filled with zeros or estimates.</p>
                 {data ? <p>{data.refreshedAt ? `Checked ${formatUpdatedAt(data.refreshedAt / 1000)} UTC.` : "Showing saved reports that relays have not confirmed yet."}</p> : null}
                 {selection.hasData && hasPartialCoverage ? <p>Some providers have no report for parts of this period. Totals and shares use the reports received.</p> : null}
+                {sanity.hiddenProviders > 0 ? <p>{sanity.hiddenProviders === 1 ? "One provider is" : `${sanity.hiddenProviders} providers are`} hidden: staging endpoints or a known test signer.</p> : null}
+                {sanity.droppedBuckets > 0 ? <p>{sanity.droppedBuckets === 1 ? "One provider report is" : `${sanity.droppedBuckets} provider reports are`} excluded: the reported revenue is orders of magnitude above the period median.</p> : null}
                 {data?.historyIncomplete ? <p>Some reports could not be retrieved.</p> : null}
                 {hasLegacy ? <p>Older reports contribute to totals and charts. They do not identify the fully measured requests needed for the token average.</p> : null}
                 {inputEstimated + outputEstimated > 0 ? <p>Token totals include estimates.{avgTokensApproximate ? "" : " The average excludes estimated usage."}</p> : null}

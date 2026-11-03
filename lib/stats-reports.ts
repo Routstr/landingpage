@@ -1,5 +1,6 @@
 import { verifyEvent, type Event } from "nostr-tools";
 import type { ModelUsageMixMetric } from "../components/stats/top-models-usage-chart";
+import { shouldHideProvider } from "./staging-filter.ts";
 
 export const DAY_MS = 86_400_000;
 export const ANALYTICS_KIND = 38422;
@@ -43,6 +44,8 @@ export type StatsReport = {
   providerLabel: string;
   format: "v2" | "legacy";
   epoch: number | null;
+  /** Signed endpoint_urls: the only way to tell a staging host from a bare node id. */
+  endpoints: string[];
   days: StatsDay[];
   weeks?: StatsDay[];
 };
@@ -189,7 +192,7 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
     days.push(day);
   }
   return { event, coordinate: `${event.pubkey}|${d}`, providerId,
-    providerLabel: providerId.slice(prefix.length), format: "v2", epoch: Number(epoch), days };
+    providerLabel: providerId.slice(prefix.length), format: "v2", epoch: Number(epoch), endpoints: [], days };
 }
 
 function legacyNumber(value: unknown): number | null {
@@ -217,7 +220,8 @@ function parseLegacy(event: Event, payload: Record<string, unknown>, d: string):
   const providerD = d.replace(/:(?:stats|usage(?::latest|:(?:day:)?\d{4}-\d{2}-\d{2}|:month:\d{4}-\d{2})?)$/, "");
   if (!providerD || providerD === d) return null;
   const providerId = `38421:${event.pubkey}:${providerD}`;
-  const endpoint = Array.isArray(payload.endpoint_urls) ? payload.endpoint_urls.find((value) => typeof value === "string") : null;
+  const endpoints = Array.isArray(payload.endpoint_urls) ? payload.endpoint_urls.filter((value): value is string => typeof value === "string") : [];
+  const endpoint = endpoints[0] ?? null;
   let providerLabel = providerD;
   try { if (endpoint) providerLabel = new URL(endpoint).host.replace(/^www\./, ""); } catch { /* Keep signed node identifier. */ }
   const windows = record(payload.windows);
@@ -296,7 +300,7 @@ function parseLegacy(event: Event, payload: Record<string, unknown>, d: string):
           (day.coveredMinutes === current.coveredMinutes && day.sourceInterval < current.sourceInterval)) byDay.set(ms, day);
     }
   }
-  return { event, coordinate: `${event.pubkey}|${d}`, providerId, providerLabel, format: "legacy", epoch: null,
+  return { event, coordinate: `${event.pubkey}|${d}`, providerId, providerLabel, format: "legacy", epoch: null, endpoints,
     days: Array.from(byDay.values()).sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
     ...(byWeek.size ? { weeks: Array.from(byWeek.values()).sort((a, b) => a.timestamp.localeCompare(b.timestamp)) } : {}) };
 }
@@ -469,5 +473,183 @@ export function selectStats(providers: StatsProvider[], range: CompletedRange, g
     reportingProviders: selected.filter(({ days }) => days.some((day) => day.coverage !== "missing")).length,
     latestDataDay: metrics.findLast((day) => day.coverage !== "missing")?.timestamp.slice(0, 10) ?? null,
     hasData: reportedProviderDays > 0,
+  };
+}
+
+// ---- sanity gate -----------------------------------------------------------
+//
+// Reports are signed but self-reported: a node can claim any revenue it likes.
+// Two kinds of publisher never belong on a public stats page, and both have
+// actually appeared in the relay set:
+//
+// 1. test fixtures — a dev/staging node publishing its synthetic traffic. The
+//    staging filter catches the ones that advertise a hostname, but a node run
+//    on localhost publishes `endpoint_urls: []`, so there is nothing to match
+//    and the page renders a bare node hash. Those signers are listed instead.
+// 2. pricing mistakes — a real node with a model priced in the wrong unit. On
+//    2026-10-27 node 6a093fc745b1 reported `test-model` at 263,000 msats per
+//    token, which booked 10,002,791 sats in one 6h bucket (91% of the 7d
+//    window's revenue) from 881 otherwise ordinary requests.
+//
+// The outlier guard is deliberately loose, because a provider-day's revenue per
+// token legitimately varies by two orders of magnitude between cheap chat days
+// and expensive image days. Measured over the retained events, real provider
+// days top out near 200x the window median, while the incident above sat at
+// ~1,000x on revenue/request and ~8,000x on revenue/token. A strict 100x rule
+// would have deleted 53,664 sats of real revenue from node.happyending.mom.
+// So a bucket must be 100x above the median on *both* ratios, or 1,000x above
+// it on either one.
+
+/** Signers that publish test traffic to the public relays and never count. */
+export const BLOCKED_STATS_PUBKEYS: readonly string[] = [
+  // routstr-core integration-test node, 2026-10-27 (localhost, no endpoints).
+  "6a093fc745b1c1ce6ec9096238e6ac6236b3cf77036c71d688dcaf508ee7ef3c",
+];
+
+export const STATS_SANITY = {
+  /** Both ratios this far above the window median: drop the provider-day. */
+  bothRatio: 100,
+  /** Either ratio this far above the window median: drop it on its own. */
+  eitherRatio: 1_000,
+  /** Below this many requests or tokens a ratio is noise, not a claim. */
+  minRequests: 50,
+  minTokens: 10_000,
+  /** Too few provider-days to know what normal looks like: guard stays off. */
+  minSamples: 8,
+} as const;
+
+export type StatsSanity = {
+  /** Providers dropped before any aggregation (staging hosts and test signers). */
+  hiddenProviders: number;
+  hiddenStagingProviders: number;
+  hiddenBlockedProviders: number;
+  /** Individual provider-day / provider-week buckets dropped as implausible. */
+  droppedBuckets: number;
+  /** Median-based limits used for this range, or null when the guard was off. */
+  limits: { msatsPerRequest: number; msatsPerToken: number } | null;
+};
+
+/** A provider id is `38421:<pubkey>:<signed node id>`; the node id may be a host. */
+function providerPubkey(providerId: string): string | null {
+  const [kind, pubkey] = providerId.split(":");
+  return kind === "38421" && pubkey && HEX_KEY.test(pubkey) ? pubkey : null;
+}
+
+export function isBlockedStatsPubkey(value: string): boolean {
+  const key = value.trim().toLowerCase();
+  // Providers sign their full key, but a node id may carry only its 12-char prefix.
+  if (key.length < 12 || !/^[0-9a-f]+$/.test(key)) return false;
+  return BLOCKED_STATS_PUBKEYS.some((blocked) => blocked.startsWith(key) || key.startsWith(blocked));
+}
+
+export function isBlockedStatsProvider(provider: StatsProvider): boolean {
+  const pubkey = providerPubkey(provider.providerId);
+  if (pubkey && isBlockedStatsPubkey(pubkey)) return true;
+  return provider.reports.some((report) => isBlockedStatsPubkey(report.event.pubkey));
+}
+
+export function isStagingStatsProvider(provider: StatsProvider): boolean {
+  const endpoints = provider.reports.flatMap((report) => report.endpoints ?? []);
+  return shouldHideProvider(endpoints);
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function revenuePerRequest(day: StatsDay): number {
+  return day.total_successful > 0 ? day.total_revenue_msats / day.total_successful : 0;
+}
+
+function revenuePerToken(day: StatsDay): number {
+  return day.total_tokens > 0 ? day.total_revenue_msats / day.total_tokens : 0;
+}
+
+function isImplausible(day: StatsDay, limits: { msatsPerRequest: number; msatsPerToken: number }): boolean {
+  if (!(day.total_revenue_msats > 0)) return false;
+  const perRequest = day.total_successful >= STATS_SANITY.minRequests ? revenuePerRequest(day) : null;
+  const perToken = day.total_tokens >= STATS_SANITY.minTokens ? revenuePerToken(day) : null;
+  if (perRequest === null && perToken === null) return false;
+  const bothOver = perRequest !== null && perToken !== null &&
+    perRequest > limits.msatsPerRequest * STATS_SANITY.bothRatio &&
+    perToken > limits.msatsPerToken * STATS_SANITY.bothRatio;
+  const eitherOver = (perRequest !== null && perRequest > limits.msatsPerRequest * STATS_SANITY.eitherRatio) ||
+    (perToken !== null && perToken > limits.msatsPerToken * STATS_SANITY.eitherRatio);
+  return bothOver || eitherOver;
+}
+
+function reportBuckets(report: StatsReport): StatsDay[] {
+  return [...report.days, ...(report.weeks ?? [])];
+}
+
+function inRange(day: StatsDay, range: CompletedRange): boolean {
+  const ms = Date.parse(day.timestamp);
+  return ms >= range.start && ms < range.end;
+}
+
+/**
+ * Drop the reports that must never reach the page: staging hosts, known test
+ * signers, and provider-days whose self-reported revenue is orders of
+ * magnitude away from what the rest of the window reports. Call this once per
+ * range and feed every chart and total from the result, so the aggregate and
+ * the per-provider comparison always agree.
+ */
+export function sanitizeStatsProviders(
+  providers: StatsProvider[],
+  range: CompletedRange,
+): { providers: StatsProvider[]; sanity: StatsSanity } {
+  const kept: StatsProvider[] = [];
+  let hiddenStagingProviders = 0;
+  let hiddenBlockedProviders = 0;
+  for (const provider of providers) {
+    if (isBlockedStatsProvider(provider)) { hiddenBlockedProviders++; continue; }
+    if (isStagingStatsProvider(provider)) { hiddenStagingProviders++; continue; }
+    kept.push(provider);
+  }
+
+  // The baseline is the window's own distribution, so a quiet quarter and a
+  // busy week are judged against their own normal rather than a fixed price.
+  const samples: StatsDay[] = [];
+  for (const provider of kept) for (const report of provider.reports) {
+    for (const day of reportBuckets(report)) {
+      if (inRange(day, range) && day.total_revenue_msats > 0) samples.push(day);
+    }
+  }
+  const perRequest = samples.filter((day) => day.total_successful >= STATS_SANITY.minRequests).map(revenuePerRequest);
+  const perToken = samples.filter((day) => day.total_tokens >= STATS_SANITY.minTokens).map(revenuePerToken);
+  const guardOn = perRequest.length >= STATS_SANITY.minSamples && perToken.length >= STATS_SANITY.minSamples;
+  const limits = guardOn
+    ? { msatsPerRequest: median(perRequest), msatsPerToken: median(perToken) }
+    : null;
+
+  let droppedBuckets = 0;
+  const cleaned = limits === null ? kept : kept.map((provider) => ({
+    ...provider,
+    reports: provider.reports.map((report) => {
+      const days = report.days.filter((day) => {
+        if (!isImplausible(day, limits)) return true;
+        droppedBuckets++;
+        return false;
+      });
+      const weeks = report.weeks?.filter((week) => {
+        if (!isImplausible(week, limits)) return true;
+        droppedBuckets++;
+        return false;
+      });
+      return { ...report, days, ...(weeks ? { weeks } : {}) };
+    }),
+  }));
+
+  return {
+    providers: cleaned,
+    sanity: {
+      hiddenProviders: hiddenStagingProviders + hiddenBlockedProviders,
+      hiddenStagingProviders,
+      hiddenBlockedProviders,
+      droppedBuckets,
+      limits,
+    },
   };
 }
