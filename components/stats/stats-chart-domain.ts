@@ -9,8 +9,8 @@ export const CHART_MODES: ReadonlyArray<{
   label: string;
   unit: string;
 }> = [
-  { id: "requests", label: "Requests", unit: "requests" },
   { id: "revenue", label: "Revenue", unit: "sats" },
+  { id: "requests", label: "Requests", unit: "requests" },
   { id: "tokens", label: "Tokens", unit: "tokens" },
 ];
 

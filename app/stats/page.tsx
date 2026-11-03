@@ -485,7 +485,7 @@ async function fetchStatsSnapshotsWithFallback(
 function StatsPageContent() {
   const [selectedWindow, setSelectedWindow] = useState<WindowKey>("30d");
   const [grouping, setGrouping] = useState<StatsGrouping>("daily");
-  const [selectedMode, setSelectedMode] = useState<ChartMode>("requests");
+  const [selectedMode, setSelectedMode] = useState<ChartMode>("revenue");
   const [selectedProviderId, setSelectedProviderId] =
     useState<string>(ALL_PROVIDERS_ID);
   const selectedWindowLabel =
