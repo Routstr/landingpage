@@ -16,23 +16,12 @@ export type CompletedRange = { start: number; end: number; days: number };
 export type StatsGrouping = "daily" | "weekly";
 
 export const V2_COLUMNS = [
-  "completed_requests", "input_observed_requests", "output_observed_requests",
-  "cache_read_observed_requests", "cache_creation_observed_requests", "input_tokens",
-  "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "revenue_msats",
-  "input_estimated_requests", "output_estimated_requests", "cache_read_estimated_requests",
-  "cache_creation_estimated_requests", "input_missing_requests", "output_missing_requests",
-  "cache_read_missing_requests", "cache_creation_missing_requests",
-  "measured_token_requests", "measured_tokens",
+  "completed_requests", "input_tokens", "output_tokens",
+  "cache_read_input_tokens", "cache_creation_input_tokens", "revenue_msats",
 ] as const;
 
 export type StatsDay = ModelUsageMixMetric & {
   coverage: "complete" | "partial" | "missing";
-  inputEstimated: number;
-  outputEstimated: number;
-  inputMissing: number;
-  outputMissing: number;
-  measuredRequests: number;
-  measuredTokens: number;
   legacy: boolean;
   coveredMinutes: number;
   sourceInterval: number;
@@ -86,8 +75,6 @@ export function emptyDay(ms: number): StatsDay {
     timestamp: `${dayKey(ms)}T00:00:00Z`, total_successful: 0, total_revenue_msats: 0,
     total_tokens: 0, others: 0, others_revenue_msats: 0, others_tokens: 0,
     model_counts: {}, model_revenue_msats: {}, model_tokens: {}, coverage: "missing",
-    inputEstimated: 0, outputEstimated: 0, inputMissing: 0, outputMissing: 0,
-    measuredRequests: 0, measuredTokens: 0,
     legacy: false, coveredMinutes: 0, sourceInterval: 1440,
   };
 }
@@ -95,12 +82,7 @@ export function emptyDay(ms: number): StatsDay {
 function vector(value: unknown): number[] | null {
   if (!Array.isArray(value) || value.length !== V2_COLUMNS.length ||
       !value.every((item) => Number.isSafeInteger(item) && item >= 0)) return null;
-  for (let side = 0; side < 4; side++) {
-    if (value[1 + side] + value[10 + side] + value[14 + side] !== value[0]) return null;
-  }
-  const tokens = value[5] + value[6] + value[7] + value[8];
-  if (!Number.isSafeInteger(tokens) || value[18] > Math.min(value[1], value[2]) ||
-      value[19] > tokens || (value[18] === 0 && value[19] !== 0)) return null;
+  if (!Number.isSafeInteger(value[1] + value[2] + value[3] + value[4])) return null;
   return value;
 }
 
@@ -117,12 +99,6 @@ export function addDay(target: StatsDay, source: StatsDay): void {
   target.others += source.others;
   target.others_revenue_msats += source.others_revenue_msats;
   target.others_tokens += source.others_tokens;
-  target.inputEstimated += source.inputEstimated;
-  target.outputEstimated += source.outputEstimated;
-  target.inputMissing += source.inputMissing;
-  target.outputMissing += source.outputMissing;
-  target.measuredRequests += source.measuredRequests;
-  target.measuredTokens += source.measuredTokens;
   target.legacy ||= source.legacy;
   addModels(target.model_counts, source.model_counts);
   addModels(target.model_revenue_msats, source.model_revenue_msats);
@@ -166,26 +142,21 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
     day.coverage = "complete";
     day.coveredMinutes = 1440;
     day.total_successful = values[0];
-    day.total_tokens = values[5] + values[6] + values[7] + values[8];
-    day.total_revenue_msats = values[9];
-    day.inputEstimated = values[10];
-    day.outputEstimated = values[11];
-    day.inputMissing = values[14];
-    day.outputMissing = values[15];
-    day.measuredRequests = values[18];
-    day.measuredTokens = values[19];
+    day.total_tokens = values[1] + values[2] + values[3] + values[4];
+    day.total_revenue_msats = values[5];
     for (const [model, raw] of Object.entries(models)) {
       const row = vector(raw);
       if (!row || !model) return null;
       row.forEach((value, index) => { summed[index] += value; });
+      const rowTokens = row[1] + row[2] + row[3] + row[4];
       if (model === "_other") {
         day.others = row[0];
-        day.others_tokens = row[5] + row[6] + row[7] + row[8];
-        day.others_revenue_msats = row[9];
+        day.others_tokens = rowTokens;
+        day.others_revenue_msats = row[5];
       } else {
         Object.defineProperty(day.model_counts, model, { value: row[0], enumerable: true });
-        Object.defineProperty(day.model_tokens, model, { value: row[5] + row[6] + row[7] + row[8], enumerable: true });
-        Object.defineProperty(day.model_revenue_msats, model, { value: row[9], enumerable: true });
+        Object.defineProperty(day.model_tokens, model, { value: rowTokens, enumerable: true });
+        Object.defineProperty(day.model_revenue_msats, model, { value: row[5], enumerable: true });
       }
     }
     if (!summed.every((value, index) => Number.isSafeInteger(value) && value === values[index])) return null;
@@ -433,9 +404,8 @@ function selectWeeklyStats(providers: StatsProvider[], range: CompletedRange) {
       complete += sourceComplete;
     }
     metric.coverage = reported === 0 ? "missing" : complete === providers.length * bucketDays ? "complete" : "partial";
-    metric.token_coverage = metric.coverage === "missing" ||
-      (metric.total_successful > 0 && metric.inputMissing + metric.outputMissing === metric.total_successful * 2 && !metric.legacy)
-      ? "missing" : metric.inputMissing + metric.outputMissing > 0 || metric.legacy || metric.coverage === "partial" ? "partial" : "complete";
+    metric.token_coverage = metric.coverage === "missing" ? "missing"
+      : metric.legacy || metric.coverage === "partial" ? "partial" : "complete";
     completeProviderDays += complete;
     reportedProviderDays += reported;
     metrics.push(metric);
@@ -462,9 +432,8 @@ export function selectStats(providers: StatsProvider[], range: CompletedRange, g
       if (source.coverage === "complete") complete++;
     }
     day.coverage = reported === 0 ? "missing" : complete === providers.length ? "complete" : "partial";
-    day.token_coverage = day.coverage === "missing" ||
-      (day.total_successful > 0 && day.inputMissing + day.outputMissing === day.total_successful * 2 && !day.legacy)
-      ? "missing" : day.inputMissing + day.outputMissing > 0 || day.legacy || day.coverage === "partial" ? "partial" : "complete";
+    day.token_coverage = day.coverage === "missing" ? "missing"
+      : day.legacy || day.coverage === "partial" ? "partial" : "complete";
     reportedProviderDays += reported;
     completeProviderDays += complete;
     metrics.push(day);

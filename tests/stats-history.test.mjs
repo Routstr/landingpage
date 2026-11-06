@@ -211,15 +211,15 @@ test("signed legacy and current reports survive cache reload without trusting st
   const h = harness();
   const signedEntries = Object.fromEntries([legacyReport, currentReport].map((report) => [report.coordinate, {
     event: report.event, lastObservedAtMs: NOW - 1000,
-    report: { ...report, days: [{ total_successful: 99999, measuredRequests: 99999, measuredTokens: 1 }] },
+    report: { ...report, days: [{ total_successful: 99999, total_tokens: 99999, legacy: true }] },
     snapshot: { payload: { total_tokens: 99999 } },
   }]));
   h.storage.set("stats_snapshots_cache_v3", JSON.stringify({ coords: signedEntries }));
   const loaded = await h.readCache();
   assert.deepEqual(Object.keys(loaded).sort(), [legacyReport.coordinate, currentReport.coordinate].sort());
-  assert.equal(loaded[legacyReport.coordinate].report.days[0].measuredRequests, 0);
+  assert.equal(loaded[legacyReport.coordinate].report.days[0].total_successful, 7);
   assert.equal(loaded[legacyReport.coordinate].report.days[0].total_tokens, 70);
-  assert.ok(loaded[currentReport.coordinate].report.days.some((day) => day.measuredRequests > 0));
+  assert.ok(loaded[currentReport.coordinate].report.days.some((day) => day.total_successful > 0));
   const expected = selectStats(buildProviders([legacyReport, currentReport]), completedRange("7d", NOW));
   const actual = selectStats(buildProviders(Object.values(loaded).map(({ report }) => report)), completedRange("7d", NOW));
   assert.deepEqual(actual, expected);

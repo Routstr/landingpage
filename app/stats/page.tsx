@@ -602,16 +602,9 @@ function StatsPageContent() {
     hours_back: range.days * 24, total_buckets: selection.metrics.length,
   } : null;
 
-  const inputEstimated = selection.metrics.reduce((sum, day) => sum + day.inputEstimated, 0);
-  const outputEstimated = selection.metrics.reduce((sum, day) => sum + day.outputEstimated, 0);
-  const inputMissing = selection.metrics.reduce((sum, day) => sum + day.inputMissing, 0);
-  const outputMissing = selection.metrics.reduce((sum, day) => sum + day.outputMissing, 0);
-  const measuredRequests = selection.metrics.reduce((sum, day) => sum + day.measuredRequests, 0);
-  const measuredTokens = selection.metrics.reduce((sum, day) => sum + day.measuredTokens, 0);
   const hasLegacy = selection.metrics.some((day) => day.legacy);
   const requests = selectedWindowPayload ? getPayloadRequests(selectedWindowPayload) : null;
-  const tokens = selectedWindowPayload && !(requests && inputMissing + outputMissing === requests * 2 && !hasLegacy)
-    ? getPayloadTokens(selectedWindowPayload) : null;
+  const tokens = selectedWindowPayload ? getPayloadTokens(selectedWindowPayload) : null;
   const revenueSats = selectedWindowPayload
     ? getPayloadRevenueSats(selectedWindowPayload)
     : null;
@@ -663,15 +656,9 @@ function StatsPageContent() {
   const activeModelCount = selectedWindowPayload?.metrics.length
     ? countActiveModels(selectedWindowPayload.metrics)
     : 0;
-  // Older reports cannot identify their measured requests, so until a measured
-  // sample exists the card divides their reported totals and says so.
-  const avgTokensApproximate = measuredRequests === 0 && hasLegacy && !!requests && !!tokens;
-  const avgTokensPerRequest =
-    measuredRequests > 0
-      ? measuredTokens / measuredRequests
-      : avgTokensApproximate
-        ? (tokens ?? 0) / (requests ?? 1)
-        : null;
+  // Reports no longer carry a measured sample, so the card divides every reported
+  // token by every completed request; the popover says what that divisor includes.
+  const avgTokensPerRequest = !!requests && tokens !== null ? (tokens ?? 0) / (requests ?? 1) : null;
   const avgTokensEmptyLabel = requests === null ? "No data" : requests === 0 ? "No requests" : "Not reported";
   const avgRevenuePerRequest =
     requests !== null && revenueSats !== null && requests > 0
@@ -687,7 +674,7 @@ function StatsPageContent() {
       : "Top model share";
   const rangeLabel = `${dayKey(range.start)} to ${dayKey(range.end - DAY_MS)} UTC`;
   const hasPartialCoverage = selection.reportedProviderDays < selection.expectedProviderDays || selection.completeProviderDays < selection.reportedProviderDays;
-  const hasPartialData = hasPartialCoverage || data?.historyIncomplete || hasLegacy || inputMissing + outputMissing > 0;
+  const hasPartialData = hasPartialCoverage || data?.historyIncomplete || hasLegacy;
 
 
   return (
@@ -803,14 +790,7 @@ function StatsPageContent() {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-72 max-w-[calc(100vw-2rem)] space-y-2 text-xs text-muted-foreground">
-                    {avgTokensApproximate ? (
-                      <p>Approximate: reported tokens divided by completed requests. Older reports can include estimated or missing token counts, and do not say which requests were measured.</p>
-                    ) : (
-                      <>
-                        <p>Provider-reported token usage only. Estimates and missing counts are excluded.</p>
-                        <p>{requests === null ? "No reports received for this period." : `Based on ${measuredRequests.toLocaleString("en-US")} of ${requests.toLocaleString("en-US")} completed requests.`}</p>
-                      </>
-                    )}
+                    <p>Reported tokens divided by completed requests. Counts include only what upstream providers reported, so a request whose provider sent no usage adds nothing to the total, while image and unsettled requests still count in the divisor.</p>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -820,10 +800,10 @@ function StatsPageContent() {
                 <p className="mt-1 text-2xl text-foreground sm:text-3xl">
                   {avgTokensPerRequest === null
                     ? avgTokensEmptyLabel
-                    : `${avgTokensApproximate ? "~" : ""}${formatCompactNumber(avgTokensPerRequest, {
+                    : formatCompactNumber(avgTokensPerRequest, {
                         standardMaximumFractionDigits: 0,
                         compactMaximumFractionDigits: 1,
-                      })}`}
+                      })}
                 </p>
               )}
             </div>
@@ -1081,9 +1061,7 @@ function StatsPageContent() {
                 {sanity.hiddenProviders > 0 ? <p>{sanity.hiddenProviders === 1 ? "One provider is" : `${sanity.hiddenProviders} providers are`} hidden: staging endpoints or a known test signer.</p> : null}
                 {sanity.droppedBuckets > 0 ? <p>{sanity.droppedBuckets === 1 ? "One provider report is" : `${sanity.droppedBuckets} provider reports are`} excluded: the reported revenue is orders of magnitude above the period median.</p> : null}
                 {data?.historyIncomplete ? <p>Some reports could not be retrieved.</p> : null}
-                {hasLegacy ? <p>Older reports contribute to totals and charts. They do not identify the fully measured requests needed for the token average.</p> : null}
-                {inputEstimated + outputEstimated > 0 ? <p>Token totals include estimates.{avgTokensApproximate ? "" : " The average excludes estimated usage."}</p> : null}
-                {inputMissing + outputMissing > 0 ? <p>Some requests have incomplete token counts: {inputMissing} missing input counts and {outputMissing} missing output counts. Known counts remain in totals{avgTokensApproximate ? "." : "; these requests are excluded from the average."}</p> : null}
+                {hasLegacy ? <p>Older reports contribute to totals and charts.</p> : null}
               </PopoverContent>
             </Popover>
           </div>

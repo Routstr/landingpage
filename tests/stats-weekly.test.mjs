@@ -35,8 +35,7 @@ function modern(date, requests = 2, { epoch = 0, node = "provider", tokens = req
   const week = dayKey(ms(date) - ((new Date(ms(date)).getUTCDay() + 6) % 7) * DAY_MS);
   const provider = `38421:${PUBKEY}:${node}`;
   const hash = createHash("sha256").update(provider).digest("hex").slice(0, 16);
-  const values = [requests, requests, requests, 0, 0, tokens, 0, 0, 0, requests * 100,
-    0, 0, 0, 0, 0, 0, requests, requests, requests, tokens];
+  const values = [requests, tokens, 0, 0, 0, requests * 100];
   return finalizeEvent({ kind: 38422, created_at: CREATED, tags: [
     ["d", `routstr.analytics.v2:${hash}:week:${week}:epoch:${epoch}`], ["a", provider], ["w", week],
   ], content: JSON.stringify({ schema: "routstr.analytics.v2", week, epoch, coverage_start: date,
@@ -79,8 +78,7 @@ test("Weekly restores signed older totals that Daily cannot display, without inv
   assert.equal(sum(weekly), 140);
   assert.equal(sum(weekly, "total_revenue_msats"), 7000);
   assert.equal(sum(weekly, "total_tokens"), 1400);
-  assert.equal(sum(weekly, "measuredRequests"), 0);
-  assert.equal(sum(weekly, "measuredTokens"), 0);
+  assert.equal(sum(weekly, "total_tokens"), 1400);
   assert.equal(weekly.completeProviderDays, 0);
   assert.equal(weekly.reportedProviderDays, 7);
   assert.equal(weekly.expectedProviderDays, 365);
@@ -241,12 +239,12 @@ test("Any v2 day blocks a legacy weekly replacement, even conflicting epochs hid
   const selectedRange = range("2026-09-10", "2026-09-17");
   const selected = selectStats(await providers(old, first), selectedRange, "weekly");
   assert.equal(sum(selected), 5);
-  assert.equal(sum(selected, "measuredRequests"), 2);
-  assert.equal(sum(selected, "measuredTokens"), 40);
+  // The legacy weekly row is blocked, so tokens come from the two daily rows only.
+  assert.equal(sum(selected, "total_tokens"), 100);
   const conflict = selectStats(await providers(old, first, modern("2026-09-14", 4, { epoch: 1 })), selectedRange, "weekly");
   assert.equal(sum(conflict), 3);
   assert.equal(conflict.reportedProviderDays, 1);
-  assert.equal(sum(conflict, "measuredRequests"), 0);
+  assert.equal(sum(conflict, "total_tokens"), 60);
 });
 
 test("Provider selections add to the network totals and legacy weeks do not alter another provider's cohort", async () => {
@@ -257,12 +255,11 @@ test("Provider selections add to the network totals and legacy weeks do not alte
   const selectedRange = range("2026-09-10", "2026-09-17");
   const network = selectStats(parsed, selectedRange, "weekly");
   const each = parsed.map((provider) => selectStats([provider], selectedRange, "weekly"));
-  for (const field of ["total_successful", "total_revenue_msats", "total_tokens", "measuredRequests", "measuredTokens"]) {
+  for (const field of ["total_successful", "total_revenue_msats", "total_tokens"]) {
     assert.equal(sum(network, field), each.reduce((total, selected) => total + sum(selected, field), 0));
   }
   assert.equal(sum(network), 12);
-  assert.equal(sum(network, "measuredRequests"), 2);
-  assert.equal(sum(network, "measuredTokens"), 40);
+  assert.equal(sum(network, "total_tokens"), 240);
   assert.equal(network.reportingProviders, 2);
   assert.equal(network.reportedProviderDays, 8);
   assert.equal(network.completeProviderDays, 1);

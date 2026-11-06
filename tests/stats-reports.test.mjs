@@ -15,7 +15,8 @@ const KEY = new Uint8Array(32).fill(17);
 const PUBKEY = getPublicKey(KEY);
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/analytics-v2-daily.json", import.meta.url)));
 const zero = () => Array(V2_COLUMNS.length).fill(0);
-const values = (requests, { revenue = 0, tokens = 0 } = {}) => [requests, requests, requests, 0, 0, tokens, 0, 0, 0, revenue, 0, 0, 0, 0, 0, 0, requests, requests, requests, tokens];
+const values = (requests, { revenue = 0, tokens = 0, cacheRead = 0, cacheCreation = 0 } = {}) =>
+  [requests, tokens, 0, cacheRead, cacheCreation, revenue];
 
 function signed(payload, { node = "provider", epoch = payload.epoch ?? 0, created_at = fixture.created_at, tags } = {}) {
   const coordinate = `38421:${PUBKEY}:${node}`;
@@ -71,7 +72,7 @@ test("completed ranges have exact UTC edges, including leap years and timezone o
   assert.equal(dayKey(completedRange("1d", Date.parse("2026-09-18T00:30:00+05:30")).start), "2026-09-16");
 });
 
-test("real Core SDK signature, daily model partitions and provenance survive end to end", async () => {
+test("real Core SDK signature and daily model partitions survive end to end", async () => {
   const report = await parse(fixture);
   const selection = selectStats(buildProviders([report]), completedRange("7d", NOW));
   assert.equal(selection.completeProviderDays, 4);
@@ -79,16 +80,14 @@ test("real Core SDK signature, daily model partitions and provenance survive end
   assert.equal(selection.latestDataDay, "2026-09-17");
   assert.equal(sum(selection), 3);
   assert.equal(sum(selection, "total_tokens"), 190);
-  assert.equal(sum(selection, "measuredRequests"), 1);
-  assert.equal(sum(selection, "measuredTokens"), 170);
   assert.equal(selection.metrics[3].model_tokens["openai/gpt-test"], 170);
   assert.equal(sum(selection, "total_revenue_msats"), 3250);
-  assert.equal(sum(selection, "inputEstimated"), 1);
-  assert.equal(sum(selection, "outputMissing"), 1);
   assert.equal(selection.metrics[3].model_counts["model/free"], 1);
   assert.equal(selection.metrics[3].model_revenue_msats["model/free"], 0);
   assert.equal(selection.metrics[5].others, 1);
-  assert.equal(selection.metrics[5].token_coverage, "missing");
+  // Six columns report a billed request without saying whether its provider sent
+  // usage, so a zero-token day is reported as covered, not as missing counts.
+  assert.equal(selection.metrics[5].token_coverage, "complete");
   assert.equal(selection.metrics[3].token_coverage, "complete");
   assert.equal(selection.metrics[2].coverage, "missing");
   assert.equal(selection.metrics[4].coverage, "complete");
@@ -181,12 +180,13 @@ test("invalid signatures and signed coordinate mismatches cannot enter the data"
   ]) assert.equal(await parseStatsEvent(signed(payload, { tags }), NOW), null);
 });
 
-test("invalid coverage, unsafe counters, missing partitions and impossible provenance are rejected", async () => {
+test("invalid coverage, unsafe counters, missing partitions and wrong layouts are rejected", async () => {
   const modifications = [
     (p) => { p.days["2026-09-17"][0] = -1; },
-    (p) => { p.days["2026-09-17"][9] = Number.MAX_SAFE_INTEGER + 1; },
-    (p) => { p.days["2026-09-17"][1] = 0; },
-    (p) => { p.daily_models["2026-09-17"]["model/one"][9] = 12; },
+    (p) => { p.days["2026-09-17"][5] = Number.MAX_SAFE_INTEGER + 1; },
+    (p) => { p.days["2026-09-17"][0] = 0.5; },
+    (p) => { p.days["2026-09-17"].push(0); },
+    (p) => { p.daily_models["2026-09-17"]["model/one"][5] = 12; },
     (p) => { delete p.daily_models["2026-09-17"]._other; },
     (p) => { delete p.daily_models["2026-09-17"]; },
     (p) => { p.days["2026-09-16"] = zero(); },
@@ -194,6 +194,8 @@ test("invalid coverage, unsafe counters, missing partitions and impossible prove
     (p) => { p.coverage_start = "2026-02-30"; },
     (p) => { p.columns[0] = "different"; },
     (p) => { p.columns[0] = [p.columns[0]]; },
+    // The pre-release twenty-column layout is not accepted any more.
+    (p) => { p.columns = [...V2_COLUMNS.slice(0, 5), "measured_token_requests"]; },
   ];
   for (const modify of modifications) {
     const payload = reportPayload("2026-09-17", [values(1)]);
@@ -205,7 +207,7 @@ test("invalid coverage, unsafe counters, missing partitions and impossible prove
 test("a signed report larger than any producer frame is dropped, while that size stays valid for legacy", async () => {
   const payload = reportPayload("2026-09-14", [values(1)]);
   const day = payload.daily_models["2026-09-14"];
-  for (let i = 0; i < 2000; i++) day[`padding/model-${i}`] = zero();
+  for (let i = 0; i < 6000; i++) day[`padding/model-${i}`] = zero();
   assert.ok(JSON.stringify(payload).length > 96 * 1024);
   assert.equal(await parseStatsEvent(signed(payload), NOW), null);
   // The limit is bytes of the whole frame: short text can still be too large.
@@ -249,22 +251,13 @@ test("legacy timestamps without a timezone are UTC, independent of the browser t
 });
 
 
-const COHORT_COLUMNS = [...V2_COLUMNS.slice(0, 18), "measured_token_requests", "measured_tokens"];
-function cohortPayload(start, rows, options) {
-  const payload = reportPayload(start, rows, options);
-  payload.columns = COHORT_COLUMNS;
-  for (const models of Object.values(payload.daily_models)) models._other = Array(20).fill(0);
-  return payload;
-}
-const measuredValues = (requests, tokens) => [...values(requests, { tokens }).slice(0, 18), requests, tokens];
-
 function averageCard(context) {
   const source = readFileSync(new URL("../app/stats/page.tsx", import.meta.url), "utf8");
   const file = ts.createSourceFile("page.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declarations = [];
   let display;
   const visit = (node) => {
-    if (ts.isVariableDeclaration(node) && ["avgTokensApproximate", "avgTokensPerRequest", "avgTokensEmptyLabel"].includes(node.name.getText(file))) {
+    if (ts.isVariableDeclaration(node) && ["avgTokensPerRequest", "avgTokensEmptyLabel"].includes(node.name.getText(file))) {
       declarations.push(`const ${node.name.getText(file)} = ${node.initializer.getText(file)};`);
     }
     if (ts.isJsxExpression(node) && node.expression?.getText(file).startsWith("avgTokensPerRequest === null")) display = node.expression.getText(file);
@@ -273,63 +266,41 @@ function averageCard(context) {
   visit(file);
   assert.ok(display, "evaluate the actual token average card expression");
   return vm.runInNewContext(`${declarations.join("\n")}\n(${display})`, {
-    inputMissing: 0, outputMissing: 0, hasLegacy: false, formatCompactNumber: String, ...context,
+    formatCompactNumber: String, ...context,
   });
 }
 
 test("cache read and creation tokens are included in total, named model and Other totals", async () => {
-  const named = values(1, { tokens: 100 });
-  named[6] = 40;
-  named[7] = 30;
-  named[8] = 20;
-  named[3] = named[4] = 1;
-  named[16] = named[17] = 0;
-  named[19] = 190;
-  const other = values(1, { tokens: 10 });
-  other[6] = 4;
-  other[7] = 3;
-  other[8] = 2;
-  other[3] = other[4] = 1;
-  other[16] = other[17] = 0;
-  other[19] = 19;
+  // [requests, input, output, cacheRead, cacheCreation, revenue]
+  const named = [1, 60, 40, 30, 20, 0];
+  const other = [1, 0, 10, 3, 2, 0];
   const total = named.map((value, index) => value + other[index]);
   const payload = reportPayload("2026-09-17", [total]);
   payload.daily_models["2026-09-17"] = { "model/cached": named, _other: other };
   const selected = selectStats(buildProviders([await parse(signed(payload))]), completedRange("1d", NOW));
-  assert.equal(sum(selected, "total_tokens"), 209);
-  assert.equal(selected.metrics[0].model_tokens["model/cached"], 190);
-  assert.equal(selected.metrics[0].others_tokens, 19);
-  assert.equal(sum(selected, "measuredRequests"), 2);
-  assert.equal(sum(selected, "measuredTokens"), 209);
+  assert.equal(sum(selected, "total_tokens"), 165);
+  assert.equal(selected.metrics[0].model_tokens["model/cached"], 150);
+  assert.equal(selected.metrics[0].others_tokens, 15);
 });
 
-test("measured cohorts aggregate across days and providers without estimates, missing usage or legacy suppressing them", async () => {
-  const first = measuredValues(1, 40);
-  const mixed = [3, 1, 1, 0, 0, 80, 20, 0, 0, 0, 1, 1, 0, 0, 1, 1, 3, 3, 1, 50];
-  const modern = await parse(signed(cohortPayload("2026-09-16", [first, mixed])));
-  const second = await parse(signed(cohortPayload("2026-09-17", [measuredValues(2, 120)]), { node: "second" }));
+test("token totals aggregate across days and providers, and legacy days still count", async () => {
+  const first = await parse(signed(reportPayload("2026-09-16", [values(1, { tokens: 40 }), values(3, { tokens: 100 })])));
+  const second = await parse(signed(reportPayload("2026-09-17", [values(2, { tokens: 120 })]), { node: "second" }));
   const older = await parse(legacy([metric("2026-09-17", 10)], { node: "legacy-only" }));
-  const selection = selectStats(buildProviders([modern, second, older]), completedRange("7d", NOW));
+  const selection = selectStats(buildProviders([first, second, older]), completedRange("7d", NOW));
   assert.equal(sum(selection), 16);
-  assert.equal(sum(selection, "measuredRequests"), 4);
-  assert.equal(sum(selection, "measuredTokens"), 210);
-  assert.equal(averageCard({ requests: 16, tokens: 260, measuredRequests: 4, measuredTokens: 210, inputMissing: 1, outputMissing: 1, hasLegacy: true }), "52.5");
-  const yesterday = selectStats(buildProviders([modern, second, older]), completedRange("1d", NOW));
-  assert.equal(sum(yesterday, "measuredRequests"), 3);
-  assert.equal(sum(yesterday, "measuredTokens"), 170);
+  assert.equal(sum(selection, "total_tokens"), 260);
+  assert.equal(averageCard({ requests: 16, tokens: 260 }), String(260 / 16));
+  const yesterday = selectStats(buildProviders([first, second, older]), completedRange("1d", NOW));
+  assert.equal(sum(yesterday), 15);
+  assert.equal(sum(yesterday, "total_tokens"), 220);
 });
 
-test("measured average distinguishes unavailable samples, no requests, no reports and measured zero", () => {
-  assert.equal(averageCard({ requests: 3, tokens: 60, measuredRequests: 1, measuredTokens: 50, inputMissing: 1, outputMissing: 1 }), "50");
-  assert.equal(averageCard({ requests: 1, tokens: 0, measuredRequests: 1, measuredTokens: 0 }), "0");
-  assert.equal(averageCard({ requests: 2, tokens: 30, measuredRequests: 0, measuredTokens: 0 }), "Not reported");
-  assert.equal(averageCard({ requests: 0, tokens: 0, measuredRequests: 0, measuredTokens: 0 }), "No requests");
-  assert.equal(averageCard({ requests: null, tokens: null, measuredRequests: 0, measuredTokens: 0 }), "No data");
-});
-
-test("older reports show an approximate average until any measured sample exists", () => {
-  assert.equal(averageCard({ requests: 4, tokens: 100, measuredRequests: 0, measuredTokens: 0, hasLegacy: true }), "~25");
-  assert.equal(averageCard({ requests: 4, tokens: 100, measuredRequests: 1, measuredTokens: 60, hasLegacy: true }), "60");
+test("token average reports reported tokens per completed request, and degrades without data", () => {
+  assert.equal(averageCard({ requests: 3, tokens: 60 }), String(20));
+  assert.equal(averageCard({ requests: 1, tokens: 0 }), String(0));
+  assert.equal(averageCard({ requests: 0, tokens: 0 }), "No requests");
+  assert.equal(averageCard({ requests: null, tokens: null }), "No data");
 });
 
 test("legacy-only history keeps totals and models while modern days take precedence without duplication", async () => {
@@ -341,39 +312,30 @@ test("legacy-only history keeps totals and models while modern days take precede
   assert.equal(sum(legacyOnly), 20);
   assert.equal(sum(legacyOnly, "total_tokens"), 80);
   assert.equal(sum(legacyOnly, "total_revenue_msats"), 1250);
-  assert.equal(sum(legacyOnly, "measuredRequests"), 0);
+  assert.equal(sum(legacyOnly, "total_tokens"), 80);
   assert.equal(legacyOnly.metrics[5].model_counts["model/one"], 8);
   assert.equal(legacyOnly.metrics[5].model_tokens["model/one"], 80);
-  const modern = await parse(signed(cohortPayload("2026-09-17", [measuredValues(2, 100)])));
+  const modern = await parse(signed(reportPayload("2026-09-17", [values(2, { tokens: 100 })])));
   const mixed = selectStats(buildProviders([old, modern]), completedRange("7d", NOW));
   assert.equal(sum(mixed), 10);
   assert.equal(sum(mixed, "total_tokens"), 180);
-  assert.equal(sum(mixed, "measuredRequests"), 2);
-  assert.equal(sum(mixed, "measuredTokens"), 100);
   assert.equal(mixed.metrics[5].legacy, true);
   assert.equal(mixed.metrics[6].legacy, false);
 });
 
-test("measured cohort bounds and exact daily model partitions are validated", async () => {
-  const modifyBoth = (payload, index, value) => {
-    payload.days["2026-09-17"][index] = value;
-    payload.daily_models["2026-09-17"]["model/one"][index] = value;
-  };
+test("daily model partitions must sum to their day vector", async () => {
+  const modifyDay = (payload, index, value) => { payload.days["2026-09-17"][index] = value; };
+  const modifyModel = (payload, index, value) => { payload.daily_models["2026-09-17"]["model/one"][index] = value; };
   const modifications = [
-    (p) => modifyBoth(p, 18, 2),
-    (p) => { modifyBoth(p, 1, 0); modifyBoth(p, 14, 1); },
-    (p) => { modifyBoth(p, 2, 0); modifyBoth(p, 15, 1); },
-    (p) => modifyBoth(p, 19, 101),
-    (p) => modifyBoth(p, 18, 0),
-    (p) => modifyBoth(p, 18, 0.5),
-    (p) => modifyBoth(p, 19, Number.MAX_SAFE_INTEGER + 1),
-    (p) => { modifyBoth(p, 5, Number.MAX_SAFE_INTEGER); modifyBoth(p, 6, 1); },
-    (p) => { p.daily_models["2026-09-17"]["model/one"][19] = 99; },
-    (p) => { p.daily_models["2026-09-17"]["model/one"][18] = 0; p.daily_models["2026-09-17"]["model/one"][19] = 0; },
+    (p) => modifyDay(p, 0, 2),
+    (p) => modifyDay(p, 1, 101),
+    (p) => modifyModel(p, 1, 99),
+    (p) => modifyModel(p, 5, 99),
+    (p) => { modifyModel(p, 0, 0); },
   ];
-  await parse(signed(cohortPayload("2026-09-17", [measuredValues(1, 100)])));
+  await parse(signed(reportPayload("2026-09-17", [values(1, { tokens: 100 })])));
   for (const modify of modifications) {
-    const payload = cohortPayload("2026-09-17", [measuredValues(1, 100)]);
+    const payload = reportPayload("2026-09-17", [values(1, { tokens: 100 })]);
     modify(payload);
     assert.equal(await parseStatsEvent(signed(payload), NOW), null);
   }
