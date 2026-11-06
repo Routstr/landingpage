@@ -50,6 +50,11 @@ const menuGroups: MenuGroup[] = [
         description: "Inspect nodes, operators, and endpoint details.",
       },
       {
+        title: "Prices",
+        href: "/prices",
+        description: "Compare node prices and see who gets the traffic.",
+      },
+      {
         title: "Stats",
         href: "/stats",
         description: "Track usage, pricing, and network activity.",
@@ -355,6 +360,9 @@ export default function Header() {
           </Link>
           <Link href="/providers" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
             Providers
+          </Link>
+          <Link href="/prices" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
+            Prices
           </Link>
           <Link href="/stats" onClick={closeMobileMenu} className="text-base font-medium text-foreground">
             Stats

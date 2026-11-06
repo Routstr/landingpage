@@ -11,6 +11,7 @@ export default function Footer() {
   const exploreLinks: FooterLink[] = [
     { text: 'Models', href: '/models' },
     { text: 'Providers', href: '/providers' },
+    { text: 'Prices', href: '/prices' },
     { text: 'Stats', href: '/stats' },
     { text: 'Top-Up', href: '/topup' },
     { text: 'Blog', href: '/blog' },

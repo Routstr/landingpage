@@ -37,6 +37,7 @@ export interface Model {
     web_search: number;
     internal_reasoning: number;
     max_cost: number;
+    input_cache_read?: number;
   };
   sats_pricing: {
     prompt: number;
@@ -46,8 +47,13 @@ export interface Model {
     web_search: number;
     internal_reasoning: number;
     max_cost: number;
+    input_cache_read?: number;
   };
   per_request_limits: PerRequestLimits | null;
+  /** Other ids the node serves this model under. */
+  alias_ids?: readonly string[];
+  /** True when the node published no sats_pricing (the zeros are filler). */
+  sats_unpriced?: boolean;
   top_provider?: {
     context_length: number;
     max_completion_tokens: number | null;
@@ -89,6 +95,7 @@ type RawModel = {
   pricing?: Partial<Model["pricing"]>;
   sats_pricing?: Partial<Model["sats_pricing"]>;
   per_request_limits?: PerRequestLimits | null;
+  alias_ids?: unknown;
 };
 
 function isUnknownProviderName(name: string): boolean {
@@ -230,6 +237,7 @@ export async function fetchModels(
                     internal_reasoning:
                       rawModel.pricing?.internal_reasoning ?? 0,
                     max_cost: rawModel.pricing?.max_cost ?? 0,
+                    input_cache_read: rawModel.pricing?.input_cache_read,
                   },
                   sats_pricing: {
                     prompt: rawModel.sats_pricing?.prompt ?? 0,
@@ -240,8 +248,15 @@ export async function fetchModels(
                     internal_reasoning:
                       rawModel.sats_pricing?.internal_reasoning ?? 0,
                     max_cost: rawModel.sats_pricing?.max_cost ?? 0,
+                    input_cache_read: rawModel.sats_pricing?.input_cache_read,
                   },
                   per_request_limits: rawModel.per_request_limits ?? null,
+                  alias_ids: Array.isArray(rawModel.alias_ids)
+                    ? rawModel.alias_ids.filter(
+                        (alias): alias is string => typeof alias === "string"
+                      )
+                    : undefined,
+                  sats_unpriced: !rawModel.sats_pricing,
                   top_provider: {
                     context_length: contextLength,
                     max_completion_tokens: null,
