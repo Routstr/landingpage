@@ -194,7 +194,6 @@ test("invalid coverage, unsafe counters, missing partitions and wrong layouts ar
     (p) => { p.coverage_start = "2026-02-30"; },
     (p) => { p.columns[0] = "different"; },
     (p) => { p.columns[0] = [p.columns[0]]; },
-    // The pre-release twenty-column layout is not accepted any more.
     (p) => { p.columns = [...V2_COLUMNS.slice(0, 5), "measured_token_requests"]; },
   ];
   for (const modify of modifications) {
@@ -202,6 +201,29 @@ test("invalid coverage, unsafe counters, missing partitions and wrong layouts ar
     modify(payload);
     assert.equal(await parseStatsEvent(signed(payload), NOW), null);
   }
+});
+
+test("a pre-release twenty-column report is read as its six-column projection", async () => {
+  const LEGACY = ["completed_requests", "input_observed_requests", "output_observed_requests",
+    "cache_read_observed_requests", "cache_creation_observed_requests", "input_tokens", "output_tokens",
+    "cache_read_input_tokens", "cache_creation_input_tokens", "revenue_msats", "input_estimated_requests",
+    "output_estimated_requests", "cache_read_estimated_requests", "cache_creation_estimated_requests",
+    "input_missing_requests", "output_missing_requests", "cache_read_missing_requests",
+    "cache_creation_missing_requests", "measured_token_requests", "measured_tokens"];
+  const widen = (row) => LEGACY.map((name, i) => V2_COLUMNS.includes(name) ? row[V2_COLUMNS.indexOf(name)] : 7 + i);
+  const payload = reportPayload("2026-09-16", [values(2, { revenue: 900, tokens: 40, cacheRead: 5 }), values(1, { revenue: 100 })]);
+  payload.columns = LEGACY;
+  for (const date of Object.keys(payload.days)) {
+    payload.days[date] = widen(payload.days[date]);
+    for (const model of Object.keys(payload.daily_models[date])) payload.daily_models[date][model] = widen(payload.daily_models[date][model]);
+  }
+  const selection = selectStats(buildProviders([await parse(signed(payload))]), completedRange("7d", NOW));
+  assert.equal(sum(selection), 3);
+  assert.equal(sum(selection, "total_tokens"), 45);
+  assert.equal(sum(selection, "total_revenue_msats"), 1000);
+  assert.equal(selection.metrics.at(-2).model_counts["model/one"], 2);
+  payload.days["2026-09-16"] = values(2, { revenue: 900, tokens: 40, cacheRead: 5 });
+  assert.equal(await parseStatsEvent(signed(payload), NOW), null);
 });
 
 test("a signed report larger than any producer frame is dropped, while that size stays valid for legacy", async () => {
