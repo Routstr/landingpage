@@ -20,6 +20,16 @@ export const V2_COLUMNS = [
   "cache_read_input_tokens", "cache_creation_input_tokens", "revenue_msats",
 ] as const;
 
+const LEGACY_V2_COLUMNS = [
+  "completed_requests", "input_observed_requests", "output_observed_requests",
+  "cache_read_observed_requests", "cache_creation_observed_requests",
+  "input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "revenue_msats",
+  "input_estimated_requests", "output_estimated_requests", "cache_read_estimated_requests",
+  "cache_creation_estimated_requests", "input_missing_requests", "output_missing_requests",
+  "cache_read_missing_requests", "cache_creation_missing_requests", "measured_token_requests", "measured_tokens",
+] as const;
+const LEGACY_PROJECTION = V2_COLUMNS.map((name) => LEGACY_V2_COLUMNS.indexOf(name));
+
 export type StatsDay = ModelUsageMixMetric & {
   coverage: "complete" | "partial" | "missing";
   legacy: boolean;
@@ -79,11 +89,12 @@ export function emptyDay(ms: number): StatsDay {
   };
 }
 
-function vector(value: unknown): number[] | null {
-  if (!Array.isArray(value) || value.length !== V2_COLUMNS.length ||
+function vector(value: unknown, legacy = false): number[] | null {
+  if (!Array.isArray(value) || value.length !== (legacy ? LEGACY_V2_COLUMNS : V2_COLUMNS).length ||
       !value.every((item) => Number.isSafeInteger(item) && item >= 0)) return null;
-  if (!Number.isSafeInteger(value[1] + value[2] + value[3] + value[4])) return null;
-  return value;
+  const row = legacy ? LEGACY_PROJECTION.map((index) => value[index]) : value;
+  if (!Number.isSafeInteger(row[1] + row[2] + row[3] + row[4])) return null;
+  return row;
 }
 
 function addModels(target: Record<string, number>, source: Record<string, number>) {
@@ -115,13 +126,14 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
   const start = dayTime(payload.coverage_start);
   const through = dayTime(payload.through);
   const epoch = payload.epoch;
+  const sameColumns = (names: readonly string[]) => Array.isArray(payload.columns) &&
+    payload.columns.length === names.length && payload.columns.every((name, index) => name === names[index]);
+  const legacy = sameColumns(LEGACY_V2_COLUMNS);
   if (week === null || start === null || through === null || new Date(week).getUTCDay() !== 1 ||
       start < week || through < start || through >= week + 7 * DAY_MS ||
       through >= Math.floor(event.created_at * 1000 / DAY_MS) * DAY_MS ||
       !Number.isSafeInteger(epoch) || Number(epoch) < 0 || typeof payload.complete !== "boolean" ||
-      event.tags[2][1] !== payload.week ||
-      !Array.isArray(payload.columns) || payload.columns.length !== V2_COLUMNS.length ||
-      !payload.columns.every((name, index) => name === V2_COLUMNS[index])) return null;
+      event.tags[2][1] !== payload.week || !(legacy || sameColumns(V2_COLUMNS))) return null;
   if ((payload.corrected !== undefined && payload.corrected !== true) ||
       (payload.corrects !== undefined && (payload.corrected !== true || typeof payload.corrects !== "string" || !HEX_KEY.test(payload.corrects)))) return null;
   const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(providerId))))
@@ -134,7 +146,7 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
   const days: StatsDay[] = [];
   for (let ms = start; ms <= through; ms += DAY_MS) {
     const date = dayKey(ms);
-    const values = vector(totals[date]);
+    const values = vector(totals[date], legacy);
     const models = record(dailyModels[date]);
     if (!values || !models || !Object.hasOwn(models, "_other")) return null;
     const summed = Array<number>(V2_COLUMNS.length).fill(0);
@@ -145,7 +157,7 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
     day.total_tokens = values[1] + values[2] + values[3] + values[4];
     day.total_revenue_msats = values[5];
     for (const [model, raw] of Object.entries(models)) {
-      const row = vector(raw);
+      const row = vector(raw, legacy);
       if (!row || !model) return null;
       row.forEach((value, index) => { summed[index] += value; });
       const rowTokens = row[1] + row[2] + row[3] + row[4];
