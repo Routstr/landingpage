@@ -136,10 +136,21 @@ export function LandingHero() {
           <Button data-hero-button asChild className="h-10 w-full will-change-transform px-5 sm:w-auto">
             <Link href="/routstrd">Use Routstr</Link>
           </Button>
-          <Button data-hero-button asChild variant="outline" className="h-10 w-full will-change-transform px-5 sm:w-auto">
-            <Link href="https://chat.routstr.com" target="_blank" rel="noreferrer">
-              Chat with Routstr
-            </Link>
+          <Button
+            data-hero-button
+            type="button"
+            disabled
+            aria-disabled="true"
+            variant="outline"
+            className="h-10 w-full flex-col gap-0.5 will-change-transform px-2.5 disabled:opacity-60 sm:w-auto sm:flex-row sm:gap-2 sm:px-5"
+          >
+            <span className="leading-tight">Chat with Routstr</span>
+            <span
+              data-hero-badge
+              className="inline-flex shrink-0 items-center border border-border px-1.5 py-[0.15rem] text-[9px] font-bold uppercase leading-none tracking-[0.14em] text-muted-foreground"
+            >
+              Coming soon
+            </span>
           </Button>
         </div>
       </div>
