@@ -20,6 +20,31 @@ export const V2_COLUMNS = [
   "cache_read_input_tokens", "cache_creation_input_tokens", "revenue_msats",
 ] as const;
 
+// Pre-release twenty-column layout. Nodes that have not upgraded still publish
+// it, and a node never re-signs a frame it already delivered, so their closed
+// weeks stay in this layout on the relays for good. It is a superset of the six
+// measures above, so a legacy vector reads back as its canonical projection.
+const LEGACY_V2_COLUMNS = [
+  "completed_requests",
+  "input_observed_requests", "output_observed_requests",
+  "cache_read_observed_requests", "cache_creation_observed_requests",
+  "input_tokens", "output_tokens",
+  "cache_read_input_tokens", "cache_creation_input_tokens",
+  "revenue_msats",
+  "input_estimated_requests", "output_estimated_requests",
+  "cache_read_estimated_requests", "cache_creation_estimated_requests",
+  "input_missing_requests", "output_missing_requests",
+  "cache_read_missing_requests", "cache_creation_missing_requests",
+  "measured_token_requests", "measured_tokens",
+] as const;
+
+/** Where each canonical measure sits inside a pre-release vector. */
+const LEGACY_V2_PROJECTION: readonly number[] =
+  V2_COLUMNS.map((name) => (LEGACY_V2_COLUMNS as readonly string[]).indexOf(name));
+
+const V2_LAYOUTS = { canonical: V2_COLUMNS, legacy: LEGACY_V2_COLUMNS } as const;
+type V2Layout = keyof typeof V2_LAYOUTS;
+
 export type StatsDay = ModelUsageMixMetric & {
   coverage: "complete" | "partial" | "missing";
   legacy: boolean;
@@ -79,11 +104,29 @@ export function emptyDay(ms: number): StatsDay {
   };
 }
 
-function vector(value: unknown): number[] | null {
-  if (!Array.isArray(value) || value.length !== V2_COLUMNS.length ||
+/** A declared column list must be one of the two layouts, in order and complete. */
+function columnLayout(columns: unknown): V2Layout | null {
+  if (!Array.isArray(columns)) return null;
+  for (const layout of Object.keys(V2_LAYOUTS) as V2Layout[]) {
+    const names: readonly string[] = V2_LAYOUTS[layout];
+    if (columns.length === names.length && columns.every((name, index) => name === names[index])) return layout;
+  }
+  return null;
+}
+
+/**
+ * Read one metric vector as the six canonical measures. Both layouts are checked
+ * by width and by non-negative safe integers before any index is used, and the
+ * token sum must stay exact so a day's total can never round.
+ */
+function vector(value: unknown, layout: V2Layout): number[] | null {
+  if (!Array.isArray(value) || value.length !== V2_LAYOUTS[layout].length ||
       !value.every((item) => Number.isSafeInteger(item) && item >= 0)) return null;
-  if (!Number.isSafeInteger(value[1] + value[2] + value[3] + value[4])) return null;
-  return value;
+  const projected = layout === "canonical"
+    ? value
+    : LEGACY_V2_PROJECTION.map((index) => value[index]);
+  if (!Number.isSafeInteger(projected[1] + projected[2] + projected[3] + projected[4])) return null;
+  return projected;
 }
 
 function addModels(target: Record<string, number>, source: Record<string, number>) {
@@ -119,9 +162,9 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
       start < week || through < start || through >= week + 7 * DAY_MS ||
       through >= Math.floor(event.created_at * 1000 / DAY_MS) * DAY_MS ||
       !Number.isSafeInteger(epoch) || Number(epoch) < 0 || typeof payload.complete !== "boolean" ||
-      event.tags[2][1] !== payload.week ||
-      !Array.isArray(payload.columns) || payload.columns.length !== V2_COLUMNS.length ||
-      !payload.columns.every((name, index) => name === V2_COLUMNS[index])) return null;
+      event.tags[2][1] !== payload.week) return null;
+  const layout = columnLayout(payload.columns);
+  if (layout === null) return null;
   if ((payload.corrected !== undefined && payload.corrected !== true) ||
       (payload.corrects !== undefined && (payload.corrected !== true || typeof payload.corrects !== "string" || !HEX_KEY.test(payload.corrects)))) return null;
   const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(providerId))))
@@ -134,7 +177,7 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
   const days: StatsDay[] = [];
   for (let ms = start; ms <= through; ms += DAY_MS) {
     const date = dayKey(ms);
-    const values = vector(totals[date]);
+    const values = vector(totals[date], layout);
     const models = record(dailyModels[date]);
     if (!values || !models || !Object.hasOwn(models, "_other")) return null;
     const summed = Array<number>(V2_COLUMNS.length).fill(0);
@@ -145,7 +188,7 @@ async function parseV2(event: Event, payload: Record<string, unknown>, d: string
     day.total_tokens = values[1] + values[2] + values[3] + values[4];
     day.total_revenue_msats = values[5];
     for (const [model, raw] of Object.entries(models)) {
-      const row = vector(raw);
+      const row = vector(raw, layout);
       if (!row || !model) return null;
       row.forEach((value, index) => { summed[index] += value; });
       const rowTokens = row[1] + row[2] + row[3] + row[4];

@@ -18,6 +18,26 @@ const zero = () => Array(V2_COLUMNS.length).fill(0);
 const values = (requests, { revenue = 0, tokens = 0, cacheRead = 0, cacheCreation = 0 } = {}) =>
   [requests, tokens, 0, cacheRead, cacheCreation, revenue];
 
+// The pre-release layout a node publishes before it upgrades: the same six
+// measures plus the observed/estimated/missing split and the measured sample.
+const LEGACY_V2_COLUMNS = [
+  "completed_requests",
+  "input_observed_requests", "output_observed_requests",
+  "cache_read_observed_requests", "cache_creation_observed_requests",
+  "input_tokens", "output_tokens",
+  "cache_read_input_tokens", "cache_creation_input_tokens",
+  "revenue_msats",
+  "input_estimated_requests", "output_estimated_requests",
+  "cache_read_estimated_requests", "cache_creation_estimated_requests",
+  "input_missing_requests", "output_missing_requests",
+  "cache_read_missing_requests", "cache_creation_missing_requests",
+  "measured_token_requests", "measured_tokens",
+];
+/** Widen a canonical row into that twenty-column layout, keeping its totals. */
+const widen = ([requests, input, output, cacheRead, cacheCreation, revenue]) =>
+  [requests, requests, requests, requests, requests, input, output, cacheRead, cacheCreation, revenue,
+   0, 0, 0, 0, 0, 0, 0, 0, requests, input + output + cacheRead + cacheCreation];
+
 function signed(payload, { node = "provider", epoch = payload.epoch ?? 0, created_at = fixture.created_at, tags } = {}) {
   const coordinate = `38421:${PUBKEY}:${node}`;
   const hash = createHash("sha256").update(coordinate).digest("hex").slice(0, 16);
@@ -27,18 +47,20 @@ function signed(payload, { node = "provider", epoch = payload.epoch ?? 0, create
   ], content: JSON.stringify(payload) }, KEY);
 }
 
-function reportPayload(start, rows, { epoch = 0, model = "model/one" } = {}) {
+function reportPayload(start, rows, { epoch = 0, model = "model/one", layout = "canonical" } = {}) {
   const ms = Date.parse(`${start}T00:00:00Z`);
   const week = dayKey(ms - ((new Date(ms).getUTCDay() + 6) % 7) * DAY_MS);
+  const row = layout === "legacy" ? widen : (values) => [...values];
   const days = {};
   const daily_models = {};
-  rows.forEach((row, i) => {
+  rows.forEach((source, i) => {
     const date = dayKey(ms + i * DAY_MS);
-    days[date] = [...row];
-    daily_models[date] = { [model]: [...row], _other: zero() };
+    days[date] = row(source);
+    daily_models[date] = { [model]: row(source), _other: row(zero()) };
   });
   return { schema: "routstr.analytics.v2", week, epoch, coverage_start: start,
-    through: dayKey(ms + (rows.length - 1) * DAY_MS), complete: false, columns: [...V2_COLUMNS], days, daily_models };
+    through: dayKey(ms + (rows.length - 1) * DAY_MS), complete: false,
+    columns: layout === "legacy" ? [...LEGACY_V2_COLUMNS] : [...V2_COLUMNS], days, daily_models };
 }
 
 async function parse(event) {
@@ -92,6 +114,72 @@ test("real Core SDK signature and daily model partitions survive end to end", as
   assert.equal(selection.metrics[2].coverage, "missing");
   assert.equal(selection.metrics[4].coverage, "complete");
   assert.equal(selection.metrics[4].total_successful, 0);
+});
+
+test("a pre-release twenty-column report reads back as its six-column projection", async () => {
+  const report = await parse(signed(reportPayload("2026-09-14", [
+    values(2, { revenue: 2500, tokens: 135, cacheRead: 6, cacheCreation: 4 }),
+    values(1, { revenue: 750 }),
+  ], { layout: "legacy" })));
+  assert.equal(report.format, "v2");
+  assert.deepEqual(
+    report.days.map((day) => [day.total_successful, day.total_tokens, day.total_revenue_msats]),
+    [[2, 145, 2500], [1, 0, 750]],
+  );
+  assert.equal(report.days[0].model_tokens["model/one"], 145);
+  assert.equal(report.days[0].model_revenue_msats["model/one"], 2500);
+  assert.equal(report.days[0].coverage, "complete");
+  const selection = selectStats(buildProviders([report]), completedRange("30d", NOW));
+  assert.equal(sum(selection), 3);
+  assert.equal(sum(selection, "total_tokens"), 145);
+  assert.equal(sum(selection, "total_revenue_msats"), 3250);
+});
+
+test("a node that upgrades mid-stream keeps its closed pre-release weeks and its new ones", async () => {
+  // A node never re-signs a delivered frame, so a week it published before the
+  // upgrade stays twenty-wide while later weeks arrive six-wide.
+  const reports = [
+    await parse(signed(reportPayload("2026-09-07", [values(4)], { layout: "legacy" }))),
+    await parse(signed(reportPayload("2026-09-14", [values(3)]))),
+  ];
+  const providers = buildProviders(reports);
+  assert.equal(providers.length, 1);
+  assert.deepEqual(providers[0].reports.map((report) => report.days[0].timestamp.slice(0, 10)), ["2026-09-07", "2026-09-14"]);
+  assert.ok(providers[0].reports.every((report) => report.format === "v2"));
+  const selection = selectStats(providers, completedRange("30d", NOW));
+  assert.equal(sum(selection), 7);
+  assert.equal(selection.reportedProviderDays, 2);
+  assert.equal(selection.completeProviderDays, 2);
+});
+
+test("a re-published week replaces its pre-release copy instead of counting twice", async () => {
+  const before = signed(reportPayload("2026-09-14", [values(5)], { layout: "legacy" }));
+  const after = signed(reportPayload("2026-09-14", [values(5)]), { created_at: before.created_at + 600 });
+  // The layout is not part of the address, so both layouts share one coordinate.
+  assert.equal(before.tags[0][1], after.tags[0][1]);
+  const providers = buildProviders([await parse(before), await parse(after)]);
+  assert.equal(providers[0].reports.length, 1);
+  assert.equal(JSON.parse(providers[0].reports[0].event.content).columns.length, V2_COLUMNS.length);
+  assert.equal(sum(selectStats(providers, completedRange("30d", NOW))), 5);
+});
+
+test("a pre-release vector must match its declared width and its own totals", async () => {
+  const modifications = [
+    (p) => { p.columns = [...LEGACY_V2_COLUMNS.slice(0, 19), "measured_token_requests"]; },
+    (p) => { p.columns[5] = "output_tokens"; },
+    (p) => { p.columns = [...LEGACY_V2_COLUMNS].reverse(); },
+    // Six-wide rows cannot hide inside a twenty-wide report.
+    (p) => { p.days["2026-09-17"] = values(1); },
+    (p) => { p.daily_models["2026-09-17"]["model/one"].push(0); },
+    // A model row that no longer sums to the day total is rejected as before.
+    (p) => { p.daily_models["2026-09-17"]["model/one"][9] = 12; },
+    (p) => { p.daily_models["2026-09-17"]["model/one"][9] = -1; },
+  ];
+  for (const modify of modifications) {
+    const payload = reportPayload("2026-09-17", [values(1)], { layout: "legacy" });
+    modify(payload);
+    assert.equal(await parseStatsEvent(signed(payload), NOW), null);
+  }
 });
 
 test("Yesterday uses only its exact daily model partition, including an observed zero", async () => {
@@ -194,7 +282,7 @@ test("invalid coverage, unsafe counters, missing partitions and wrong layouts ar
     (p) => { p.coverage_start = "2026-02-30"; },
     (p) => { p.columns[0] = "different"; },
     (p) => { p.columns[0] = [p.columns[0]]; },
-    // The pre-release twenty-column layout is not accepted any more.
+    // A six-wide list cannot borrow a pre-release name to look familiar.
     (p) => { p.columns = [...V2_COLUMNS.slice(0, 5), "measured_token_requests"]; },
   ];
   for (const modify of modifications) {
