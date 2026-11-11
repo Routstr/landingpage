@@ -1610,6 +1610,52 @@
             "creationDate": "Tue, 10 Nov 2026 12:30:24 GMT",
             "ts": "Tue, 10 Nov 2026 12:30:24 GMT",
             "publishState": "published"
+        },
+        "0.2.1": {
+            "manifest": {
+                "id": "io.routstr.routstrd-auth",
+                "title": "Routstrd Auth",
+                "author": "Routstr <hello@routstr.io>",
+                "description": "Auth proxy and daemon for the Routstr AI routing network",
+                "tagline": "Self-hosted Routstr node with bearer-token auth",
+                "version": "0.2.1",
+                "upstreamVersion": "0.2.1",
+                "healthCheckPath": "/health",
+                "httpPort": 8008,
+                "memoryLimit": 536870912,
+                "addons": {
+                    "localstorage": {
+                        "sqlite": {
+                            "paths": [
+                                "/app/data/routstrd/routstr.db"
+                            ]
+                        }
+                    }
+                },
+                "manifestVersion": 2,
+                "website": "https://routstr.com",
+                "contactEmail": "team@routstr.com",
+                "iconUrl": "https://routstr.com/favicon.ico",
+                "packagerName": "Routstr",
+                "packagerUrl": "https://github.com/Routstr",
+                "minBoxVersion": "10.1.1",
+                "changelog": "* The image no longer ships the inherited C/C++ build toolchain. `build-essential`, the `gcc`/`g++`/`cpp` compiler packages, `binutils`, `make`, `libc6-dev` and `linux-libc-dev` are purged after the dependencies are installed, which removes 17 of the 18 CRITICAL vulnerabilities the image used to carry. Nothing in the app compiles anything at runtime: Bun, the `routstrd` daemon and the auth proxy are all prebuilt. The one remaining CRITICAL is `gosu`'s Go standard library, inherited from the Cloudron base image and still recorded with a statement and expiry in `.trivyignore.yaml`. The image size is unchanged, because files removed from inherited layers still occupy those layers\n* Release reports now show what is actually in the image. Accepted findings used to be filtered out of the Trivy report, so a release report looked identical to a clean image; the full report now retains them with the acceptance statement that covers each one, and the summary counts unaccepted, accepted, introduced and dependency findings separately. What blocks a release is unchanged\n* The security gate now warns before an acceptance expires (30 and 7 days out, and once it has expired) and when an acceptance no longer matches anything the scans report, instead of that surfacing as a blocked release\n* The gate fails closed. A scan that errors, a missing lockfile or an unusable report now stops the release with a distinct exit code rather than being read as a pass, and `.trivyignore.yaml` is validated before any scan starts\n* Updated bundled routstrd to 0.5.0 and routstr-sdk to 0.5.1\n",
+                "postInstallMessage": "Routstrd Auth is now installed.\n\nThe app exposes an OpenAI-compatible Routstr endpoint protected by bearer-token auth. Persistent wallet/config/database data is stored under Cloudron's app data directory and included in backups.\n\nIf you need admin-only client management endpoints, set `routstrd remote <url>` and run `routstrd npubs register --name \"Your Name\"` to register the first admin npub. A display name is required, and the CLI prompts for one if you leave the flag out.\n",
+                "tags": [
+                    "ai",
+                    "proxy",
+                    "nostr",
+                    "bitcoin",
+                    "openai"
+                ],
+                "mediaLinks": [
+                    "https://www.routstr.com/"
+                ],
+                "dockerImage": "ghcr.io/sh1ftred/routstrd-pro:20261111-061143-c03b5ed08"
+            },
+            "creationDate": "Wed, 11 Nov 2026 06:13:44 GMT",
+            "ts": "Wed, 11 Nov 2026 06:13:44 GMT",
+            "publishState": "published"
         }
     }
 }
