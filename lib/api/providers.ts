@@ -44,11 +44,58 @@ export function getProviderEndpoints(provider: {
   );
 }
 
+const isLocalIpv4 = (host: string): boolean => {
+  const m = host.match(/^(\d+)\.(\d+)\.\d+\.\d+$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+};
+
+/**
+ * An endpoint on the announcer's own machine or network (localhost, names
+ * without a dot or under .local, .internal, .lan or .home.arpa, loopback and
+ * private addresses). Nobody else can reach it, and fetching it from this
+ * site makes the browser ask the visitor for local network access.
+ */
+export function isLocalNetworkEndpoint(urlOrHost: string): boolean {
+  let host: string;
+  try {
+    host = new URL(normalizeEndpointForFetch(urlOrHost.trim()), "https://routstr.com").hostname
+      .toLowerCase()
+      .replace(/\.$/, "");
+  } catch {
+    return false;
+  }
+  if (host === "localhost" || /\.(localhost|local|internal|lan|home\.arpa)$/.test(host)) {
+    return true;
+  }
+  if (!host.startsWith("[")) return !host.includes(".") || isLocalIpv4(host);
+  const v6 = host.slice(1, -1);
+  // the URL parser writes an IPv4-mapped address in hex: ::ffff:7f00:1
+  const mapped = v6.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mapped) {
+    const hi = parseInt(mapped[1], 16);
+    const lo = parseInt(mapped[2], 16);
+    return isLocalIpv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
+  return v6 === "::" || v6 === "::1" || /^f[cd][0-9a-f]{2}:/.test(v6) || /^fe[89ab][0-9a-f]:/.test(v6);
+}
+
 export function getProviderNonStagingEndpoints(provider: {
   endpoint_url: string;
   endpoint_urls?: readonly string[];
 }): string[] {
-  return filterStagingEndpoints(getProviderEndpoints(provider));
+  return filterStagingEndpoints(getProviderEndpoints(provider)).filter(
+    (url) => !isLocalNetworkEndpoint(url)
+  );
 }
 
 export function isOnionEndpoint(url: string): boolean {
@@ -65,7 +112,8 @@ export function getPrimaryHttpEndpoint(provider: {
 }): string {
   const nonStaging = getProviderNonStagingEndpoints(provider);
   const nonOnion = nonStaging.filter((url) => !isOnionEndpoint(url));
-  return (nonOnion[0] || provider.endpoint_url || "").trim();
+  const fallback = isLocalNetworkEndpoint(provider.endpoint_url || "") ? "" : provider.endpoint_url;
+  return (nonOnion[0] || fallback || "").trim();
 }
 
 export function isProviderVisible(provider: {
@@ -76,7 +124,8 @@ export function isProviderVisible(provider: {
   const endpoints = getProviderEndpoints(provider);
   const nameOrTag = `${provider.name || ""}`.toLowerCase();
   const looksLikeStaging = nameOrTag.includes("staging");
-  return !shouldHideProvider(endpoints) && !looksLikeStaging;
+  const localOnly = endpoints.length > 0 && endpoints.every(isLocalNetworkEndpoint);
+  return !shouldHideProvider(endpoints) && !looksLikeStaging && !localOnly;
 }
 
 export function isOnionOnlyProvider(provider: {
