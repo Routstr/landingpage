@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { RoutstrMark } from '@/components/RoutstrMark';
+import { DotMatrixLockup } from '@/components/DotMatrixLockup';
 
 type FooterLink = {
   text: string;
@@ -104,12 +105,7 @@ export default function Footer() {
       </div>
 
       {/* Large brand lockup */}
-      <div className="pointer-events-none mx-auto mt-16 flex max-w-[1800px] select-none items-center justify-center gap-4 overflow-hidden md:mt-32 md:gap-8">
-        <RoutstrMark className="h-[2.4rem] w-[2.4rem] shrink-0 text-card sm:h-[4.8rem] sm:w-[4.8rem] md:h-[8rem] md:w-[8rem] lg:h-[9.6rem] lg:w-[9.6rem]" />
-        <span className="block text-[3rem] font-bold leading-none tracking-tighter text-card sm:text-[6rem] md:text-[10rem] lg:text-[12rem]">
-          ROUTSTR
-        </span>
-      </div>
+      <DotMatrixLockup />
     </div>
   );
 }
