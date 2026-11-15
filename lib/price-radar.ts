@@ -302,6 +302,29 @@ export function buildRadar(
     .sort((a, b) => a.modelId.localeCompare(b.modelId));
 }
 
+/**
+ * The curated list in a kind 38423 event, as row ids in the order it publishes
+ * them. The list spells ids the way the chat app requests them, so it is
+ * resolved through the same mappings the radar canonicalizes with: a curated
+ * id that is a node's variant spelling still matches the canonical row. Ids
+ * are trimmed, empty ones are dropped, and a repeat keeps its first place.
+ */
+export function curatedModelIds(
+  ids: readonly string[],
+  mappings: ModelIdMappings = {}
+): Map<string, number> {
+  const curated = new Map<string, number>();
+  for (const raw of ids) {
+    const id = raw.trim();
+    if (!id) continue;
+    const canonical = Object.prototype.hasOwnProperty.call(mappings, id)
+      ? mappings[id]
+      : id;
+    if (!curated.has(canonical)) curated.set(canonical, curated.size);
+  }
+  return curated;
+}
+
 /** A node within this cut of first counts as close. */
 export const CLOSE_CUT_PCT = 5;
 
