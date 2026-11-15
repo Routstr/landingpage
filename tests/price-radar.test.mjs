@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildRadar,
+  curatedModelIds,
   indexListPrices,
   isApproved,
   latestReviewLabels,
@@ -186,4 +187,41 @@ test("a node's summary counts its models, firsts and close calls", () => {
     first: 0,
     close: 0,
   });
+});
+
+test("the curated list names the ids apps request, in its own order", () => {
+  const curated = curatedModelIds(
+    ["glm-5.3", "claude-opus-5.5", " z-ai-glm-5-3 ", "", "  ", "glm-5.3"],
+    { "z-ai-glm-5-3": "glm-5.3" }
+  );
+  // A repeat keeps its first place; the bare id and its variant are one row.
+  assert.deepEqual(
+    [...curated].sort((a, b) => a[1] - b[1]),
+    [
+      ["glm-5.3", 0],
+      ["claude-opus-5.5", 1],
+    ]
+  );
+  assert.equal(curatedModelIds([]).size, 0);
+});
+
+test("a curated id a node only serves under a variant spelling still matches", () => {
+  const ids = ["z-ai-glm-5-3"];
+  const mappings = parseModelIdMappings('{"mappings":{"z-ai-glm-5-3":"glm-5.3"}}');
+  const rows = buildRadar(
+    [
+      {
+        url: "https://a.example",
+        name: "a",
+        approved: true,
+        models: [{ id: "z-ai-glm-5-3", sats_pricing: { prompt: 1, completion: 1 } }],
+      },
+    ],
+    { mappings }
+  );
+  const curated = curatedModelIds(ids, mappings);
+  assert.deepEqual(
+    rows.filter((row) => curated.has(row.modelId)).map((row) => row.modelId),
+    ["glm-5.3"]
+  );
 });

@@ -17,14 +17,17 @@ import {
 import {
   buildRadar,
   CLOSE_CUT_PCT,
+  curatedModelIds,
   isApproved,
   standing,
   summarizeNode,
   type ModelIdMappings,
   type RadarEntry,
   type RadarNode,
+  type RadarRow,
   type TokenRates,
 } from "@/lib/price-radar";
+import { fetchRoutstr21ModelIds } from "@/lib/routstr21";
 
 const MY_NODE_KEY = "routstr:prices:node";
 
@@ -52,6 +55,115 @@ function VsList({ multiplier }: { multiplier: number | null }) {
   return <>{pct < 0 ? `−${-pct}` : pct > 0 ? `+${pct}` : "0"}%</>;
 }
 
+function RadarRowItem({
+  row,
+  picked,
+  open,
+  onToggle,
+}: {
+  row: RadarRow;
+  picked: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const mine = row.entries.find((entry) => entry.url === picked);
+  const shown = mine && picked ? mine : row.winner;
+  const dearest = Math.max(0, ...row.entries.map((e) => e.sats));
+  return (
+    <Fragment>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="group grid grid-cols-12 items-center gap-4 border-b border-border/30 px-4 py-4 text-left transition-colors hover:bg-card"
+      >
+        <span className="col-span-6 flex min-w-0 items-center gap-2 md:col-span-4">
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+          />
+          <span className="min-w-0 break-words font-mono text-sm text-foreground md:truncate">
+            {row.modelId.split("/").map((part, i) => (
+              <Fragment key={i}>
+                {i > 0 && <>/<wbr /></>}
+                {part}
+              </Fragment>
+            ))}
+          </span>
+        </span>
+        <span className="hidden truncate text-xs text-muted-foreground md:col-span-3 md:block">
+          {row.winner?.name ?? "—"}
+        </span>
+        <span className="col-span-3 text-right font-mono text-sm text-foreground md:col-span-2">
+          {shown ? formatSats(shown.sats) : "—"}
+        </span>
+        <span className="hidden text-right font-mono text-xs text-muted-foreground md:col-span-1 md:block">
+          <VsList multiplier={shown?.multiplier ?? null} />
+        </span>
+        <span className="col-span-3 text-right font-mono text-xs text-muted-foreground md:col-span-2">
+          {picked
+            ? mine?.rank
+              ? `#${mine.rank} · ${formatGap(mine)}`
+              : "—"
+            : row.entries.filter((e) => e.approved).length}
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-b border-border/30 bg-card/40 px-4 py-2">
+          {row.entries.map((entry) => (
+            <div
+              key={entry.url}
+              className={`grid grid-cols-12 gap-4 py-2 text-xs ${entry.approved ? "text-foreground" : "text-muted-foreground"} ${entry.url === picked ? "font-bold" : ""}`}
+            >
+              <span className="col-span-6 flex min-w-0 items-center gap-3 md:col-span-7">
+                <span className="w-6 shrink-0 font-mono text-muted-foreground">
+                  {entry.rank ?? "—"}
+                </span>
+                <span className="min-w-0 truncate md:w-56 md:shrink-0">
+                  {entry.name}
+                  {entry.approved ? "" : " · not approved"}
+                </span>
+                <span aria-hidden="true" className="relative hidden h-1 flex-1 bg-border/60 md:block">
+                  <span
+                    className={`absolute inset-y-0 left-0 ${entry.url === picked ? "bg-brand" : "bg-muted-foreground/40"}`}
+                    style={{ width: `${dearest > 0 ? (entry.sats / dearest) * 100 : 0}%` }}
+                  />
+                </span>
+              </span>
+              <span className="col-span-3 text-right font-mono md:col-span-2">
+                {formatSats(entry.sats)}
+              </span>
+              <span className="hidden text-right font-mono md:col-span-1 md:block">
+                <VsList multiplier={entry.multiplier} />
+              </span>
+              <span className="col-span-3 text-right font-mono md:col-span-2">
+                {formatGap(entry)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Fragment>
+  );
+}
+
+function SectionHeading({
+  title,
+  detail,
+}: {
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className="border-b border-border bg-card/50 px-4 py-3">
+      <h2 className="font-mono text-xs font-bold uppercase tracking-wide text-foreground">
+        {title}
+      </h2>
+      <p className="mt-1 text-[11px] text-muted-foreground">{detail}</p>
+    </div>
+  );
+}
+
 function writeUrl(node: string, query: string) {
   const url = new URL(window.location.href);
   for (const [key, value] of [
@@ -72,6 +184,7 @@ export default function PricesPage() {
   const [listPrices, setListPrices] = useState<Map<string, TokenRates>>(
     () => new Map()
   );
+  const [curatedIds, setCuratedIds] = useState<string[] | null>(null);
   const [search, setSearch] = useState("");
   const [myNode, setMyNode] = useState("");
   const [openModel, setOpenModel] = useState<string | null>(null);
@@ -86,6 +199,7 @@ export default function PricesPage() {
     } catch {
       // storage blocked: start with no node picked
     }
+    void fetchRoutstr21ModelIds().then((ids) => active && setCuratedIds(ids));
     void fetchReviewLabels().then((found) => active && setLabels(found));
     void fetchModelIdMappings().then((found) => active && setMappings(found));
     void fetchListPrices().then((found) => active && setListPrices(found));
@@ -154,10 +268,9 @@ export default function PricesPage() {
     [radarNodes, listPrices, mappings]
   );
 
-  const visibleRows = useMemo(() => {
+  // The rows the search box and the rank tabs admit, in both sections.
+  const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const approvedCount = (entries: readonly RadarEntry[]) =>
-      entries.filter((entry) => entry.approved).length;
     return rows
       .filter((row) => !term || row.modelId.toLowerCase().includes(term))
       .filter((row) => {
@@ -169,13 +282,41 @@ export default function PricesPage() {
           view === "all" ||
           (view === "behind" ? place !== "first" : place === view)
         );
-      })
-      .sort(
-        (a, b) =>
-          approvedCount(b.entries) - approvedCount(a.entries) ||
-          a.modelId.localeCompare(b.modelId)
-      );
+      });
   }, [rows, search, picked, view]);
+
+  // Routstr's curated list (kind 38423) leads, in the order it publishes. The
+  // same models are shown again below, so nothing is hidden by being curated.
+  const curated = useMemo(
+    () => curatedModelIds(curatedIds ?? [], mappings ?? {}),
+    [curatedIds, mappings]
+  );
+
+  const curatedRows = useMemo(
+    () =>
+      filteredRows
+        .filter((row) => curated.has(row.modelId))
+        .sort(
+          (a, b) =>
+            (curated.get(a.modelId) ?? 0) - (curated.get(b.modelId) ?? 0)
+        ),
+    [filteredRows, curated]
+  );
+
+  // Everything, curated rows included: a curated model is listed twice on
+  // purpose, once as a pick and once in the full price table, so the second
+  // section stays a complete list rather than a list with holes in it.
+  const otherRows = useMemo(() => {
+    const approvedCount = (entries: readonly RadarEntry[]) =>
+      entries.filter((entry) => entry.approved).length;
+    return [...filteredRows].sort(
+      (a, b) =>
+        approvedCount(b.entries) - approvedCount(a.entries) ||
+        a.modelId.localeCompare(b.modelId)
+    );
+  }, [filteredRows]);
+
+  const visibleRowsCount = otherRows.length;
 
   const summary = useMemo(
     () => (picked ? summarizeNode(rows, picked) : null),
@@ -183,7 +324,13 @@ export default function PricesPage() {
   );
 
   const approvedNodes = radarNodes.filter((node) => node.approved).length;
-  const loading = !labels || !mappings || (loadingNodes && rows.length === 0);
+  // Wait for the curated list too: rendering sections before it lands would
+  // show every row under "All models" and then move the curated ones up.
+  const loading =
+    !labels ||
+    !mappings ||
+    curatedIds === null ||
+    (loadingNodes && rows.length === 0);
   const lastColumn = picked ? "Your rank" : "Nodes";
 
   return (
@@ -226,7 +373,7 @@ export default function PricesPage() {
             </select>
             {!loading && (
               <span className="font-mono text-xs text-muted-foreground md:ml-auto">
-                {approvedNodes} approved nodes · {visibleRows.length} models
+                {approvedNodes} approved nodes · {visibleRowsCount} models
               </span>
             )}
           </div>
@@ -302,93 +449,66 @@ export default function PricesPage() {
                   <div className="col-span-3 h-3 rounded bg-border md:col-span-2" />
                 </div>
               ))
-            ) : visibleRows.length === 0 ? (
+            ) : visibleRowsCount === 0 ? (
               <div className="py-12 text-center font-mono text-sm text-muted-foreground">
                 No models found.
               </div>
             ) : (
-              visibleRows.map((row) => {
-                const mine = row.entries.find((entry) => entry.url === picked);
-                const shown = mine && picked ? mine : row.winner;
-                const isOpen = openModel === row.modelId;
-                const dearest = Math.max(0, ...row.entries.map((e) => e.sats));
-                return (
-                  <Fragment key={row.modelId}>
-                    <button
-                      type="button"
-                      onClick={() => setOpenModel(isOpen ? null : row.modelId)}
-                      aria-expanded={isOpen}
-                      className="group grid grid-cols-12 items-center gap-4 border-b border-border/30 px-4 py-4 text-left transition-colors hover:bg-card"
-                    >
-                      <span className="col-span-6 flex min-w-0 items-center gap-2 md:col-span-4">
-                        <ChevronDown
-                          className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
-                        />
-                        <span className="min-w-0 break-words font-mono text-sm text-foreground md:truncate">
-                          {row.modelId.split("/").map((part, i) => (
-                            <Fragment key={i}>
-                              {i > 0 && <>/<wbr /></>}
-                              {part}
-                            </Fragment>
-                          ))}
-                        </span>
-                      </span>
-                      <span className="hidden truncate text-xs text-muted-foreground md:col-span-3 md:block">
-                        {row.winner?.name ?? "—"}
-                      </span>
-                      <span className="col-span-3 text-right font-mono text-sm text-foreground md:col-span-2">
-                        {shown ? formatSats(shown.sats) : "—"}
-                      </span>
-                      <span className="hidden text-right font-mono text-xs text-muted-foreground md:col-span-1 md:block">
-                        <VsList multiplier={shown?.multiplier ?? null} />
-                      </span>
-                      <span className="col-span-3 text-right font-mono text-xs text-muted-foreground md:col-span-2">
-                        {picked
-                          ? mine?.rank
-                            ? `#${mine.rank} · ${formatGap(mine)}`
-                            : "—"
-                          : row.entries.filter((e) => e.approved).length}
-                      </span>
-                    </button>
+              <>
+                {curatedRows.length > 0 && (
+                  <section aria-labelledby="curated-models">
+                    <div id="curated-models">
+                      <SectionHeading
+                        title="Curated models"
+                        detail="Routstr's picks, in the order the list publishes."
+                      />
+                    </div>
+                    {curatedRows.map((row) => (
+                      <RadarRowItem
+                        key={`curated:${row.modelId}`}
+                        row={row}
+                        picked={picked}
+                        open={openModel === `curated:${row.modelId}`}
+                        onToggle={() =>
+                          setOpenModel(
+                            openModel === `curated:${row.modelId}`
+                              ? null
+                              : `curated:${row.modelId}`
+                          )
+                        }
+                      />
+                    ))}
+                  </section>
+                )}
 
-                    {isOpen && (
-                      <div className="border-b border-border/30 bg-card/40 px-4 py-2">
-                        {row.entries.map((entry) => (
-                          <div
-                            key={entry.url}
-                            className={`grid grid-cols-12 gap-4 py-2 text-xs ${entry.approved ? "text-foreground" : "text-muted-foreground"} ${entry.url === picked ? "font-bold" : ""}`}
-                          >
-                            <span className="col-span-6 flex min-w-0 items-center gap-3 md:col-span-7">
-                              <span className="w-6 shrink-0 font-mono text-muted-foreground">
-                                {entry.rank ?? "—"}
-                              </span>
-                              <span className="min-w-0 truncate md:w-56 md:shrink-0">
-                                {entry.name}
-                                {entry.approved ? "" : " · not approved"}
-                              </span>
-                              <span aria-hidden="true" className="relative hidden h-1 flex-1 bg-border/60 md:block">
-                                <span
-                                  className={`absolute inset-y-0 left-0 ${entry.url === picked ? "bg-brand" : "bg-muted-foreground/40"}`}
-                                  style={{ width: `${dearest > 0 ? (entry.sats / dearest) * 100 : 0}%` }}
-                                />
-                              </span>
-                            </span>
-                            <span className="col-span-3 text-right font-mono md:col-span-2">
-                              {formatSats(entry.sats)}
-                            </span>
-                            <span className="hidden text-right font-mono md:col-span-1 md:block">
-                              <VsList multiplier={entry.multiplier} />
-                            </span>
-                            <span className="col-span-3 text-right font-mono md:col-span-2">
-                              {formatGap(entry)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Fragment>
-                );
-              })
+                {otherRows.length > 0 && (
+                  <section aria-labelledby="all-models">
+                    <div id="all-models">
+                      <SectionHeading
+                        title="All models"
+                        detail={`Every model, ${
+                          curatedRows.length > 0
+                            ? "curated ones included — "
+                            : ""
+                        }most approved nodes first, then by name.`}
+                      />
+                    </div>
+                    {otherRows.map((row) => (
+                      <RadarRowItem
+                        key={row.modelId}
+                        row={row}
+                        picked={picked}
+                        open={openModel === row.modelId}
+                        onToggle={() =>
+                          setOpenModel(
+                            openModel === row.modelId ? null : row.modelId
+                          )
+                        }
+                      />
+                    ))}
+                  </section>
+                )}
+              </>
             )}
           </div>
         </PageContainer>
