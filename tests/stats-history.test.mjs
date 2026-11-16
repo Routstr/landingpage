@@ -55,7 +55,7 @@ function harness(onSubscribe, { relays = ["wss://test.invalid"], sdkSubscription
     DAY_MS, completedRange: (window) => completedRange(window, NOW),
     parseStatsEvent: (event) => parseStatsEvent(event, NOW), reportWins,
     STATS_CACHE_KEY: "stats_snapshots_cache_v3", LEGACY_STATS_CACHE_KEY: "stats_snapshots_cache_v2", STATS_CACHE_TTL_MS: DAY_MS, window: browser,
-    createStatsPool: () => pool, Date: FixedDate, DOMException, URL, setTimeout: (callback, delay) => setTimeout(callback, delay / timeScale), clearTimeout,
+    createPool: () => pool, Date: FixedDate, DOMException, URL, setTimeout: (callback, delay) => setTimeout(callback, delay / timeScale), clearTimeout,
   };
   vm.runInNewContext(code, context);
   return { fetch: context.exports.fetch, readCache: context.exports.readCache, writeCache: context.exports.writeCache, storage, browser, filters, get closed() { return closed; }, get subscriptionsClosed() { return subscriptionsClosed; } };

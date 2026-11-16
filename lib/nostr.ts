@@ -1,4 +1,4 @@
-import { nip19, SimplePool, getPublicKey as getPublicKeyFromPrivate, finalizeEvent } from 'nostr-tools';
+import { nip19, getPublicKey as getPublicKeyFromPrivate, finalizeEvent } from 'nostr-tools';
 import type { Event } from 'nostr-tools';
 
 // Define the Window interface extension for Nostr
@@ -108,10 +108,7 @@ export const signEvent = async (content: string, kind = 1): Promise<Event | null
   }
 };
 
-// Create a new SimplePool for relay connections
-export const createPool = (): SimplePool => {
-  return new SimplePool();
-};
+export { createPool } from "./relay-client";
 
 // Get a list of default relays
 export const getDefaultRelays = (): string[] => {

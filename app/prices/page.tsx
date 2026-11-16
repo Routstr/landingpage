@@ -404,7 +404,7 @@ export default function PricesPage() {
                 {Object.entries(discovery.relays).map(([url, state]) => (
                   <div key={url} className="flex justify-between gap-3">
                     <span>{url.replace("wss://", "")}</span>
-                    <span className="text-muted-foreground">{state === "no-events" ? "no events returned" : state}</span>
+                    <span className="text-muted-foreground">{state === "no-events" ? "no events returned" : state === "timeout" ? "timed out" : state}</span>
                   </div>
                 ))}
               </PopoverContent>

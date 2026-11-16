@@ -4,14 +4,14 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import test from "node:test";
 import vm from "node:vm";
-import { verifyEvent } from "nostr-tools";
-import { AbstractSimplePool } from "nostr-tools/abstract-pool";
+import { RelayPool } from "applesauce-relay";
+import { RelayClient } from "../lib/relay-client.ts";
 import ts from "typescript";
 import { DAY_MS, completedRange, parseStatsEvent, reportWins } from "../lib/stats-reports.ts";
 
 const source = readFileSync(new URL("../app/stats/page.tsx", import.meta.url), "utf8");
 const file = ts.createSourceFile("page.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const names = new Set(["fetchStatsSnapshots", "createStatsPool", "createAbortError", "normalizeRelayUrl", "createInitialRelayStatuses"]);
+const names = new Set(["fetchStatsSnapshots", "createPool", "createAbortError", "normalizeRelayUrl", "createInitialRelayStatuses"]);
 const declarations = file.statements.filter((node) => ts.isFunctionDeclaration(node) && node.name && names.has(node.name.text));
 const code = ts.transpileModule(declarations.map((node) => node.getText(file)).join("\n") + "\nexports.fetch = fetchStatsSnapshots;", {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
@@ -46,10 +46,12 @@ async function delayedHandshake(t) {
   class TrackedWebSocket extends WebSocket {
     constructor(...args) { super(...args); clients.push(this); }
   }
+  const transport = new RelayPool({ WebSocket: TrackedWebSocket, keepAlive: 0 });
+  t.after(() => transport.close());
   const context = {
     exports: {}, RELAYS: [`ws://127.0.0.1:${server.address().port}`], ANALYTICS_KIND: 38422,
     DAY_MS, completedRange, parseStatsEvent, reportWins, Date, URL, DOMException,
-    AbstractSimplePool, verifyEvent, WebSocket: TrackedWebSocket,
+    createPool: () => new RelayClient(transport),
     setTimeout: (callback, delay) => setTimeout(callback, delay / 100), clearTimeout,
   };
   vm.runInNewContext(code, context);

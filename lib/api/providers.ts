@@ -1,4 +1,4 @@
-import { SimplePool } from "nostr-tools";
+import { createPool, type RelayFetchState } from "../relay-client";
 import type { Event } from "nostr-tools";
 import { filterStagingEndpoints, shouldHideProvider } from "@/lib/staging-filter";
 import { consolidateAnnouncementsByKey } from "./provider-consolidation";
@@ -9,7 +9,7 @@ const DISCOVERY_RELAYS = [
   "wss://nos.lol",
   "wss://relay.routstr.com",
 ];
-export type DiscoveryRelayState = "connecting" | "connected" | "received" | "no-events" | "failed";
+export type DiscoveryRelayState = RelayFetchState;
 export interface ProviderDiscoveryProgress {
   nodes: number | null;
   relays: Record<string, DiscoveryRelayState>;
@@ -146,25 +146,13 @@ function eventToProviderRecord(event: Event): ProviderApiRecord | null {
 async function fetchProvidersFromNostr(
   onRelay?: (url: string, state: DiscoveryRelayState) => void
 ): Promise<ProviderApiRecord[]> {
-  const pool = new SimplePool();
+  const pool = createPool();
   try {
-    const results = await Promise.all(DISCOVERY_RELAYS.map(async (url) => {
-      try {
-        await pool.ensureRelay(url, { connectionTimeout: 5000 });
-        onRelay?.(url, "connected");
-        const events = await pool.querySync(
-          [url],
-          { kinds: [PROVIDER_ANNOUNCEMENT_KIND], limit: 200 },
-          { maxWait: 5000 }
-        );
-        onRelay?.(url, events.length ? "received" : "no-events");
-        return events;
-      } catch {
-        onRelay?.(url, "failed");
-        return [];
-      }
-    }));
-    const events = results.flat();
+    const events = await pool.querySync(
+      DISCOVERY_RELAYS,
+      { kinds: [PROVIDER_ANNOUNCEMENT_KIND], limit: 200 },
+      { maxWait: 5000, onState: onRelay }
+    );
 
     // NIP-01 addressable-event rule: newest (pubkey, d) wins, ties to lower id.
     const latest = new Map<string, Event>();

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { SimplePool } from 'nostr-tools';
+import type { RelayClient } from '@/lib/relay-client';
 import { 
   getPublicKey, 
   isNostrExtensionAvailable, 
@@ -22,7 +22,7 @@ type NostrContextType = {
   login: () => Promise<boolean>;
   loginWithNsec: (nsec: string) => boolean;
   logout: () => void;
-  pool: SimplePool | null;
+  pool: RelayClient | null;
   publishEvent: (content: string, kind?: number, tags?: string[][]) => Promise<Event | null>;
 };
 
@@ -44,7 +44,7 @@ export function NostrProvider({ children }: { children: ReactNode }) {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<Uint8Array | null>(null);
   const [isNostrAvailable, setIsNostrAvailable] = useState(false);
-  const [pool, setPool] = useState<SimplePool | null>(null);
+  const [pool, setPool] = useState<RelayClient | null>(null);
 
   // Initialize on mount
   useEffect(() => {

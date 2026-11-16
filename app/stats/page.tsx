@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronsUpDown, CircleHelp } from "lucide-react";
-import { verifyEvent, type Event } from "nostr-tools";
-import { AbstractSimplePool } from "nostr-tools/abstract-pool";
+import { type Event } from "nostr-tools";
+import { createPool } from "@/lib/relay-client";
 import {
   ANALYTICS_KIND, DAY_MS, WINDOW_OPTIONS, buildProviders, completedRange,
   dayKey, parseStatsEvent, reportWins, sanitizeStatsProviders, selectStats,
@@ -327,38 +327,13 @@ function createAbortError(): Error {
   return error;
 }
 
-function createStatsPool() {
-  const sockets = new Set<WebSocket>();
-  const pool = new AbstractSimplePool({
-    verifyEvent,
-    maxWaitForConnection: 3000,
-    websocketImplementation: class extends WebSocket {
-      constructor(url: string | URL, protocols?: string | string[]) {
-        super(url, protocols);
-        sockets.add(this);
-        this.addEventListener("close", () => sockets.delete(this), { once: true });
-      }
-    },
-  });
-  return {
-    subscribeMany: pool.subscribeMany.bind(pool),
-    close(relays: string[]) {
-      pool.close(relays);
-      // The SDK drops timed-out connections before closing their pending sockets.
-      for (const socket of Array.from(sockets)) {
-        if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) socket.close();
-      }
-    },
-  };
-}
-
 async function fetchStatsSnapshots(
   seedCoords: Record<string, CachedCoord>,
   signal?: AbortSignal,
   onProgress?: (data: StatsFetchData) => void,
 ): Promise<StatsFetchData> {
   if (signal?.aborted) throw createAbortError();
-  const pool = createStatsPool();
+  const pool = createPool();
   const coords = { ...seedCoords };
   const relayStatuses = createInitialRelayStatuses();
   const seen = new Set<string>();
@@ -408,7 +383,7 @@ async function fetchStatsSnapshots(
         }));
       },
       oneose() {
-        // A pool emits EOSE immediately before onclose when a relay fails.
+        // Defer completion so callbacks can finish processing this response.
         void Promise.resolve().then(() => finish());
       },
       onclose(reasons) {
