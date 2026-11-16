@@ -29,6 +29,8 @@ import {
 } from "@/lib/price-radar";
 import { fetchRoutstr21ModelIds } from "@/lib/routstr21";
 
+import { initialProviderDiscovery } from "@/lib/api/providers";
+
 const MY_NODE_KEY = "routstr:prices:node";
 
 type LoadedNode = { provider: Provider; models: Model[] };
@@ -177,6 +179,7 @@ function writeUrl(node: string, query: string) {
 }
 
 export default function PricesPage() {
+  const [discovery, setDiscovery] = useState(initialProviderDiscovery);
   const [nodes, setNodes] = useState<LoadedNode[]>([]);
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [labels, setLabels] = useState<Map<string, string> | null>(null);
@@ -209,7 +212,7 @@ export default function PricesPage() {
         ...prev.filter((node) => node.provider.pubkey !== provider.pubkey),
         { provider, models },
       ]);
-    }).finally(() => active && setLoadingNodes(false));
+    }, (progress) => { if (active) setDiscovery(progress); }).finally(() => active && setLoadingNodes(false));
     return () => {
       active = false;
     };
@@ -376,6 +379,36 @@ export default function PricesPage() {
                 {approvedNodes} approved nodes · {visibleRowsCount} models
               </span>
             )}
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-2 font-mono text-[11px] text-muted-foreground">
+            <span title="Unique nodes from Nostr announcements and the HTTP directory, deduplicated by public key">
+              {discovery.nodes ?? "…"} nodes found
+            </span>
+            <span aria-hidden="true">·</span>
+            <span title="Non-staging nodes that returned a non-empty model catalog">
+              {nodes.filter(node => node.models.length > 0).length} with models{loadingNodes ? " (loading…)" : ""}
+            </span>
+            <span aria-hidden="true">·</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className="flex items-center gap-1.5 py-1" aria-label="Discovery relay status">
+                  Relays
+                  {Object.entries(discovery.relays).map(([url, state]) => (
+                    <span key={url} className={`h-1.5 w-1.5 rounded-full ${state === "received" || state === "connected" ? "bg-muted-foreground" : "bg-border"} ${state === "connecting" ? "animate-pulse" : ""}`} />
+                  ))}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-72 space-y-2 text-[11px]">
+                <p className="text-muted-foreground">Node discovery — latest fetch</p>
+                {Object.entries(discovery.relays).map(([url, state]) => (
+                  <div key={url} className="flex justify-between gap-3">
+                    <span>{url.replace("wss://", "")}</span>
+                    <span className="text-muted-foreground">{state === "no-events" ? "no events returned" : state}</span>
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {summary && !loading && (

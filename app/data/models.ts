@@ -14,6 +14,7 @@ import {
   isProviderVisible,
   normalizeEndpointForFetch,
   type ProviderApiRecord,
+  type ProviderDiscoveryProgress,
 } from "@/lib/api/providers";
 
 export interface Model {
@@ -116,10 +117,11 @@ export let modelProviderEntries: Map<
 
 // Fetch models and providers from the new API
 export async function fetchModels(
-  onProgress?: (provider: Provider, models: Model[]) => void
+  onProgress?: (provider: Provider, models: Model[]) => void,
+  onDiscovery?: (progress: ProviderDiscoveryProgress) => void
 ): Promise<void> {
   try {
-    const list = await fetchProvidersList();
+    const list = await fetchProvidersList(fetch, onDiscovery);
 
     // staging filtering based on endpoints and name
     const visible = list.filter(isProviderVisible);

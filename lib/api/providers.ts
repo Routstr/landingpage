@@ -9,6 +9,15 @@ const DISCOVERY_RELAYS = [
   "wss://nos.lol",
   "wss://relay.routstr.com",
 ];
+export type DiscoveryRelayState = "connecting" | "connected" | "received" | "no-events" | "failed";
+export interface ProviderDiscoveryProgress {
+  nodes: number | null;
+  relays: Record<string, DiscoveryRelayState>;
+}
+export function initialProviderDiscovery(): ProviderDiscoveryProgress {
+  return { nodes: null, relays: Object.fromEntries(DISCOVERY_RELAYS.map(url => [url, "connecting"])) };
+}
+
 export const PROVIDERS_API_URL = "https://routstr.otrta.me/v1/providers/";
 
 export interface ProviderApiRecord {
@@ -134,14 +143,28 @@ function eventToProviderRecord(event: Event): ProviderApiRecord | null {
   };
 }
 
-async function fetchProvidersFromNostr(): Promise<ProviderApiRecord[]> {
+async function fetchProvidersFromNostr(
+  onRelay?: (url: string, state: DiscoveryRelayState) => void
+): Promise<ProviderApiRecord[]> {
   const pool = new SimplePool();
   try {
-    const events = await pool.querySync(
-      DISCOVERY_RELAYS,
-      { kinds: [PROVIDER_ANNOUNCEMENT_KIND], limit: 200 },
-      { maxWait: 5000 }
-    );
+    const results = await Promise.all(DISCOVERY_RELAYS.map(async (url) => {
+      try {
+        await pool.ensureRelay(url, { connectionTimeout: 5000 });
+        onRelay?.(url, "connected");
+        const events = await pool.querySync(
+          [url],
+          { kinds: [PROVIDER_ANNOUNCEMENT_KIND], limit: 200 },
+          { maxWait: 5000 }
+        );
+        onRelay?.(url, events.length ? "received" : "no-events");
+        return events;
+      } catch {
+        onRelay?.(url, "failed");
+        return [];
+      }
+    }));
+    const events = results.flat();
 
     // NIP-01 addressable-event rule: newest (pubkey, d) wins, ties to lower id.
     const latest = new Map<string, Event>();
@@ -180,10 +203,17 @@ async function fetchProvidersFromHttp(
 // Relays and the HTTP directory each see a partial view of the network,
 // so neither is trusted alone and neither is required.
 export async function fetchProvidersList(
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  onProgress?: (progress: ProviderDiscoveryProgress) => void
 ): Promise<ProviderApiRecord[]> {
+  const progress = initialProviderDiscovery();
+  const emit = () => onProgress?.({ ...progress, relays: { ...progress.relays } });
+  emit();
   const [nostr, http] = await Promise.allSettled([
-    fetchProvidersFromNostr(),
+    fetchProvidersFromNostr((url, state) => {
+      progress.relays[url] = state;
+      emit();
+    }),
     fetchProvidersFromHttp(fetchImpl),
   ]);
 
@@ -199,13 +229,18 @@ export async function fetchProvidersList(
   }
 
   if (merged.size === 0) {
+    progress.nodes = 0;
+    emit();
     if (nostr.status === "rejected") throw nostr.reason;
     if (http.status === "rejected") throw http.reason;
   }
 
   // A key that rotated its `d` tag still has its previous announcement on the
   // relays, so keep one row per key (see provider-consolidation.ts).
-  return consolidateAnnouncementsByKey(Array.from(merged.values())).sort(
+  const providers = consolidateAnnouncementsByKey(Array.from(merged.values())).sort(
     (a, b) => b.created_at - a.created_at
   );
+  progress.nodes = providers.length;
+  emit();
+  return providers;
 }
