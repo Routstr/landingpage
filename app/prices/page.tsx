@@ -75,7 +75,7 @@ function RadarRowItem({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="group grid grid-cols-12 items-center gap-4 border-b border-border/30 px-4 py-4 text-left transition-colors hover:bg-card"
+        className="group grid w-full grid-cols-12 items-center gap-4 border-b border-border/30 px-4 py-4 text-left transition-colors hover:bg-card"
       >
         <span className="col-span-6 flex min-w-0 items-center gap-2 md:col-span-4">
           <ChevronDown
