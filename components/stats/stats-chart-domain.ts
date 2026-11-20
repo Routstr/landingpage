@@ -16,6 +16,18 @@ export const CHART_MODES: ReadonlyArray<{
 
 const MODE_BY_ID = new Map(CHART_MODES.map((entry) => [entry.id, entry]));
 
+/**
+ * The short identifier shown beside a provider's row when two providers share a
+ * display label. A provider id is `38421:<pubkey>:<signed node id>`, so the
+ * public key prefix distinguishes them; slicing the raw id would render the
+ * constant `38421:` for every row, which distinguishes nothing.
+ */
+export function providerShortId(providerId: string): string {
+  const [kind, pubkey] = providerId.split(":");
+  if (kind === "38421" && pubkey) return pubkey.slice(0, 12);
+  return providerId.slice(0, 12);
+}
+
 export function isChartMode(value: string): value is ChartMode {
   return MODE_BY_ID.has(value as ChartMode);
 }

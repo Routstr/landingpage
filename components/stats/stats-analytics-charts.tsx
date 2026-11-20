@@ -18,6 +18,7 @@ import {
   getModeLabel,
   getModeUnit,
   isChartMode,
+  providerShortId,
   type ChartMode,
 } from "@/components/stats/stats-chart-domain";
 
@@ -238,7 +239,7 @@ export function ProviderComparisonChart({
                     ? `${segment.providerCount} ${segment.providerCount === 1 ? "provider" : "providers"}`
                     : `${segment.activeModels} ${segment.activeModels === 1 ? "model" : "models"} reported`}
                   {segment.kind !== "other" && duplicateLabels.has(segment.label)
-                    ? ` · ${segment.id.slice(0, 12)}`
+                    ? ` · ${providerShortId(segment.id)}`
                     : ""}
                 </p>
               </div>
@@ -282,7 +283,7 @@ export function ProviderComparisonChart({
                     {point.activeModels}{" "}
                     {point.activeModels === 1 ? "model" : "models"} reported
                     {duplicateLabels.has(point.providerLabel)
-                      ? ` · ${point.providerId.slice(0, 12)}`
+                      ? ` · ${providerShortId(point.providerId)}`
                       : ""}
                   </p>
                 </div>

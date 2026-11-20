@@ -10,6 +10,10 @@ import {
   type StatsGrouping, type StatsProvider, type StatsReport, type WindowKey,
 } from "@/lib/stats-reports";
 import {
+  PROVIDER_ANNOUNCEMENT_KIND, applyProviderLabels, providerLabelsFromAnnouncements,
+  sanitizeProviderLabels,
+} from "@/lib/provider-identity";
+import {
   QueryClient,
   QueryClientProvider,
   useQuery,
@@ -67,6 +71,8 @@ type StatsQueryData = {
 };
 type CachedCoord = { lastObservedAtMs: number; report: StatsReport };
 type StatsFetchData = { relayStatuses: Record<string, RelayStatus>; coords: Record<string, CachedCoord>; historyIncomplete: boolean };
+/** Public key to display label, joined from the kind 38421 announcements. */
+type ProviderLabels = Record<string, string>;
 
 // relay.ditto.pub accepts 4 MB events, so it holds provider reports that the
 // 128 KiB relays reject outright. Stats only, other features do not need it.
@@ -85,6 +91,7 @@ const RELAYS = Array.from(
 const ALL_PROVIDERS_ID = "__all_providers__";
 const STATS_CACHE_KEY = "stats_snapshots_cache_v3";
 const LEGACY_STATS_CACHE_KEY = "stats_snapshots_cache_v2";
+const PROVIDER_LABELS_CACHE_KEY = "stats_provider_labels_v1";
 const STATS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const STATS_QUERY_KEY = ["stats-snapshots"] as const;
 const STATS_REFETCH_MS = 15 * 60_000;
@@ -310,8 +317,44 @@ async function updateStatsCache(coords: Record<string, CachedCoord>): Promise<Re
   catch { return persist(); }
 }
 
-function buildTimelinesFromCoords(coords: CachedCoord[]): ProviderTimeline[] {
-  return buildProviders(coords.map((coord) => coord.report));
+/**
+ * Display labels come from the kind 38421 announcement, read as one bounded
+ * query per refresh. It is independent of the report walk below: a report hands
+ * the page only its signed node id, which is usually the public key prefix, so
+ * the name and the advertised host only exist in the announcement. The walk
+ * keeps paginating on its own and does not wait for this, and a relay that
+ * fails here costs labels, never numbers.
+ *
+ * This never rejects, not even on abort: it can outlive the report walk that
+ * started it, and a rejected promise nobody is left awaiting would surface as an
+ * unhandled rejection over a purely cosmetic read.
+ */
+async function fetchProviderLabels(): Promise<ProviderLabels> {
+  const pool = createPool();
+  try {
+    const events = await pool.querySync(
+      RELAYS, { kinds: [PROVIDER_ANNOUNCEMENT_KIND], limit: 200 }, { maxWait: 8000 },
+    );
+    return providerLabelsFromAnnouncements(events);
+  } catch { return {}; }
+  finally { pool.close(RELAYS); }
+}
+
+/** Announcement labels are cached small and unsigned on read, so re-validate them. */
+function readProviderLabelsCache(): ProviderLabels {
+  if (typeof window === "undefined") return {};
+  try { return sanitizeProviderLabels(JSON.parse(window.localStorage.getItem(PROVIDER_LABELS_CACHE_KEY) ?? "null")); }
+  catch { return {}; }
+}
+
+function writeProviderLabelsCache(labels: ProviderLabels) {
+  if (typeof window === "undefined" || Object.keys(labels).length === 0) return;
+  try { window.localStorage.setItem(PROVIDER_LABELS_CACHE_KEY, JSON.stringify(labels)); }
+  catch { /* Relay data remains usable when browser storage is full. */ }
+}
+
+function buildTimelinesFromCoords(coords: CachedCoord[], labels: ProviderLabels = {}): ProviderTimeline[] {
+  return applyProviderLabels(buildProviders(coords.map((coord) => coord.report)), labels);
 }
 
 function isAbortError(error: unknown): boolean {
@@ -432,8 +475,10 @@ async function fetchStatsSnapshots(
   } finally { pool.close(RELAYS); }
 }
 
-function queryDataFromFetch(data: StatsFetchData, refreshedAt: number | null): StatsQueryData {
-  const timelines = buildTimelinesFromCoords(Object.values(data.coords));
+function queryDataFromFetch(
+  data: StatsFetchData, labels: ProviderLabels, refreshedAt: number | null,
+): StatsQueryData {
+  const timelines = buildTimelinesFromCoords(Object.values(data.coords), labels);
   const delivered = Object.values(data.relayStatuses).some((relay) => relay.state === "active" || relay.state === "done");
   return { timelines, relayStatuses: data.relayStatuses, historyIncomplete: data.historyIncomplete, refreshedAt,
     emptyMessage: timelines.length ? null : delivered ? "No supported analytics reports found yet." : "No relay returned analytics stats. Retrying shortly." };
@@ -444,15 +489,24 @@ async function fetchStatsSnapshotsWithFallback(
   onProgress?: (data: StatsQueryData) => void,
 ): Promise<StatsQueryData> {
   const cachedCoords = await readStatsCache();
-  if (Object.keys(cachedCoords).length) onProgress?.(queryDataFromFetch({ coords: cachedCoords, relayStatuses: createInitialRelayStatuses(), historyIncomplete: false }, null));
+  // Labels are read in parallel with the report walk so the extra kind costs
+  // one bounded query instead of another round of pagination. Cached names are
+  // the floor: a relay that answers nothing this round must not downgrade a
+  // named provider back to its node id.
+  const labelsPromise = fetchProviderLabels();
+  const cachedLabels = readProviderLabelsCache();
+  if (Object.keys(cachedCoords).length) onProgress?.(queryDataFromFetch({ coords: cachedCoords, relayStatuses: createInitialRelayStatuses(), historyIncomplete: false }, cachedLabels, null));
   try {
     const live = await fetchStatsSnapshots(cachedCoords, signal, (data) => {
-      if (Object.keys(data.coords).length) onProgress?.(queryDataFromFetch(data, null));
+      if (Object.keys(data.coords).length) onProgress?.(queryDataFromFetch(data, cachedLabels, null));
     });
-    return queryDataFromFetch({ ...live, coords: await updateStatsCache(live.coords) }, Date.now());
+    const labels = { ...cachedLabels, ...await labelsPromise };
+    writeProviderLabelsCache(labels);
+    return queryDataFromFetch({ ...live, coords: await updateStatsCache(live.coords) }, labels, Date.now());
   } catch (error) {
     if (isAbortError(error)) throw error;
-    if (Object.keys(cachedCoords).length) return queryDataFromFetch({ coords: cachedCoords, relayStatuses: createInitialRelayStatuses(), historyIncomplete: true }, null);
+    // Cached reports keep their labels when the network half-fails.
+    if (Object.keys(cachedCoords).length) return queryDataFromFetch({ coords: cachedCoords, relayStatuses: createInitialRelayStatuses(), historyIncomplete: true }, cachedLabels, null);
     throw error;
   }
 }
