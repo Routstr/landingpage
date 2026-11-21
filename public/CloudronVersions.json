@@ -1656,6 +1656,52 @@
             "creationDate": "Wed, 11 Nov 2026 06:13:44 GMT",
             "ts": "Wed, 11 Nov 2026 06:13:44 GMT",
             "publishState": "published"
+        },
+        "0.2.2": {
+            "manifest": {
+                "id": "io.routstr.routstrd-auth",
+                "title": "Routstrd Auth",
+                "author": "Routstr <hello@routstr.io>",
+                "description": "Auth proxy and daemon for the Routstr AI routing network",
+                "tagline": "Self-hosted Routstr node with bearer-token auth",
+                "version": "0.2.2",
+                "upstreamVersion": "0.2.2",
+                "healthCheckPath": "/health",
+                "httpPort": 8008,
+                "memoryLimit": 536870912,
+                "addons": {
+                    "localstorage": {
+                        "sqlite": {
+                            "paths": [
+                                "/app/data/routstrd/routstr.db"
+                            ]
+                        }
+                    }
+                },
+                "manifestVersion": 2,
+                "website": "https://routstr.com",
+                "contactEmail": "team@routstr.com",
+                "iconUrl": "https://routstr.com/favicon.ico",
+                "packagerName": "Routstr",
+                "packagerUrl": "https://github.com/Routstr",
+                "minBoxVersion": "10.1.1",
+                "changelog": "* Security: the first-admin slot can no longer be claimed by an anonymous caller. While no npub is registered, `POST /npubs` makes its caller an admin, and the app is reachable directly on its public port with no access control in front of it -- so from install until registration anyone on the internet could take the admin role and, with it, wallet sends and every provider credential in plaintext. The proxy now prints a one-time token at startup (or takes `ROUTSTRD_AUTH_BOOTSTRAP_TOKEN`) and requires it in `x-routstr-bootstrap-token` to claim the first admin; the token is voided by the first successful claim, and a rejected attempt does not consume it. **Instances updating to this release with an empty npub table must read the token from the app log and claim the first admin with the curl in POSTINSTALL.md** -- this is what the update notes describe. Existing registrations are unaffected\n* Security: replayed NIP-98 events are refused. The proxy validated kind, freshness, URL, method, payload hash and signature but never recorded `event.id`, so a captured request could be presented again inside the freshness window -- twice for a wallet send, twice billed for inference. Accepted ids are now kept for twice the freshness window, and a second presentation returns `401` with `code: \"nip98_replayed\"`. Single use is per-proxy and in memory: it does not survive a restart or span two instances. `ROUTSTRD_AUTH_REPLAY_CACHE_MAX` bounds the cache (default 16384, about 131 accepted requests/second sustained over the 125-second retention); at capacity new authenticated requests return `503` rather than evicting a still-valid id\n* Security: NIP-98 signed URLs are bound to a configured origin. The `u` tag was compared against the request's own URL patched with the caller-supplied `x-forwarded-proto` / `x-forwarded-host`, so on a deployment that does not overwrite those headers a caller could pick the host its signature was checked against and replay an event signed for another service. `ROUTSTRD_AUTH_PUBLIC_URL` now pins the origin, and on Cloudron `CLOUDRON_APP_ORIGIN` is used when it is unset; the startup log says which mode is in effect\n* Security: blocks of the daemon are no longer reachable just because no rule mentioned them. Every method/path pair the proxy forwards is now listed in `src/daemon-routes.ts` with an access level, and anything unlisted returns 404 -- including for a valid administrator, and including new endpoints a future daemon introduces. API keys stay limited to the inference and image routes. This closes routes that were reachable by prefix, such as `GET /models/<anything>`\n* Security: removing an npub now stops the clients it created. `DELETE /npubs/<x>` removed the row and left the API keys in the daemon's storage, so they kept authenticating to the inference routes and silently lost their monthly cap and usage attribution at the same time. A key whose recorded owner is no longer registered is refused with `403 client_owner_not_registered` and starts working again when the npub is re-registered. Clients created before owner attribution existed record no owner and are unaffected\n* Security: the last admin can no longer be removed or demoted. Both operations left an instance where nobody could add an npub, which is a lockout and also re-opens the first-admin bootstrap. Both now return `409` with `code: \"last_admin\"`; add a second admin first. Removing a pubkey from `ROUTSTRD_AUTH_ADMIN_NPUBS` demotes it to an ordinary member instead of deleting it, so its API keys keep working -- use `DELETE /npubs` to revoke an npub completely\n* Security: `/wallet/parked` requires an admin npub. It lists refund tokens parked after a failed receive, which is wallet operational state, so it joins `GET /keys/api` rather than staying open to members. Without this it would have been refused outright, because it is new in the bundled daemon and unclassified routes now return 404\n* Security: secrets are created owner-only and the data directory is repaired before it is used. `config.json` (the container nsec), the Cashu wallet material and `routstr.db` (every client API key in plaintext) were created at 0644 by `Bun.write()` and are included in Cloudron backups. Startup now sets `umask 077`, narrows the directory with `gosu`, and fails closed if the repair fails instead of continuing with old credentials exposed\n* Security: the Bun runtime download is verified before it is run. It is the one executable input to the build not pinned by a digest or a version resolver; `BUN_SHA256` now carries the published hash for `bun-linux-x64-baseline` 1.4.4 and is checked with `sha256sum -c`, so bumping `BUN_VERSION` without updating it fails the build\n* Bodies on the management routes are read only after credentials are checked, so an anonymous caller can no longer make the proxy buffer an arbitrary payload while waiting for a 401 -- with the container's 512 MB limit that was a remote OOM. Emptying the admin list is blocked server-side, and `POST /npubs` now requires a display name\n* The release image is gated on the daemon it actually contains. `scripts/check-daemon-routes.sh` verifies the installed `routstrd` version and the SHA-256 of the exact `dist/daemon/index.js` that Supervisor runs against a reviewed inventory, and checks that the image's `src/proxy.ts` and `src/daemon-routes.ts` match the release checkout. A rebuilt bundle at the same version, or an older image passed to `--no-build`, cannot inherit an earlier review\n* Updated bundled routstrd to 0.5.2 and routstr-sdk to 0.5.2\n* The bundled daemon now signs NIP-98 requests with a fresh `nonce` tag. A signature alone does not change an event id -- identical fields within one second hash the same -- so the replay protection above would refuse legitimate repeat requests from an older client. The proxy does not require the tag, so clients without it still work; they can simply be refused when they send two identical requests in the same second\n* routstrd 0.5.2 fixes a failed receive leaving refund tokens parked with no terminal outcome, verifies parked proofs before pruning them, bounds foreground receive recovery without releasing settlement ownership, and keeps a recovery loop intact when a job restarts mid-pass\n* It also fixes NIP-98 nonces, keeps Pi session identity in local accounting instead of rewriting inference requests (and out of usage responses), serves a consistent model catalog with `models --all` for every provider-served model, and adds `--bootstrap-token` to `npubs register` so the first admin can be claimed from the CLI\n* routstr-sdk 0.5.2 adds inference deadlines: a time-to-first-byte budget and an inter-chunk idle budget (both default 180 s, sized so reasoning models that think silently are not cut off), reported as `InferenceTimeoutError` and cooled down and failed over like a network error. It also forwards allowlisted session headers (`x-session-id`, `x-opencode-session`, `x-client-request-id` and similar) so prompt-cache affinity survives a failover, and stops dropping caller `system` messages. Credentials, cookies and every header outside that allowlist are still never forwarded\n",
+                "postInstallMessage": "Routstrd Auth is now installed.\n\nThe app exposes an OpenAI-compatible Routstr endpoint protected by bearer-token auth. Persistent wallet/config/database data is stored under Cloudron's app data directory and included in backups.\n\nRegister the first admin now. Until you do, the app has no admin and the first-admin slot can only be claimed with a one-time token:\n\n1. Open this app's Logs tab and copy the bootstrap token printed at startup (\"The first admin must be claimed with this one-time token\").\n2. Claim the first admin with your npub and a display name:\n\n   curl -X POST https://<this-app>/npubs -H 'Content-Type: application/json' -H 'x-routstr-bootstrap-token: <token>' -d '{\"npub\":\"npub1...\",\"name\":\"Your Name\"}'\n\nThe token is single-use. After this, `routstrd remote <url>` + `routstrd npubs add` manage further members from the CLI, and admin-only wallet and provider-key routes require that admin npub.\n",
+                "tags": [
+                    "ai",
+                    "proxy",
+                    "nostr",
+                    "bitcoin",
+                    "openai"
+                ],
+                "mediaLinks": [
+                    "https://www.routstr.com/"
+                ],
+                "dockerImage": "ghcr.io/sh1ftred/routstrd-pro:20261121-071533-7a20f2047"
+            },
+            "creationDate": "Sat, 21 Nov 2026 07:17:48 GMT",
+            "ts": "Sat, 21 Nov 2026 07:17:48 GMT",
+            "publishState": "published"
         }
     }
 }
