@@ -179,13 +179,14 @@ export default function TopUpPage() {
 
       try {
         const response = await fetch(
-          `${baseUrl}/v1/wallet/topup?cashu_token=${encodeURIComponent(tokenToUse)}`,
+          `${baseUrl}/v1/wallet/topup`,
           {
             method: "POST",
             headers: {
               Authorization: `Bearer ${apiKey}`,
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({ cashu_token: tokenToUse }),
           }
         );
 
