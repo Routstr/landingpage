@@ -1702,6 +1702,52 @@
             "creationDate": "Sat, 21 Nov 2026 07:17:48 GMT",
             "ts": "Sat, 21 Nov 2026 07:17:48 GMT",
             "publishState": "published"
+        },
+        "0.2.3": {
+            "manifest": {
+                "id": "io.routstr.routstrd-auth",
+                "title": "Routstrd Auth",
+                "author": "Routstr <hello@routstr.io>",
+                "description": "Auth proxy and daemon for the Routstr AI routing network",
+                "tagline": "Self-hosted Routstr node with bearer-token auth",
+                "version": "0.2.3",
+                "upstreamVersion": "0.2.3",
+                "healthCheckPath": "/health",
+                "httpPort": 8008,
+                "memoryLimit": 536870912,
+                "addons": {
+                    "localstorage": {
+                        "sqlite": {
+                            "paths": [
+                                "/app/data/routstrd/routstr.db"
+                            ]
+                        }
+                    }
+                },
+                "manifestVersion": 2,
+                "website": "https://routstr.com",
+                "contactEmail": "team@routstr.com",
+                "iconUrl": "https://routstr.com/favicon.ico",
+                "packagerName": "Routstr",
+                "packagerUrl": "https://github.com/Routstr",
+                "minBoxVersion": "10.1.1",
+                "changelog": "* The container’s existing routstrd identity is registered as an admin at startup. Add people from the app terminal with `routstrd npubs add`, without copying a bootstrap token or creating a second key. Existing admin registrations are preserved.\n",
+                "postInstallMessage": "Routstrd Auth is now installed.\n\nThe app exposes an OpenAI-compatible Routstr endpoint protected by bearer-token auth. Persistent wallet/config/database data is stored under Cloudron's app data directory and included in backups.\n\nThe app's own Nostr identity is already its first admin, so there is nothing to claim and no token to copy. To add yourself, open this app's Web Terminal (Terminal button in the Cloudron dashboard) and run:\n\n    routstrd npubs add <your npub> --role admin --name \"Your Name\"\n\nYour npub is printed by `routstrd remote <this app's URL>` on your own machine. Once you are an admin, `routstrd npubs list`, `add` and `update` work from there too. `routstrd status` and `routstrd balance` in the Web Terminal show the wallet and daemon state.\n\nThe container's own identity stays an admin as a break-glass account (it is what signs your terminal commands), so it cannot be locked out. Name it if you want the startup warning to stop:\n\n    routstrd npubs update <container npub> --name \"Routstr Box\"\n\n`routstrd npubs list` marks the container's identity with \"→ you\".\n",
+                "tags": [
+                    "ai",
+                    "proxy",
+                    "nostr",
+                    "bitcoin",
+                    "openai"
+                ],
+                "mediaLinks": [
+                    "https://www.routstr.com/"
+                ],
+                "dockerImage": "ghcr.io/sh1ftred/routstrd-pro:20261126-032445-7a8f5a5e7"
+            },
+            "creationDate": "Thu, 26 Nov 2026 03:59:30 GMT",
+            "ts": "Thu, 26 Nov 2026 03:59:30 GMT",
+            "publishState": "published"
         }
     }
 }
